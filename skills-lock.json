@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "visual-explainer": {
+      "source": "nicobailon/visual-explainer",
+      "sourceType": "github",
+      "computedHash": "103767af1631d8b7967619bd8fd7593cb6d3286b101f2065828862dbe7030404"
+    }
+  }
+}
