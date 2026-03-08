@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "test": "vitest run",
-    "test:html": "node generate-html.js"
+    "test:html": "node generate-html.ts"
   },
   "devDependencies": {
     "vitest": "^4.0.0",

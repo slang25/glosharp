@@ -22,7 +22,7 @@ describe('pluginTwohash', () => {
     // anchor-name and position-anchor are set as inline styles on individual elements,
     // not in the base stylesheet — verify core layout rules instead
     expect(plugin.baseStyles).toContain('position: fixed')
-    expect(plugin.baseStyles).toContain('inset-area: top')
+    expect(plugin.baseStyles).toContain('position-area: top')
   })
 
   it('has theme-aware styleSettings', () => {

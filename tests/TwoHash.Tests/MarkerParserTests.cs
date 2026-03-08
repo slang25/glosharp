@@ -4,113 +4,113 @@ namespace TwoHash.Tests;
 
 public class MarkerParserTests
 {
-    [Fact]
-    public void Parse_HoverMarker_ExtractsQueryPosition()
+    [Test]
+    public async Task Parse_HoverMarker_ExtractsQueryPosition()
     {
         var source = "var x = 42;\n//  ^?";
         var result = MarkerParser.Parse(source);
 
-        Assert.Single(result.HoverQueries);
-        Assert.Equal(0, result.HoverQueries[0].OriginalLine); // processed line
-        Assert.Equal(4, result.HoverQueries[0].Column);
+        await Assert.That(result.HoverQueries.Count).IsEqualTo(1);
+        await Assert.That(result.HoverQueries[0].OriginalLine).IsEqualTo(0);
+        await Assert.That(result.HoverQueries[0].Column).IsEqualTo(4);
     }
 
-    [Fact]
-    public void Parse_MultipleHoverMarkers_ExtractsAll()
+    [Test]
+    public async Task Parse_MultipleHoverMarkers_ExtractsAll()
     {
         var source = "var x = 42;\n//  ^?\nvar y = 10;\n//  ^?";
         var result = MarkerParser.Parse(source);
 
-        Assert.Equal(2, result.HoverQueries.Count);
-        Assert.Equal(0, result.HoverQueries[0].OriginalLine);
-        Assert.Equal(1, result.HoverQueries[1].OriginalLine);
+        await Assert.That(result.HoverQueries.Count).IsEqualTo(2);
+        await Assert.That(result.HoverQueries[0].OriginalLine).IsEqualTo(0);
+        await Assert.That(result.HoverQueries[1].OriginalLine).IsEqualTo(1);
     }
 
-    [Fact]
-    public void Parse_ErrorsDirective_ExtractsCodes()
+    [Test]
+    public async Task Parse_ErrorsDirective_ExtractsCodes()
     {
         var source = "// @errors: CS1002\nvar x = 42";
         var result = MarkerParser.Parse(source);
 
-        Assert.Single(result.ErrorExpectations);
-        Assert.Contains("CS1002", result.ErrorExpectations[0].Codes);
+        await Assert.That(result.ErrorExpectations.Count).IsEqualTo(1);
+        await Assert.That(result.ErrorExpectations[0].Codes).Contains("CS1002");
     }
 
-    [Fact]
-    public void Parse_MultipleErrorCodes_ExtractsAll()
+    [Test]
+    public async Task Parse_MultipleErrorCodes_ExtractsAll()
     {
         var source = "// @errors: CS1002, CS0246\nvar x = 42";
         var result = MarkerParser.Parse(source);
 
-        Assert.Single(result.ErrorExpectations);
-        Assert.Equal(2, result.ErrorExpectations[0].Codes.Count);
-        Assert.Contains("CS1002", result.ErrorExpectations[0].Codes);
-        Assert.Contains("CS0246", result.ErrorExpectations[0].Codes);
+        await Assert.That(result.ErrorExpectations.Count).IsEqualTo(1);
+        await Assert.That(result.ErrorExpectations[0].Codes.Count).IsEqualTo(2);
+        await Assert.That(result.ErrorExpectations[0].Codes).Contains("CS1002");
+        await Assert.That(result.ErrorExpectations[0].Codes).Contains("CS0246");
     }
 
-    [Fact]
-    public void Parse_NoErrors_SetsFlag()
+    [Test]
+    public async Task Parse_NoErrors_SetsFlag()
     {
         var source = "// @noErrors\nvar x = 42;";
         var result = MarkerParser.Parse(source);
-        Assert.True(result.NoErrors);
+        await Assert.That(result.NoErrors).IsTrue();
     }
 
-    [Fact]
-    public void Parse_CutMarker_HidesCodeBefore()
+    [Test]
+    public async Task Parse_CutMarker_HidesCodeBefore()
     {
         var source = "var setup = 1;\n// ---cut---\nvar visible = 2;";
         var result = MarkerParser.Parse(source);
 
-        Assert.Equal("var visible = 2;", result.ProcessedCode);
+        await Assert.That(result.ProcessedCode).IsEqualTo("var visible = 2;");
     }
 
-    [Fact]
-    public void Parse_HideShow_HidesSection()
+    [Test]
+    public async Task Parse_HideShow_HidesSection()
     {
         var source = "var a = 1;\n// @hide\nvar hidden = 2;\n// @show\nvar b = 3;";
         var result = MarkerParser.Parse(source);
 
-        Assert.Equal("var a = 1;\nvar b = 3;", result.ProcessedCode);
+        await Assert.That(result.ProcessedCode).IsEqualTo("var a = 1;\nvar b = 3;");
     }
 
-    [Fact]
-    public void Parse_HideWithoutShow_HidesToEnd()
+    [Test]
+    public async Task Parse_HideWithoutShow_HidesToEnd()
     {
         var source = "var a = 1;\n// @hide\nvar hidden = 2;";
         var result = MarkerParser.Parse(source);
 
-        Assert.Equal("var a = 1;", result.ProcessedCode);
+        await Assert.That(result.ProcessedCode).IsEqualTo("var a = 1;");
     }
 
-    [Fact]
-    public void Parse_RemovesAllMarkerLines()
+    [Test]
+    public async Task Parse_RemovesAllMarkerLines()
     {
         var source = "var x = 42;\n//  ^?\n// @noErrors\nvar y = 10;";
         var result = MarkerParser.Parse(source);
 
-        Assert.Equal("var x = 42;\nvar y = 10;", result.ProcessedCode);
+        await Assert.That(result.ProcessedCode).IsEqualTo("var x = 42;\nvar y = 10;");
     }
 
-    [Fact]
-    public void Parse_BuildsLineMap()
+    [Test]
+    public async Task Parse_BuildsLineMap()
     {
         var source = "var x = 42;\n//  ^?\nvar y = 10;";
         var result = MarkerParser.Parse(source);
 
-        Assert.Equal(2, result.LineMap.Length);
-        Assert.Equal(0, result.LineMap[0]); // processed line 0 = original line 0
-        Assert.Equal(2, result.LineMap[1]); // processed line 1 = original line 2
+        await Assert.That(result.LineMap.Length).IsEqualTo(2);
+        await Assert.That(result.LineMap[0]).IsEqualTo(0);
+        await Assert.That(result.LineMap[1]).IsEqualTo(2);
     }
 
-    [Fact]
-    public void GetCompilationCode_IncludesHiddenCode()
+    [Test]
+    public async Task GetCompilationCode_IncludesHiddenCode()
     {
         var source = "var setup = 1;\n// ---cut---\nvar visible = 2;";
         var compilationCode = MarkerParser.GetCompilationCode(source);
 
-        Assert.Contains("var setup = 1;", compilationCode);
-        Assert.Contains("var visible = 2;", compilationCode);
-        Assert.DoesNotContain("---cut---", compilationCode);
+        await Assert.That(compilationCode).Contains("var setup = 1;");
+        await Assert.That(compilationCode).Contains("var visible = 2;");
+        await Assert.That(compilationCode).DoesNotContain("---cut---");
     }
 }

@@ -6,139 +6,139 @@ public class TwohashProcessorTests
 {
     private readonly TwohashProcessor _processor = new();
 
-    [Fact]
-    public void Process_LocalVariable_ExtractsTypeInfo()
+    [Test]
+    public async Task Process_LocalVariable_ExtractsTypeInfo()
     {
         var source = "var x = 42;\n//  ^?";
         var result = _processor.Process(source);
 
-        Assert.Single(result.Hovers);
-        Assert.Contains("int", result.Hovers[0].Text);
-        Assert.Contains("x", result.Hovers[0].Text);
-        Assert.Equal("Local", result.Hovers[0].SymbolKind);
-        Assert.Equal("x", result.Hovers[0].TargetText);
+        await Assert.That(result.Hovers.Count).IsEqualTo(1);
+        await Assert.That(result.Hovers[0].Text).Contains("int");
+        await Assert.That(result.Hovers[0].Text).Contains("x");
+        await Assert.That(result.Hovers[0].SymbolKind).IsEqualTo("Local");
+        await Assert.That(result.Hovers[0].TargetText).IsEqualTo("x");
     }
 
-    [Fact]
-    public void Process_StringVariable_ShowsType()
+    [Test]
+    public async Task Process_StringVariable_ShowsType()
     {
         var source = "var greeting = \"hello\";\n//      ^?";
         var result = _processor.Process(source);
 
-        Assert.Single(result.Hovers);
-        Assert.Contains("string", result.Hovers[0].Text);
-        Assert.Contains("greeting", result.Hovers[0].Text);
+        await Assert.That(result.Hovers.Count).IsEqualTo(1);
+        await Assert.That(result.Hovers[0].Text).Contains("string");
+        await Assert.That(result.Hovers[0].Text).Contains("greeting");
     }
 
-    [Fact]
-    public void Process_MethodWithOverloads_ShowsOverloadCount()
+    [Test]
+    public async Task Process_MethodWithOverloads_ShowsOverloadCount()
     {
         var source = "Console.WriteLine(\"test\");\n//        ^?";
         var result = _processor.Process(source);
 
-        Assert.Single(result.Hovers);
-        Assert.Contains("overloads", result.Hovers[0].Text);
-        Assert.NotNull(result.Hovers[0].OverloadCount);
-        Assert.True(result.Hovers[0].OverloadCount > 1);
+        await Assert.That(result.Hovers.Count).IsEqualTo(1);
+        await Assert.That(result.Hovers[0].Text).Contains("overloads");
+        await Assert.That(result.Hovers[0].OverloadCount).IsNotNull();
+        await Assert.That(result.Hovers[0].OverloadCount!.Value).IsGreaterThan(1);
     }
 
-    [Fact]
-    public void Process_StructuredParts_ContainsCorrectKinds()
+    [Test]
+    public async Task Process_StructuredParts_ContainsCorrectKinds()
     {
         var source = "var x = 42;\n//  ^?";
         var result = _processor.Process(source);
 
         var parts = result.Hovers[0].Parts;
-        Assert.Contains(parts, p => p.Kind == "keyword" && p.Text == "int");
-        Assert.Contains(parts, p => p.Kind == "localName" && p.Text == "x");
-        Assert.Contains(parts, p => p.Kind == "text" && p.Text == "local variable");
+        await Assert.That(parts.Any(p => p.Kind == "keyword" && p.Text == "int")).IsTrue();
+        await Assert.That(parts.Any(p => p.Kind == "localName" && p.Text == "x")).IsTrue();
+        await Assert.That(parts.Any(p => p.Kind == "text" && p.Text == "local variable")).IsTrue();
     }
 
-    [Fact]
-    public void Process_CleanCompilation_Succeeds()
+    [Test]
+    public async Task Process_CleanCompilation_Succeeds()
     {
         var source = "// @noErrors\nvar x = 42;\nConsole.WriteLine(x);";
         var result = _processor.Process(source);
 
-        Assert.True(result.Meta.CompileSucceeded);
-        Assert.Empty(result.Errors);
+        await Assert.That(result.Meta.CompileSucceeded).IsTrue();
+        await Assert.That(result.Errors.Count).IsEqualTo(0);
     }
 
-    [Fact]
-    public void Process_ExpectedError_MarksAsExpected()
+    [Test]
+    public async Task Process_ExpectedError_MarksAsExpected()
     {
         var source = "// @errors: CS0103\nConsole.WriteLine(undeclared);";
         var result = _processor.Process(source);
 
-        Assert.Contains(result.Errors, e => e.Code == "CS0103" && e.Expected);
+        await Assert.That(result.Errors.Any(e => e.Code == "CS0103" && e.Expected)).IsTrue();
     }
 
-    [Fact]
-    public void Process_CutMarker_HidesSetupCode()
+    [Test]
+    public async Task Process_CutMarker_HidesSetupCode()
     {
         var source = "using System.Text;\nvar sb = new StringBuilder();\n// ---cut---\nsb.Append(\"hello\");\n//   ^?";
         var result = _processor.Process(source);
 
-        Assert.DoesNotContain("StringBuilder()", result.Code);
-        Assert.Contains("sb.Append", result.Code);
-        Assert.Single(result.Hovers);
-        Assert.Contains("Append", result.Hovers[0].Text);
+        await Assert.That(result.Code).DoesNotContain("StringBuilder()");
+        await Assert.That(result.Code).Contains("sb.Append");
+        await Assert.That(result.Hovers.Count).IsEqualTo(1);
+        await Assert.That(result.Hovers[0].Text).Contains("Append");
     }
 
-    [Fact]
-    public void Process_GenericType_ShowsFullType()
+    [Test]
+    public async Task Process_GenericType_ShowsFullType()
     {
         var source = "var list = new List<int> { 1, 2, 3 };\n//    ^?";
         var result = _processor.Process(source);
 
-        Assert.Single(result.Hovers);
-        Assert.Contains("List<int>", result.Hovers[0].Text);
+        await Assert.That(result.Hovers.Count).IsEqualTo(1);
+        await Assert.That(result.Hovers[0].Text).Contains("List<int>");
     }
 
-    [Fact]
-    public void Process_OutputFormat_HasRequiredFields()
+    [Test]
+    public async Task Process_OutputFormat_HasRequiredFields()
     {
         var source = "var x = 42;";
         var result = _processor.Process(source);
 
-        Assert.Equal("csharp", result.Lang);
-        Assert.NotNull(result.Code);
-        Assert.NotNull(result.Original);
-        Assert.NotNull(result.Hovers);
-        Assert.NotNull(result.Errors);
-        Assert.NotNull(result.Completions);
-        Assert.NotNull(result.Highlights);
-        Assert.NotNull(result.Hidden);
-        Assert.NotNull(result.Meta);
-        Assert.NotNull(result.Meta.TargetFramework);
+        await Assert.That(result.Lang).IsEqualTo("csharp");
+        await Assert.That(result.Code).IsNotNull();
+        await Assert.That(result.Original).IsNotNull();
+        await Assert.That(result.Hovers).IsNotNull();
+        await Assert.That(result.Errors).IsNotNull();
+        await Assert.That(result.Completions).IsNotNull();
+        await Assert.That(result.Highlights).IsNotNull();
+        await Assert.That(result.Hidden).IsNotNull();
+        await Assert.That(result.Meta).IsNotNull();
+        await Assert.That(result.Meta.TargetFramework).IsNotNull();
     }
 
-    [Fact]
-    public void Process_JsonSerialization_UseCamelCase()
+    [Test]
+    public async Task Process_JsonSerialization_UseCamelCase()
     {
         var source = "var x = 42;\n//  ^?";
         var result = _processor.Process(source);
         var json = JsonOutput.Serialize(result);
 
-        Assert.Contains("\"code\":", json);
-        Assert.Contains("\"hovers\":", json);
-        Assert.Contains("\"symbolKind\":", json);
-        Assert.Contains("\"targetFramework\":", json);
-        Assert.Contains("\"compileSucceeded\":", json);
+        await Assert.That(json).Contains("\"code\":");
+        await Assert.That(json).Contains("\"hovers\":");
+        await Assert.That(json).Contains("\"symbolKind\":");
+        await Assert.That(json).Contains("\"targetFramework\":");
+        await Assert.That(json).Contains("\"compileSucceeded\":");
         // Should not contain PascalCase
-        Assert.DoesNotContain("\"Code\":", json);
-        Assert.DoesNotContain("\"Hovers\":", json);
+        await Assert.That(json).DoesNotContain("\"Code\":");
+        await Assert.That(json).DoesNotContain("\"Hovers\":");
     }
 
-    [Fact]
-    public void Process_EmptyArraysNotNull()
+    [Test]
+    public async Task Process_EmptyArraysNotNull()
     {
         var source = "var x = 42;";
         var result = _processor.Process(source);
         var json = JsonOutput.Serialize(result);
 
-        Assert.Contains("\"completions\": []", json);
-        Assert.Contains("\"highlights\": []", json);
-        Assert.Contains("\"hidden\": []", json);
+        await Assert.That(json).Contains("\"completions\": []");
+        await Assert.That(json).Contains("\"highlights\": []");
+        await Assert.That(json).Contains("\"hidden\": []");
     }
 }

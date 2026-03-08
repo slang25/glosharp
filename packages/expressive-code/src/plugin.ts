@@ -56,7 +56,7 @@ function buildBaseStyles(): string {
 .twohash-popup {
   display: none;
   position: fixed;
-  inset-area: top;
+  position-area: top;
   margin-bottom: 4px;
   z-index: 100;
   max-width: 500px;

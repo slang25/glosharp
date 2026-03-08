@@ -11,7 +11,7 @@ body { font-family: -apple-system, sans-serif; background: #1a1a2e; color: #e0e0
 h1 { color: #7c3aed; }
 h2 { color: #a78bfa; margin-top: 32px; }
 .sample { margin: 16px 0; position: relative; }
-pre { border-radius: 8px; overflow-x: auto; }
+pre { border-radius: 8px; overflow-x: auto; padding-bottom: 4px !important; }
 
 .twohash-hover {
   position: relative;
@@ -21,7 +21,7 @@ pre { border-radius: 8px; overflow-x: auto; }
 .twohash-popup {
   display: none;
   position: fixed;
-  inset-area: top;
+  position-area: top;
   margin-bottom: 4px;
   z-index: 100;
   max-width: 500px;
@@ -74,6 +74,11 @@ function getText(node: any): string {
   return (node.children ?? []).map(getText).join('')
 }
 
+function cloneWithText(node: any, newText: string): any {
+  if (node.type === 'text') return { type: 'text', value: newText }
+  return { ...node, children: [{ type: 'text', value: newText }] }
+}
+
 async function renderSample(name: string): Promise<string> {
   const result = runCli(join(SAMPLES_DIR, name))
 
@@ -89,23 +94,42 @@ async function renderSample(name: string): Promise<string> {
           const line = lines[hover.line]
           if (!line?.children) continue
           const anchor = `--th-${name.replace('.cs','')}-${idx++}`
+          const parts = hover.parts.map((p: any) => ({
+            type: 'element', tagName: 'span',
+            properties: { class: `twohash-${p.kind}` },
+            children: [{ type: 'text', value: p.text }],
+          }))
+          const popup = {
+            type: 'element', tagName: 'div', properties: { class: 'twohash-popup', style: `position-anchor: ${anchor}` },
+            children: [{ type: 'element', tagName: 'code', properties: { class: 'twohash-popup-code' }, children: parts },
+              ...(hover.docs ? [{ type: 'element', tagName: 'div', properties: { class: 'twohash-popup-docs' }, children: [{ type: 'text', value: hover.docs }] }] : []),
+            ],
+          }
           for (let i = 0; i < line.children.length; i++) {
-            if (getText(line.children[i]).includes(hover.targetText)) {
-              const parts = hover.parts.map((p: any) => ({
-                type: 'element', tagName: 'span',
-                properties: { class: `twohash-${p.kind}` },
-                children: [{ type: 'text', value: p.text }],
-              }))
-              line.children.splice(i, 1,
-                { type: 'element', tagName: 'span', properties: { class: 'twohash-hover', style: `anchor-name: ${anchor}` }, children: [line.children[i]] },
-                { type: 'element', tagName: 'div', properties: { class: 'twohash-popup', style: `position-anchor: ${anchor}` },
-                  children: [{ type: 'element', tagName: 'code', properties: { class: 'twohash-popup-code' }, children: parts },
-                    ...(hover.docs ? [{ type: 'element', tagName: 'div', properties: { class: 'twohash-popup-docs' }, children: [{ type: 'text', value: hover.docs }] }] : []),
-                  ],
-                },
-              )
-              break
-            }
+            const text = getText(line.children[i])
+            const matchIdx = text.indexOf(hover.targetText)
+            if (matchIdx === -1) continue
+            // Word boundary check to avoid false matches like "x" in "(x);"
+            const charBefore = matchIdx > 0 ? text[matchIdx - 1] : ''
+            const charAfter = matchIdx + hover.targetText.length < text.length ? text[matchIdx + hover.targetText.length] : ''
+            if (charBefore && /\w/.test(charBefore)) continue
+            if (charAfter && /\w/.test(charAfter)) continue
+
+            const before = text.substring(0, matchIdx)
+            const after = text.substring(matchIdx + hover.targetText.length)
+            const original = line.children[i]
+
+            // Build replacement nodes, splitting the token if needed
+            const newNodes: any[] = []
+            if (before) newNodes.push(cloneWithText(original, before))
+            newNodes.push(
+              { type: 'element', tagName: 'span', properties: { class: 'twohash-hover', style: `anchor-name: ${anchor}` },
+                children: [cloneWithText(original, hover.targetText)] },
+              popup,
+            )
+            if (after) newNodes.push(cloneWithText(original, after))
+            line.children.splice(i, 1, ...newNodes)
+            break
           }
         }
         // Inject error messages
