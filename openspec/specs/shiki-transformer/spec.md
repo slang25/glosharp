@@ -45,3 +45,14 @@ Hover popup content SHALL render the display parts array with appropriate CSS cl
 #### Scenario: Hover popup content styling
 - **WHEN** hover parts include `{kind: "keyword", text: "int"}` and `{kind: "localName", text: "x"}`
 - **THEN** the popup HTML contains `<span class="twohash-keyword">int</span>` and `<span class="twohash-localName">x</span>`
+
+### Requirement: Pass project option to bridge
+The `transformerTwohash()` factory SHALL accept a `project` option and pass it through to the twohash bridge when processing code blocks.
+
+#### Scenario: Transformer with project context
+- **WHEN** `transformerTwohash({ project: './MyProject.csproj' })` is configured
+- **THEN** all twohash CLI invocations include the `--project` argument
+
+#### Scenario: Transformer without project
+- **WHEN** `transformerTwohash()` is configured without a `project` option
+- **THEN** CLI invocations use standalone mode (framework refs only)

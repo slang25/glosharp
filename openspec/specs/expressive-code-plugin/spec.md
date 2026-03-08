@@ -63,3 +63,14 @@ The plugin SHALL not modify code blocks that don't contain twohash markers or ar
 #### Scenario: C# without markers
 - **WHEN** a C# code block without `^?`, `@errors`, or other twohash markers enters the pipeline
 - **THEN** the plugin does not invoke the CLI or add any annotations
+
+### Requirement: Pass project option to bridge
+The `pluginTwohash()` factory SHALL accept a `project` option and pass it through to the twohash bridge when processing code blocks.
+
+#### Scenario: Plugin with project context
+- **WHEN** `pluginTwohash({ project: './MyProject.csproj' })` is configured
+- **THEN** all twohash CLI invocations include the `--project` argument
+
+#### Scenario: Plugin without project
+- **WHEN** `pluginTwohash()` is configured without a `project` option
+- **THEN** CLI invocations use standalone mode (framework refs only)
