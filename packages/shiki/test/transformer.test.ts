@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { codeToHtml } from 'shiki'
-import { transformerTwohashWithResult } from '../src/transformer.js'
+import { transformerTwohashWithResult, type TransformerTwohashOptions } from '../src/transformer.js'
 import type { TwohashResult } from 'twohash'
 
 const sampleResult: TwohashResult = {
@@ -118,5 +118,14 @@ describe('transformerTwohashWithResult', () => {
     })
 
     expect(html).not.toContain('twohash-error-message')
+  })
+})
+
+describe('TransformerTwohashOptions', () => {
+  it('accepts project option in type', () => {
+    const options: TransformerTwohashOptions = {
+      project: './MyProject.csproj',
+    }
+    expect(options.project).toBe('./MyProject.csproj')
   })
 })

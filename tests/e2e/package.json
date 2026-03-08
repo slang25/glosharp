@@ -7,9 +7,9 @@
     "test:html": "node generate-html.ts"
   },
   "devDependencies": {
-    "vitest": "^4.0.0",
-    "shiki": "^3.0.0",
-    "typescript": "^5.0.0",
-    "@types/node": "^22.0.0"
+    "vitest": "^4.0.18",
+    "shiki": "^4.0.1",
+    "typescript": "^5.9.3",
+    "@types/node": "^25.3.5"
   }
 }

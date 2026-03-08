@@ -52,4 +52,6 @@ export interface TwohashProcessOptions {
   code?: string
   file?: string
   framework?: string
+  project?: string
+  noRestore?: boolean
 }

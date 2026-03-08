@@ -8,6 +8,7 @@ namespace TwoHash.Core;
 public class TwohashProcessorOptions
 {
     public string? TargetFramework { get; init; }
+    public string? ProjectPath { get; init; }
 }
 
 public class TwohashProcessor
@@ -59,8 +60,21 @@ public class TwohashProcessor
         var parseOptions = new CSharpParseOptions(LanguageVersion.Latest);
         var tree = CSharpSyntaxTree.ParseText(compilationCode, parseOptions);
 
-        var references = FrameworkResolver.GetFrameworkReferences(targetFramework);
+        // Resolve project references if a project path is provided
+        ProjectAssetsResult? projectAssets = null;
         var resolvedFramework = targetFramework ?? "net8.0";
+        if (options?.ProjectPath != null)
+        {
+            var assetsFile = ProjectAssetsResolver.FindAssetsFile(options.ProjectPath);
+            projectAssets = ProjectAssetsResolver.Resolve(assetsFile, targetFramework);
+            resolvedFramework = targetFramework ?? projectAssets.TargetFramework;
+        }
+
+        var references = FrameworkResolver.GetFrameworkReferences(resolvedFramework);
+        if (projectAssets != null)
+        {
+            references.AddRange(projectAssets.References);
+        }
 
         var compilation = CSharpCompilation.Create(
             "TwohashSnippet",
@@ -86,6 +100,7 @@ public class TwohashProcessor
             Meta = new TwohashMeta
             {
                 TargetFramework = resolvedFramework,
+                Packages = projectAssets?.Packages ?? [],
                 CompileSucceeded = compileSucceeded,
             },
         };

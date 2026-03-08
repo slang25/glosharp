@@ -1,7 +1,9 @@
 import { createTwohash, type TwohashOptions, type TwohashResult, type TwohashDisplayPart } from 'twohash'
 import type { ShikiTransformer } from 'shiki'
 
-export interface TransformerTwohashOptions extends TwohashOptions {}
+export interface TransformerTwohashOptions extends TwohashOptions {
+  project?: string
+}
 
 const TWOHASH_MARKER_REGEX = /\/\/\s*\^[?|]|\/\/\s*@errors:|\/\/\s*@noErrors|\/\/\s*---cut---|\/\/\s*@hide|\/\/\s*@show/
 
@@ -56,11 +58,11 @@ export function transformerTwohash(options: TransformerTwohashOptions = {}): Shi
 // Helper to pre-process code blocks before running Shiki
 export async function processTwohashCode(
   code: string,
-  options: TwohashOptions = {},
+  options: TransformerTwohashOptions = {},
 ): Promise<TwohashResult | null> {
   if (!hasMarkers(code)) return null
   const twohash = createTwohash(options)
-  return twohash.process({ code })
+  return twohash.process({ code, project: options.project })
 }
 
 // ---- HAST manipulation utilities ----

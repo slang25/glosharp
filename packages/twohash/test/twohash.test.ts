@@ -140,6 +140,43 @@ describe('createTwohash', () => {
       .rejects.toThrow('invalid JSON')
   })
 
+  it('passes --project option', async () => {
+    mockSpawn.mockReturnValue(createMockProcess(JSON.stringify(sampleResult), '', 0))
+
+    const twohash = createTwohash()
+    await twohash.process({ code: 'var x = 42;', project: './MyProject.csproj' })
+
+    expect(mockSpawn).toHaveBeenCalledWith(
+      '/usr/local/bin/twohash',
+      ['process', '--stdin', '--project', './MyProject.csproj'],
+      expect.any(Object),
+    )
+  })
+
+  it('passes --no-restore flag', async () => {
+    mockSpawn.mockReturnValue(createMockProcess(JSON.stringify(sampleResult), '', 0))
+
+    const twohash = createTwohash()
+    await twohash.process({ code: 'var x = 42;', project: './MyProject.csproj', noRestore: true })
+
+    expect(mockSpawn).toHaveBeenCalledWith(
+      '/usr/local/bin/twohash',
+      ['process', '--stdin', '--project', './MyProject.csproj', '--no-restore'],
+      expect.any(Object),
+    )
+  })
+
+  it('does not pass --no-restore when false', async () => {
+    mockSpawn.mockReturnValue(createMockProcess(JSON.stringify(sampleResult), '', 0))
+
+    const twohash = createTwohash()
+    await twohash.process({ code: 'var x = 42;', noRestore: false })
+
+    const callArgs = mockSpawn.mock.calls[0][1] as string[]
+    expect(callArgs).not.toContain('--no-restore')
+    expect(callArgs).not.toContain('--project')
+  })
+
   it('uses custom executable path', async () => {
     mockSpawn.mockReturnValue(createMockProcess(JSON.stringify(sampleResult), '', 0))
 
