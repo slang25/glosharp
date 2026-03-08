@@ -11,17 +11,18 @@ var command = args[0];
 
 return command switch
 {
-    "process" => RunProcess(args[1..]),
-    "verify" => RunVerify(args[1..]),
+    "process" => await RunProcess(args[1..]),
+    "verify" => await RunVerify(args[1..]),
     "--help" or "-h" => PrintUsageAndReturn(),
     _ => PrintUnknownCommand(command),
 };
 
-static int RunProcess(string[] args)
+static async Task<int> RunProcess(string[] args)
 {
     string? filePath = null;
     string? framework = null;
     string? project = null;
+    string? region = null;
     var useStdin = false;
     var noRestore = false;
 
@@ -38,6 +39,9 @@ static int RunProcess(string[] args)
             case "--project" when i + 1 < args.Length:
                 project = args[++i];
                 break;
+            case "--region" when i + 1 < args.Length:
+                region = args[++i];
+                break;
             case "--no-restore":
                 noRestore = true;
                 break;
@@ -46,6 +50,13 @@ static int RunProcess(string[] args)
                     filePath = args[i];
                 break;
         }
+    }
+
+    // Validate --region is not used with --stdin
+    if (region != null && (useStdin || filePath == null))
+    {
+        Console.Error.WriteLine("Error: --region cannot be used with --stdin (region extraction requires a file)");
+        return 1;
     }
 
     string source;
@@ -73,10 +84,11 @@ static int RunProcess(string[] args)
     try
     {
         var processor = new TwohashProcessor();
-        var result = processor.Process(source, new TwohashProcessorOptions
+        var result = await processor.ProcessAsync(source, new TwohashProcessorOptions
         {
             TargetFramework = framework,
             ProjectPath = project,
+            RegionName = region,
         });
 
         Console.Write(JsonOutput.Serialize(result));
@@ -90,7 +102,7 @@ static int RunProcess(string[] args)
     }
 }
 
-static int RunVerify(string[] args)
+static async Task<int> RunVerify(string[] args)
 {
     if (args.Length == 0)
     {
@@ -101,6 +113,7 @@ static int RunVerify(string[] args)
     var directory = args[0];
     string? framework = null;
     string? project = null;
+    string? region = null;
     var noRestore = false;
 
     for (var i = 1; i < args.Length; i++)
@@ -112,6 +125,9 @@ static int RunVerify(string[] args)
                 break;
             case "--project" when i + 1 < args.Length:
                 project = args[++i];
+                break;
+            case "--region" when i + 1 < args.Length:
+                region = args[++i];
                 break;
             case "--no-restore":
                 noRestore = true;
@@ -141,10 +157,16 @@ static int RunVerify(string[] args)
         try
         {
             var source = File.ReadAllText(file);
-            var result = processor.Process(source, new TwohashProcessorOptions
+
+            // If region is specified, skip files that don't contain the region
+            if (region != null && !source.Contains($"#region {region}"))
+                continue;
+
+            var result = await processor.ProcessAsync(source, new TwohashProcessorOptions
             {
                 TargetFramework = framework,
                 ProjectPath = project,
+                RegionName = region,
             });
             if (!result.Meta.CompileSucceeded)
             {
@@ -232,6 +254,7 @@ static void PrintUsage()
     Console.Error.WriteLine("  --stdin             Read source from stdin");
     Console.Error.WriteLine("  --framework <tfm>   Target framework (e.g., net8.0)");
     Console.Error.WriteLine("  --project <path>    Project (.csproj or directory) for NuGet resolution");
+    Console.Error.WriteLine("  --region <name>     Extract a named #region from the source file");
     Console.Error.WriteLine("  --no-restore        Skip automatic dotnet restore");
 }
 

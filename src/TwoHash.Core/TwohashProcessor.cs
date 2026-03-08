@@ -1,7 +1,9 @@
 using System.Xml.Linq;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Completion;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Host.Mef;
 
 namespace TwoHash.Core;
 
@@ -9,6 +11,7 @@ public class TwohashProcessorOptions
 {
     public string? TargetFramework { get; init; }
     public string? ProjectPath { get; init; }
+    public string? RegionName { get; init; }
 }
 
 public class TwohashProcessor
@@ -42,9 +45,15 @@ public class TwohashProcessor
             SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
     );
 
-    public TwohashResult Process(string source, TwohashProcessorOptions? options = null)
+    public async Task<TwohashResult> ProcessAsync(string source, TwohashProcessorOptions? options = null)
     {
         var targetFramework = options?.TargetFramework;
+
+        // 0. Apply region extraction if requested
+        if (options?.RegionName != null)
+        {
+            source = RegionExtractor.ApplyRegion(source, options.RegionName);
+        }
 
         // 1. Parse markers
         var markers = MarkerParser.Parse(source);
@@ -91,12 +100,18 @@ public class TwohashProcessor
         // 6. Extract diagnostics
         var (errors, compileSucceeded) = ExtractDiagnostics(compilation, model, markers, compilationCode);
 
+        // 7. Extract completions (only if ^| markers present)
+        var completions = markers.CompletionQueries.Count > 0
+            ? await ExtractCompletions(markers, compilationCode, references, globalUsings)
+            : [];
+
         return new TwohashResult
         {
             Code = markers.ProcessedCode,
             Original = markers.OriginalCode,
             Hovers = hovers,
             Errors = errors,
+            Completions = completions,
             Meta = new TwohashMeta
             {
                 TargetFramework = resolvedFramework,
@@ -104,6 +119,74 @@ public class TwohashProcessor
                 CompileSucceeded = compileSucceeded,
             },
         };
+    }
+
+    private async Task<List<TwohashCompletion>> ExtractCompletions(
+        MarkerParseResult markers,
+        string compilationCode,
+        List<MetadataReference> references,
+        string globalUsings)
+    {
+        var completions = new List<TwohashCompletion>();
+        var compilationLines = compilationCode.Split('\n');
+
+        var host = MefHostServices.Create(MefHostServices.DefaultAssemblies);
+        using var workspace = new AdhocWorkspace(host);
+        var project = workspace.AddProject("TwohashCompletion", LanguageNames.CSharp);
+        project = project
+            .WithCompilationOptions(new CSharpCompilationOptions(OutputKind.ConsoleApplication)
+                .WithNullableContextOptions(NullableContextOptions.Enable))
+            .WithParseOptions(new CSharpParseOptions(LanguageVersion.Latest));
+        foreach (var r in references)
+            project = project.AddMetadataReference(r);
+        project = project.AddDocument("__GlobalUsings.cs", globalUsings).Project;
+        var document = project.AddDocument("snippet.cs", compilationCode);
+        // Apply changes to workspace so CompletionService can see them
+        workspace.TryApplyChanges(document.Project.Solution);
+        document = workspace.CurrentSolution.GetDocument(document.Id)!;
+
+        var completionService = CompletionService.GetService(document);
+        if (completionService == null) return completions;
+
+        foreach (var query in markers.CompletionQueries)
+        {
+            var originalLine = markers.LineMap[query.OriginalLine];
+            var compilationLine = FindCompilationLine(compilationCode, originalLine, markers);
+            if (compilationLine < 0) continue;
+
+            var position = GetAbsolutePosition(compilationLines, compilationLine, query.Column);
+            if (position < 0 || position > compilationCode.Length) continue;
+
+            var completionList = await completionService.GetCompletionsAsync(document, position);
+            if (completionList == null)
+            {
+                completions.Add(new TwohashCompletion
+                {
+                    Line = query.OriginalLine,
+                    Character = query.Column,
+                    Items = [],
+                });
+                continue;
+            }
+
+            var items = completionList.ItemsList
+                .Select(item => new TwohashCompletionItem
+                {
+                    Label = item.DisplayText,
+                    Kind = item.Tags.FirstOrDefault() ?? "Unknown",
+                    Detail = item.InlineDescription.Length > 0 ? item.InlineDescription : null,
+                })
+                .ToList();
+
+            completions.Add(new TwohashCompletion
+            {
+                Line = query.OriginalLine,
+                Character = query.Column,
+                Items = items,
+            });
+        }
+
+        return completions;
     }
 
     private List<TwohashHover> ExtractHovers(

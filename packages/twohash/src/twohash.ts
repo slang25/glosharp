@@ -43,6 +43,10 @@ export function createTwohash(options: TwohashOptions = {}) {
       args.push('--project', opts.project)
     }
 
+    if (opts.region) {
+      args.push('--region', opts.region)
+    }
+
     if (opts.noRestore) {
       args.push('--no-restore')
     }

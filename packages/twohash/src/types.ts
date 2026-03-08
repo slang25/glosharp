@@ -31,13 +31,25 @@ export interface TwohashMeta {
   compileSucceeded: boolean
 }
 
+export interface TwohashCompletionItem {
+  label: string
+  kind: string
+  detail: string | null
+}
+
+export interface TwohashCompletion {
+  line: number
+  character: number
+  items: TwohashCompletionItem[]
+}
+
 export interface TwohashResult {
   code: string
   original: string
   lang: string
   hovers: TwohashHover[]
   errors: TwohashError[]
-  completions: unknown[]
+  completions: TwohashCompletion[]
   highlights: unknown[]
   hidden: unknown[]
   meta: TwohashMeta
@@ -53,5 +65,6 @@ export interface TwohashProcessOptions {
   file?: string
   framework?: string
   project?: string
+  region?: string
   noRestore?: boolean
 }

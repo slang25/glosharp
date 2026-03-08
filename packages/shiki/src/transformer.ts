@@ -3,6 +3,7 @@ import type { ShikiTransformer } from 'shiki'
 
 export interface TransformerTwohashOptions extends TwohashOptions {
   project?: string
+  region?: string
 }
 
 const TWOHASH_MARKER_REGEX = /\/\/\s*\^[?|]|\/\/\s*@errors:|\/\/\s*@noErrors|\/\/\s*---cut---|\/\/\s*@hide|\/\/\s*@show/
@@ -24,6 +25,7 @@ export function transformerTwohashWithResult(result: TwohashResult): ShikiTransf
     root(hast) {
       injectHovers(hast as HastElement, result)
       injectErrors(hast as HastElement, result)
+      injectCompletions(hast as HastElement, result)
     },
   }
 }
@@ -51,6 +53,7 @@ export function transformerTwohash(options: TransformerTwohashOptions = {}): Shi
       pendingResult = undefined
       injectHovers(hast as HastElement, result)
       injectErrors(hast as HastElement, result)
+      injectCompletions(hast as HastElement, result)
     },
   }
 }
@@ -62,7 +65,7 @@ export async function processTwohashCode(
 ): Promise<TwohashResult | null> {
   if (!hasMarkers(code)) return null
   const twohash = createTwohash(options)
-  return twohash.process({ code, project: options.project })
+  return twohash.process({ code, project: options.project, region: options.region })
 }
 
 // ---- HAST manipulation utilities ----
@@ -130,6 +133,31 @@ function injectErrors(root: HastElement, result: TwohashResult): void {
 
     if (line.children) {
       line.children.push(errorMessage)
+    }
+  }
+}
+
+function injectCompletions(root: HastElement, result: TwohashResult): void {
+  if (!result.completions || result.completions.length === 0) return
+
+  const lines = findCodeLines(root)
+
+  for (const completion of result.completions) {
+    const line = lines[completion.line]
+    if (!line) continue
+
+    const items = completion.items.map(item =>
+      h('li', { class: `twohash-completion-item twohash-completion-kind-${item.kind}` }, [
+        h('span', { class: 'twohash-completion-kind' }, [hText(item.kind)]),
+        h('span', { class: 'twohash-completion-label' }, [hText(item.label)]),
+        ...(item.detail ? [h('span', { class: 'twohash-completion-detail' }, [hText(item.detail)])] : []),
+      ])
+    )
+
+    const completionList = h('ul', { class: 'twohash-completion-list' }, items)
+
+    if (line.children) {
+      line.children.push(completionList)
     }
   }
 }

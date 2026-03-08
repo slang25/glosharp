@@ -10,7 +10,7 @@ public class TwohashProcessorTests
     public async Task Process_LocalVariable_ExtractsTypeInfo()
     {
         var source = "var x = 42;\n//  ^?";
-        var result = _processor.Process(source);
+        var result = await _processor.ProcessAsync(source);
 
         await Assert.That(result.Hovers.Count).IsEqualTo(1);
         await Assert.That(result.Hovers[0].Text).Contains("int");
@@ -23,7 +23,7 @@ public class TwohashProcessorTests
     public async Task Process_StringVariable_ShowsType()
     {
         var source = "var greeting = \"hello\";\n//      ^?";
-        var result = _processor.Process(source);
+        var result = await _processor.ProcessAsync(source);
 
         await Assert.That(result.Hovers.Count).IsEqualTo(1);
         await Assert.That(result.Hovers[0].Text).Contains("string");
@@ -34,7 +34,7 @@ public class TwohashProcessorTests
     public async Task Process_MethodWithOverloads_ShowsOverloadCount()
     {
         var source = "Console.WriteLine(\"test\");\n//        ^?";
-        var result = _processor.Process(source);
+        var result = await _processor.ProcessAsync(source);
 
         await Assert.That(result.Hovers.Count).IsEqualTo(1);
         await Assert.That(result.Hovers[0].Text).Contains("overloads");
@@ -46,7 +46,7 @@ public class TwohashProcessorTests
     public async Task Process_StructuredParts_ContainsCorrectKinds()
     {
         var source = "var x = 42;\n//  ^?";
-        var result = _processor.Process(source);
+        var result = await _processor.ProcessAsync(source);
 
         var parts = result.Hovers[0].Parts;
         await Assert.That(parts.Any(p => p.Kind == "keyword" && p.Text == "int")).IsTrue();
@@ -58,7 +58,7 @@ public class TwohashProcessorTests
     public async Task Process_CleanCompilation_Succeeds()
     {
         var source = "// @noErrors\nvar x = 42;\nConsole.WriteLine(x);";
-        var result = _processor.Process(source);
+        var result = await _processor.ProcessAsync(source);
 
         await Assert.That(result.Meta.CompileSucceeded).IsTrue();
         await Assert.That(result.Errors.Count).IsEqualTo(0);
@@ -68,7 +68,7 @@ public class TwohashProcessorTests
     public async Task Process_ExpectedError_MarksAsExpected()
     {
         var source = "// @errors: CS0103\nConsole.WriteLine(undeclared);";
-        var result = _processor.Process(source);
+        var result = await _processor.ProcessAsync(source);
 
         await Assert.That(result.Errors.Any(e => e.Code == "CS0103" && e.Expected)).IsTrue();
     }
@@ -77,7 +77,7 @@ public class TwohashProcessorTests
     public async Task Process_CutMarker_HidesSetupCode()
     {
         var source = "using System.Text;\nvar sb = new StringBuilder();\n// ---cut---\nsb.Append(\"hello\");\n//   ^?";
-        var result = _processor.Process(source);
+        var result = await _processor.ProcessAsync(source);
 
         await Assert.That(result.Code).DoesNotContain("StringBuilder()");
         await Assert.That(result.Code).Contains("sb.Append");
@@ -89,7 +89,7 @@ public class TwohashProcessorTests
     public async Task Process_GenericType_ShowsFullType()
     {
         var source = "var list = new List<int> { 1, 2, 3 };\n//    ^?";
-        var result = _processor.Process(source);
+        var result = await _processor.ProcessAsync(source);
 
         await Assert.That(result.Hovers.Count).IsEqualTo(1);
         await Assert.That(result.Hovers[0].Text).Contains("List<int>");
@@ -99,7 +99,7 @@ public class TwohashProcessorTests
     public async Task Process_OutputFormat_HasRequiredFields()
     {
         var source = "var x = 42;";
-        var result = _processor.Process(source);
+        var result = await _processor.ProcessAsync(source);
 
         await Assert.That(result.Lang).IsEqualTo("csharp");
         await Assert.That(result.Code).IsNotNull();
@@ -117,7 +117,7 @@ public class TwohashProcessorTests
     public async Task Process_JsonSerialization_UseCamelCase()
     {
         var source = "var x = 42;\n//  ^?";
-        var result = _processor.Process(source);
+        var result = await _processor.ProcessAsync(source);
         var json = JsonOutput.Serialize(result);
 
         await Assert.That(json).Contains("\"code\":");
@@ -134,7 +134,7 @@ public class TwohashProcessorTests
     public async Task Process_EmptyArraysNotNull()
     {
         var source = "var x = 42;";
-        var result = _processor.Process(source);
+        var result = await _processor.ProcessAsync(source);
         var json = JsonOutput.Serialize(result);
 
         await Assert.That(json).Contains("\"completions\": []");
@@ -154,7 +154,7 @@ public class TwohashProcessorTests
         var fixtureDir = Path.Combine(
             AppContext.BaseDirectory, "..", "..", "..", "fixtures", "sample-project");
 
-        var result = _processor.Process(source, new TwohashProcessorOptions
+        var result = await _processor.ProcessAsync(source, new TwohashProcessorOptions
         {
             ProjectPath = fixtureDir,
         });
