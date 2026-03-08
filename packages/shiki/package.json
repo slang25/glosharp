@@ -1,0 +1,32 @@
+{
+  "name": "@twohash/shiki",
+  "version": "0.1.0",
+  "description": "Shiki transformer for twohash C# type information",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "twohash": "0.1.0"
+  },
+  "peerDependencies": {
+    "shiki": "^3.0.0"
+  },
+  "files": [
+    "dist"
+  ],
+  "devDependencies": {
+    "@types/node": "^25.3.5",
+    "shiki": "^4.0.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  }
+}

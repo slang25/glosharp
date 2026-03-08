@@ -1,0 +1,8 @@
+{
+  "private": true,
+  "workspaces": [
+    "packages/twohash",
+    "packages/shiki",
+    "packages/expressive-code"
+  ]
+}

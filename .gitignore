@@ -1,0 +1,30 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.DotSettings.user
+
+# Node
+node_modules/
+dist/
+*.tsbuildinfo
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+*.nupkg
+
+# Test output
+tests/e2e/smoke-test.html
+
+# Context
+.context/
