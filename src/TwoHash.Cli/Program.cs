@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using TwoHash.Core;
 
 if (args.Length == 0)
@@ -20,7 +21,9 @@ static int RunProcess(string[] args)
 {
     string? filePath = null;
     string? framework = null;
+    string? project = null;
     var useStdin = false;
+    var noRestore = false;
 
     for (var i = 0; i < args.Length; i++)
     {
@@ -31,6 +34,12 @@ static int RunProcess(string[] args)
                 break;
             case "--framework" when i + 1 < args.Length:
                 framework = args[++i];
+                break;
+            case "--project" when i + 1 < args.Length:
+                project = args[++i];
+                break;
+            case "--no-restore":
+                noRestore = true;
                 break;
             default:
                 if (!args[i].StartsWith('-'))
@@ -54,10 +63,21 @@ static int RunProcess(string[] args)
         source = File.ReadAllText(filePath);
     }
 
+    // Auto-restore if project specified and assets file missing
+    if (project != null && !noRestore)
+    {
+        if (!TryEnsureRestored(project))
+            return 1;
+    }
+
     try
     {
         var processor = new TwohashProcessor();
-        var result = processor.Process(source, new TwohashProcessorOptions { TargetFramework = framework });
+        var result = processor.Process(source, new TwohashProcessorOptions
+        {
+            TargetFramework = framework,
+            ProjectPath = project,
+        });
 
         Console.Write(JsonOutput.Serialize(result));
 
@@ -80,17 +100,36 @@ static int RunVerify(string[] args)
 
     var directory = args[0];
     string? framework = null;
+    string? project = null;
+    var noRestore = false;
 
     for (var i = 1; i < args.Length; i++)
     {
-        if (args[i] == "--framework" && i + 1 < args.Length)
-            framework = args[++i];
+        switch (args[i])
+        {
+            case "--framework" when i + 1 < args.Length:
+                framework = args[++i];
+                break;
+            case "--project" when i + 1 < args.Length:
+                project = args[++i];
+                break;
+            case "--no-restore":
+                noRestore = true;
+                break;
+        }
     }
 
     if (!Directory.Exists(directory))
     {
         Console.Error.WriteLine($"Error: directory not found: {directory}");
         return 1;
+    }
+
+    // Auto-restore if project specified and assets file missing
+    if (project != null && !noRestore)
+    {
+        if (!TryEnsureRestored(project))
+            return 1;
     }
 
     var files = Directory.GetFiles(directory, "*.cs", SearchOption.AllDirectories);
@@ -102,7 +141,11 @@ static int RunVerify(string[] args)
         try
         {
             var source = File.ReadAllText(file);
-            var result = processor.Process(source, new TwohashProcessorOptions { TargetFramework = framework });
+            var result = processor.Process(source, new TwohashProcessorOptions
+            {
+                TargetFramework = framework,
+                ProjectPath = project,
+            });
             if (!result.Meta.CompileSucceeded)
             {
                 failures.Add(file);
@@ -132,6 +175,51 @@ static int RunVerify(string[] args)
     return 0;
 }
 
+static bool TryEnsureRestored(string projectPath)
+{
+    try
+    {
+        ProjectAssetsResolver.FindAssetsFile(projectPath);
+        return true; // Assets file exists
+    }
+    catch (FileNotFoundException)
+    {
+        // Assets file missing, run dotnet restore
+        Console.Error.WriteLine($"Running dotnet restore on {projectPath}...");
+        var psi = new ProcessStartInfo("dotnet", $"restore \"{projectPath}\"")
+        {
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+        };
+
+        try
+        {
+            var process = Process.Start(psi);
+            if (process == null)
+            {
+                Console.Error.WriteLine("Error: failed to start dotnet restore");
+                return false;
+            }
+
+            process.WaitForExit();
+            if (process.ExitCode != 0)
+            {
+                var stderr = process.StandardError.ReadToEnd();
+                Console.Error.WriteLine($"Error: dotnet restore failed:\n{stderr}");
+                return false;
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Error: failed to run dotnet restore: {ex.Message}");
+            return false;
+        }
+    }
+}
+
 static void PrintUsage()
 {
     Console.Error.WriteLine("Usage: twohash <command> [options]");
@@ -141,8 +229,10 @@ static void PrintUsage()
     Console.Error.WriteLine("  verify <dir>      Verify all .cs files in a directory compile");
     Console.Error.WriteLine();
     Console.Error.WriteLine("Options:");
-    Console.Error.WriteLine("  --stdin           Read source from stdin");
-    Console.Error.WriteLine("  --framework <tfm> Target framework (e.g., net8.0)");
+    Console.Error.WriteLine("  --stdin             Read source from stdin");
+    Console.Error.WriteLine("  --framework <tfm>   Target framework (e.g., net8.0)");
+    Console.Error.WriteLine("  --project <path>    Project (.csproj or directory) for NuGet resolution");
+    Console.Error.WriteLine("  --no-restore        Skip automatic dotnet restore");
 }
 
 static int PrintUsageAndReturn() { PrintUsage(); return 0; }

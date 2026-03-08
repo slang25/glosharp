@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { pluginTwohash } from '../src/plugin.js'
+import { pluginTwohash, type PluginTwohashOptions } from '../src/plugin.js'
 
 describe('pluginTwohash', () => {
   it('returns a plugin with correct name', () => {
@@ -55,5 +55,13 @@ describe('pluginTwohash', () => {
     const codeBlock = { code: 'var x = 42;', language: 'csharp', meta: '' }
     await plugin.hooks.preprocessCode({ codeBlock })
     expect(codeBlock.code).toBe('var x = 42;')
+  })
+
+  it('accepts project option', () => {
+    const options: PluginTwohashOptions = {
+      project: './MyProject.csproj',
+    }
+    const plugin = pluginTwohash(options)
+    expect(plugin.name).toBe('twohash')
   })
 })

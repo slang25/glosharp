@@ -39,6 +39,14 @@ export function createTwohash(options: TwohashOptions = {}) {
       args.push('--framework', framework)
     }
 
+    if (opts.project) {
+      args.push('--project', opts.project)
+    }
+
+    if (opts.noRestore) {
+      args.push('--no-restore')
+    }
+
     const result = await spawnCli(executable, args, opts.code)
     cache.set(cacheKey, result)
     return result

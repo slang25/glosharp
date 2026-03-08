@@ -141,4 +141,28 @@ public class TwohashProcessorTests
         await Assert.That(json).Contains("\"highlights\": []");
         await Assert.That(json).Contains("\"hidden\": []");
     }
+
+    [Test]
+    public async Task Process_WithProjectContext_ResolvesNuGetTypes()
+    {
+        var source = """
+            using Newtonsoft.Json;
+            var json = JsonConvert.SerializeObject(new { Name = "test" });
+            //                    ^?
+            """;
+
+        var fixtureDir = Path.Combine(
+            AppContext.BaseDirectory, "..", "..", "..", "fixtures", "sample-project");
+
+        var result = _processor.Process(source, new TwohashProcessorOptions
+        {
+            ProjectPath = fixtureDir,
+        });
+
+        await Assert.That(result.Hovers.Count).IsGreaterThanOrEqualTo(1);
+        await Assert.That(result.Hovers[0].Text).Contains("SerializeObject");
+        await Assert.That(result.Meta.CompileSucceeded).IsTrue();
+        await Assert.That(result.Meta.Packages.Count).IsGreaterThan(0);
+        await Assert.That(result.Meta.Packages.Any(p => p.Name == "Newtonsoft.Json")).IsTrue();
+    }
 }

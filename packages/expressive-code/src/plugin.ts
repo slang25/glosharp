@@ -1,6 +1,8 @@
 import { createTwohash, type TwohashOptions, type TwohashResult, type TwohashHover, type TwohashError, type TwohashDisplayPart } from 'twohash'
 
-export interface PluginTwohashOptions extends TwohashOptions {}
+export interface PluginTwohashOptions extends TwohashOptions {
+  project?: string
+}
 
 const TWOHASH_MARKER_REGEX = /\/\/\s*\^[?|]|\/\/\s*@errors:|\/\/\s*@noErrors|\/\/\s*---cut---|\/\/\s*@hide|\/\/\s*@show/
 
@@ -125,7 +127,7 @@ export function pluginTwohash(options: PluginTwohashOptions = {}) {
         if (!hasMarkers(codeBlock.code)) return
 
         try {
-          const result = await twohash.process({ code: codeBlock.code })
+          const result = await twohash.process({ code: codeBlock.code, project: options.project })
           resultCache.set(codeBlock.code, result)
           // Replace code with cleaned version (markers removed)
           codeBlock.code = result.code

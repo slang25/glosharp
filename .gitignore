@@ -25,6 +25,7 @@ Thumbs.db
 
 # Test output
 tests/e2e/smoke-test.html
+TestResults/
 
 # Context
 .context/
