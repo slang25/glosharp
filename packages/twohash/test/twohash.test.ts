@@ -189,4 +189,53 @@ describe('createTwohash', () => {
       expect.any(Object),
     )
   })
+
+  it('passes --region argument when region is provided', async () => {
+    mockSpawn.mockReturnValue(createMockProcess(JSON.stringify(sampleResult), '', 0))
+
+    const twohash = createTwohash()
+    await twohash.process({ file: 'src/Example.cs', region: 'getting-started' })
+
+    expect(mockSpawn).toHaveBeenCalledWith(
+      '/usr/local/bin/twohash',
+      ['process', 'src/Example.cs', '--region', 'getting-started'],
+      expect.any(Object),
+    )
+  })
+
+  it('does not pass --region when not provided', async () => {
+    mockSpawn.mockReturnValue(createMockProcess(JSON.stringify(sampleResult), '', 0))
+
+    const twohash = createTwohash()
+    await twohash.process({ file: 'src/Example.cs' })
+
+    const callArgs = mockSpawn.mock.calls[0][1] as string[]
+    expect(callArgs).not.toContain('--region')
+  })
+
+  it('parses completion types from JSON output', async () => {
+    const resultWithCompletions = {
+      ...sampleResult,
+      completions: [{
+        line: 0,
+        character: 8,
+        items: [
+          { label: 'WriteLine', kind: 'Method', detail: 'void Console.WriteLine(string?)' },
+          { label: 'Write', kind: 'Method', detail: 'void Console.Write(string?)' },
+        ],
+      }],
+    }
+    mockSpawn.mockReturnValue(createMockProcess(JSON.stringify(resultWithCompletions), '', 0))
+
+    const twohash = createTwohash()
+    const result = await twohash.process({ code: 'Console.\n//      ^|' })
+
+    expect(result.completions).toHaveLength(1)
+    expect(result.completions[0].line).toBe(0)
+    expect(result.completions[0].character).toBe(8)
+    expect(result.completions[0].items).toHaveLength(2)
+    expect(result.completions[0].items[0].label).toBe('WriteLine')
+    expect(result.completions[0].items[0].kind).toBe('Method')
+    expect(result.completions[0].items[0].detail).toBe('void Console.WriteLine(string?)')
+  })
 })

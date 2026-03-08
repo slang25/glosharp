@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 namespace TwoHash.Core;
 
 public record HoverQuery(int OriginalLine, int Column);
+public record CompletionQuery(int OriginalLine, int Column);
 public record ErrorExpectation(int OriginalLine, List<string> Codes);
 
 public class MarkerParseResult
@@ -10,6 +11,7 @@ public class MarkerParseResult
     public required string ProcessedCode { get; init; }
     public required string OriginalCode { get; init; }
     public required List<HoverQuery> HoverQueries { get; init; }
+    public required List<CompletionQuery> CompletionQueries { get; init; }
     public required List<ErrorExpectation> ErrorExpectations { get; init; }
     public required bool NoErrors { get; init; }
     public required List<HiddenRange> HiddenRanges { get; init; }
@@ -21,6 +23,7 @@ public record HiddenRange(int StartLine, int EndLine);
 public static partial class MarkerParser
 {
     private static readonly Regex HoverMarkerRegex = HoverMarkerPattern();
+    private static readonly Regex CompletionMarkerRegex = CompletionMarkerPattern();
     private static readonly Regex ErrorsDirectiveRegex = ErrorsDirectivePattern();
     private static readonly Regex NoErrorsDirectiveRegex = NoErrorsDirectivePattern();
     private static readonly Regex CutMarkerRegex = CutMarkerPattern();
@@ -29,6 +32,9 @@ public static partial class MarkerParser
 
     [GeneratedRegex(@"^(\s*)//\s*\^(\?)")]
     private static partial Regex HoverMarkerPattern();
+
+    [GeneratedRegex(@"^(\s*)//\s*\^(\|)")]
+    private static partial Regex CompletionMarkerPattern();
 
     [GeneratedRegex(@"^\s*//\s*@errors:\s*(.+)$")]
     private static partial Regex ErrorsDirectivePattern();
@@ -49,6 +55,7 @@ public static partial class MarkerParser
     {
         var lines = source.Split('\n');
         var hoverQueries = new List<HoverQuery>();
+        var completionQueries = new List<CompletionQuery>();
         var errorExpectations = new List<ErrorExpectation>();
         var hiddenRanges = new List<HiddenRange>();
         var noErrors = false;
@@ -76,6 +83,23 @@ public static partial class MarkerParser
                     if (targetOriginalLine >= 0)
                     {
                         hoverQueries.Add(new HoverQuery(targetOriginalLine, caretCol));
+                    }
+                }
+                isMarkerLine[i] = true;
+                continue;
+            }
+
+            // ^| completion query
+            var completionMatch = CompletionMarkerRegex.Match(line);
+            if (completionMatch.Success)
+            {
+                var caretCol = line.IndexOf('^');
+                if (caretCol >= 0)
+                {
+                    var targetOriginalLine = FindPrecedingCodeLine(lines, isMarkerLine, i);
+                    if (targetOriginalLine >= 0)
+                    {
+                        completionQueries.Add(new CompletionQuery(targetOriginalLine, caretCol));
                     }
                 }
                 isMarkerLine[i] = true;
@@ -178,6 +202,17 @@ public static partial class MarkerParser
             }
         }
 
+        // Remap completion queries
+        var remappedCompletions = new List<CompletionQuery>();
+        foreach (var query in completionQueries)
+        {
+            var processedLine = lineMap.IndexOf(query.OriginalLine);
+            if (processedLine >= 0)
+            {
+                remappedCompletions.Add(new CompletionQuery(processedLine, query.Column));
+            }
+        }
+
         // Remap error expectations
         var remappedErrors = new List<ErrorExpectation>();
         foreach (var err in errorExpectations)
@@ -194,6 +229,7 @@ public static partial class MarkerParser
             ProcessedCode = string.Join('\n', processedLines),
             OriginalCode = source,
             HoverQueries = remappedQueries,
+            CompletionQueries = remappedCompletions,
             ErrorExpectations = remappedErrors,
             NoErrors = noErrors,
             HiddenRanges = hiddenRanges,
@@ -213,6 +249,7 @@ public static partial class MarkerParser
         {
             var line = lines[i];
             if (HoverMarkerRegex.IsMatch(line) ||
+                CompletionMarkerRegex.IsMatch(line) ||
                 ErrorsDirectiveRegex.IsMatch(line) ||
                 NoErrorsDirectiveRegex.IsMatch(line) ||
                 CutMarkerRegex.IsMatch(line) ||
@@ -243,6 +280,7 @@ public static partial class MarkerParser
         {
             var line = lines[i];
             if (!HoverMarkerRegex.IsMatch(line) &&
+                !CompletionMarkerRegex.IsMatch(line) &&
                 !ErrorsDirectiveRegex.IsMatch(line) &&
                 !NoErrorsDirectiveRegex.IsMatch(line) &&
                 !CutMarkerRegex.IsMatch(line) &&

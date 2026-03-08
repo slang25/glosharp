@@ -10,6 +10,12 @@ node_modules/
 dist/
 *.tsbuildinfo
 
+# Yarn PnP
+.pnp.cjs
+.pnp.loader.mjs
+.yarn/
+yarn.lock
+
 # IDE
 .vs/
 .vscode/

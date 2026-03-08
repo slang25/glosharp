@@ -64,4 +64,22 @@ describe('pluginTwohash', () => {
     const plugin = pluginTwohash(options)
     expect(plugin.name).toBe('twohash')
   })
+
+  it('accepts region option', () => {
+    const options: PluginTwohashOptions = {
+      project: './MyProject.csproj',
+      region: 'getting-started',
+    }
+    const plugin = pluginTwohash(options)
+    expect(plugin.name).toBe('twohash')
+  })
+
+  it('baseStyles includes completion list styles', () => {
+    const plugin = pluginTwohash()
+    expect(plugin.baseStyles).toContain('.twohash-completion-list')
+    expect(plugin.baseStyles).toContain('.twohash-completion-item')
+    expect(plugin.baseStyles).toContain('.twohash-completion-kind')
+    expect(plugin.baseStyles).toContain('.twohash-completion-label')
+    expect(plugin.baseStyles).toContain('.twohash-completion-detail')
+  })
 })

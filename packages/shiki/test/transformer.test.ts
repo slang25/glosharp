@@ -121,11 +121,73 @@ describe('transformerTwohashWithResult', () => {
   })
 })
 
+describe('completion list rendering', () => {
+  const completionResult: TwohashResult = {
+    code: 'Console.',
+    original: 'Console.\n//      ^|',
+    lang: 'csharp',
+    hovers: [],
+    errors: [],
+    completions: [{
+      line: 0,
+      character: 8,
+      items: [
+        { label: 'WriteLine', kind: 'Method', detail: 'void Console.WriteLine(string?)' },
+        { label: 'Write', kind: 'Method', detail: 'void Console.Write(string?)' },
+      ],
+    }],
+    highlights: [],
+    hidden: [],
+    meta: { targetFramework: 'net8.0', packages: [], compileSucceeded: true },
+  }
+
+  it('injects completion list for completion results', async () => {
+    const html = await codeToHtml(completionResult.original, {
+      lang: 'csharp',
+      theme: 'github-dark',
+      transformers: [transformerTwohashWithResult(completionResult)],
+    })
+
+    expect(html).toContain('twohash-completion-list')
+    expect(html).toContain('twohash-completion-item')
+    expect(html).toContain('WriteLine')
+  })
+
+  it('renders kind badge and label for each item', async () => {
+    const html = await codeToHtml(completionResult.original, {
+      lang: 'csharp',
+      theme: 'github-dark',
+      transformers: [transformerTwohashWithResult(completionResult)],
+    })
+
+    expect(html).toContain('twohash-completion-kind-Method')
+    expect(html).toContain('twohash-completion-label')
+    expect(html).toContain('twohash-completion-kind')
+  })
+
+  it('does not inject completions when array is empty', async () => {
+    const html = await codeToHtml(sampleResult.original, {
+      lang: 'csharp',
+      theme: 'github-dark',
+      transformers: [transformerTwohashWithResult(sampleResult)],
+    })
+
+    expect(html).not.toContain('twohash-completion-list')
+  })
+})
+
 describe('TransformerTwohashOptions', () => {
   it('accepts project option in type', () => {
     const options: TransformerTwohashOptions = {
       project: './MyProject.csproj',
     }
     expect(options.project).toBe('./MyProject.csproj')
+  })
+
+  it('accepts region option in type', () => {
+    const options: TransformerTwohashOptions = {
+      region: 'getting-started',
+    }
+    expect(options.region).toBe('getting-started')
   })
 })

@@ -1,7 +1,8 @@
-import { createTwohash, type TwohashOptions, type TwohashResult, type TwohashHover, type TwohashError, type TwohashDisplayPart } from 'twohash'
+import { createTwohash, type TwohashOptions, type TwohashResult, type TwohashHover, type TwohashError, type TwohashDisplayPart, type TwohashCompletion } from 'twohash'
 
 export interface PluginTwohashOptions extends TwohashOptions {
   project?: string
+  region?: string
 }
 
 const TWOHASH_MARKER_REGEX = /\/\/\s*\^[?|]|\/\/\s*@errors:|\/\/\s*@noErrors|\/\/\s*---cut---|\/\/\s*@hide|\/\/\s*@show/
@@ -107,6 +108,41 @@ function buildBaseStyles(): string {
   font-weight: bold;
 }
 
+.twohash-completion-list {
+  list-style: none;
+  margin: 4px 0 0 0;
+  padding: 4px 0;
+  border: 1px solid var(--twohash-popup-border, ${styleSettings.popupBorder.dark});
+  border-radius: 4px;
+  background: var(--twohash-popup-bg, ${styleSettings.popupBackground.dark});
+  font-size: 0.875em;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.twohash-completion-item {
+  display: flex;
+  gap: 8px;
+  padding: 2px 8px;
+  align-items: center;
+}
+
+.twohash-completion-kind {
+  font-size: 0.75em;
+  opacity: 0.7;
+  min-width: 60px;
+}
+
+.twohash-completion-label {
+  color: var(--twohash-popup-fg, ${styleSettings.popupForeground.dark});
+}
+
+.twohash-completion-detail {
+  opacity: 0.6;
+  font-size: 0.85em;
+  margin-left: auto;
+}
+
 ${partColorRules}
 `
 }
@@ -127,7 +163,7 @@ export function pluginTwohash(options: PluginTwohashOptions = {}) {
         if (!hasMarkers(codeBlock.code)) return
 
         try {
-          const result = await twohash.process({ code: codeBlock.code, project: options.project })
+          const result = await twohash.process({ code: codeBlock.code, project: options.project, region: options.region })
           resultCache.set(codeBlock.code, result)
           // Replace code with cleaned version (markers removed)
           codeBlock.code = result.code
@@ -162,6 +198,13 @@ export function pluginTwohash(options: PluginTwohashOptions = {}) {
           const line = lines[error.line]
           if (!line) continue
           line.addAnnotation(new TwohashErrorAnnotation(error))
+        }
+
+        // Add completion annotations
+        for (const completion of result.completions) {
+          const line = lines[completion.line]
+          if (!line) continue
+          line.addAnnotation(new TwohashCompletionAnnotation(completion))
         }
       },
 
@@ -270,6 +313,56 @@ class TwohashErrorAnnotation {
         },
       ],
     }))
+  }
+}
+
+class TwohashCompletionAnnotation {
+  readonly completion: TwohashCompletion
+  readonly inlineRange: { columnStart: number; columnEnd: number }
+
+  constructor(completion: TwohashCompletion) {
+    this.completion = completion
+    this.inlineRange = {
+      columnStart: completion.character,
+      columnEnd: completion.character,
+    }
+  }
+
+  render({ nodesToTransform }: { nodesToTransform: HastNode[] }): HastNode[] {
+    const items: HastNode[] = this.completion.items.map(item => ({
+      type: 'element' as const,
+      tagName: 'li',
+      properties: { class: `twohash-completion-item twohash-completion-kind-${item.kind}` },
+      children: [
+        {
+          type: 'element',
+          tagName: 'span',
+          properties: { class: 'twohash-completion-kind' },
+          children: [{ type: 'text', value: item.kind }],
+        },
+        {
+          type: 'element',
+          tagName: 'span',
+          properties: { class: 'twohash-completion-label' },
+          children: [{ type: 'text', value: item.label }],
+        },
+        ...(item.detail ? [{
+          type: 'element' as const,
+          tagName: 'span',
+          properties: { class: 'twohash-completion-detail' },
+          children: [{ type: 'text', value: item.detail }],
+        }] : []),
+      ],
+    }))
+
+    const completionList: HastNode = {
+      type: 'element',
+      tagName: 'ul',
+      properties: { class: 'twohash-completion-list' },
+      children: items,
+    }
+
+    return [...nodesToTransform, completionList]
   }
 }
 
