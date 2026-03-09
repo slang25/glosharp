@@ -81,7 +81,11 @@ public static class ProjectAssetsResolver
             {
                 if (File.Exists(path))
                 {
-                    references.Add(MetadataReference.CreateFromFile(path));
+                    var xmlPath = Path.ChangeExtension(path, ".xml");
+                    var docProvider = File.Exists(xmlPath)
+                        ? XmlDocumentationProvider.CreateFromFile(xmlPath)
+                        : null;
+                    references.Add(MetadataReference.CreateFromFile(path, documentation: docProvider));
                 }
             }
 

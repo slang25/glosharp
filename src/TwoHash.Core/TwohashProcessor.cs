@@ -474,7 +474,7 @@ public class TwohashProcessor
         _ => null,
     };
 
-    private static string? ExtractDocComment(ISymbol symbol)
+    private static TwohashDocComment? ExtractDocComment(ISymbol symbol)
     {
         var xml = symbol.GetDocumentationCommentXml();
         if (string.IsNullOrEmpty(xml)) return null;
@@ -482,15 +482,92 @@ public class TwohashProcessor
         try
         {
             var doc = XDocument.Parse(xml);
-            var summary = doc.Descendants("summary").FirstOrDefault();
-            if (summary == null) return null;
 
-            var text = summary.Value.Trim();
-            return string.IsNullOrEmpty(text) ? null : text;
+            var summary = ExtractElementText(doc.Descendants("summary").FirstOrDefault());
+            var returns = ExtractElementText(doc.Descendants("returns").FirstOrDefault());
+            var remarks = ExtractElementText(doc.Descendants("remarks").FirstOrDefault());
+
+            var paramElements = doc.Descendants("param")
+                .Select(e => new TwohashDocParam
+                {
+                    Name = e.Attribute("name")?.Value ?? "",
+                    Text = ExtractElementText(e) ?? "",
+                })
+                .Where(p => !string.IsNullOrEmpty(p.Name))
+                .ToList();
+
+            var examples = doc.Descendants("example")
+                .Select(e => ExtractElementText(e))
+                .Where(t => t != null)
+                .Cast<string>()
+                .ToList();
+
+            var exceptions = doc.Descendants("exception")
+                .Select(e => new TwohashDocException
+                {
+                    Type = StripCrefPrefix(e.Attribute("cref")?.Value ?? ""),
+                    Text = ExtractElementText(e) ?? "",
+                })
+                .Where(e => !string.IsNullOrEmpty(e.Type))
+                .ToList();
+
+            // Return null if there's no meaningful content
+            if (summary == null && returns == null && remarks == null
+                && paramElements.Count == 0 && examples.Count == 0 && exceptions.Count == 0)
+                return null;
+
+            return new TwohashDocComment
+            {
+                Summary = summary,
+                Params = paramElements,
+                Returns = returns,
+                Remarks = remarks,
+                Examples = examples,
+                Exceptions = exceptions,
+            };
         }
         catch
         {
             return null;
         }
+    }
+
+    private static string? ExtractElementText(XElement? element)
+    {
+        if (element == null) return null;
+
+        var text = string.Concat(element.Nodes().Select(ResolveNode)).Trim();
+        // Normalize internal whitespace (multi-line XML docs)
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"\s+", " ");
+        return string.IsNullOrEmpty(text) ? null : text;
+    }
+
+    private static string ResolveNode(XNode node)
+    {
+        return node switch
+        {
+            XText textNode => textNode.Value,
+            XElement el => el.Name.LocalName switch
+            {
+                "see" => StripCrefPrefix(el.Attribute("cref")?.Value ?? el.Value),
+                "seealso" => StripCrefPrefix(el.Attribute("cref")?.Value ?? el.Value),
+                "paramref" => el.Attribute("name")?.Value ?? "",
+                "typeparamref" => el.Attribute("name")?.Value ?? "",
+                "c" => el.Value,
+                _ => el.Value,
+            },
+            _ => "",
+        };
+    }
+
+    private static string StripCrefPrefix(string cref)
+    {
+        // Strip documentation ID prefixes like "T:", "M:", "P:", "F:", "E:", "N:"
+        if (cref.Length > 2 && cref[1] == ':' && char.IsLetter(cref[0]))
+            cref = cref[2..];
+
+        // Strip namespace, keep just the type/member name
+        var lastDot = cref.LastIndexOf('.');
+        return lastDot >= 0 ? cref[(lastDot + 1)..] : cref;
     }
 }
