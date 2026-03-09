@@ -12,6 +12,8 @@ public class TwohashProcessorOptions
     public string? TargetFramework { get; init; }
     public string? ProjectPath { get; init; }
     public string? RegionName { get; init; }
+    public string? SourceFilePath { get; init; }
+    public bool NoRestore { get; init; }
 }
 
 public class TwohashProcessor
@@ -48,8 +50,13 @@ public class TwohashProcessor
     public async Task<TwohashResult> ProcessAsync(string source, TwohashProcessorOptions? options = null)
     {
         var targetFramework = options?.TargetFramework;
+        var originalSourceWithDirectives = source;
 
-        // 0. Apply region extraction if requested
+        // 0. Parse and strip #: file-based app directives (before anything else)
+        var fileDirectives = FileDirectiveParser.Parse(source);
+        source = fileDirectives.CleanedSource;
+
+        // 0b. Apply region extraction if requested
         if (options?.RegionName != null)
         {
             source = RegionExtractor.ApplyRegion(source, options.RegionName);
@@ -69,14 +76,30 @@ public class TwohashProcessor
         var parseOptions = new CSharpParseOptions(LanguageVersion.Latest);
         var tree = CSharpSyntaxTree.ParseText(compilationCode, parseOptions);
 
-        // Resolve project references if a project path is provided
+        // Resolve references: project path > file-based app directives > framework-only
         ProjectAssetsResult? projectAssets = null;
         var resolvedFramework = targetFramework ?? "net8.0";
+
         if (options?.ProjectPath != null)
         {
+            // Explicit project path takes priority
             var assetsFile = ProjectAssetsResolver.FindAssetsFile(options.ProjectPath);
             projectAssets = ProjectAssetsResolver.Resolve(assetsFile, targetFramework);
             resolvedFramework = targetFramework ?? projectAssets.TargetFramework;
+        }
+        else if (fileDirectives.HasDirectives && options?.SourceFilePath != null)
+        {
+            // File-based app mode: use SDK to resolve packages
+            projectAssets = FileBasedAppResolver.ResolveReferences(
+                options.SourceFilePath,
+                targetFramework,
+                options.NoRestore);
+            resolvedFramework = targetFramework ?? projectAssets.TargetFramework;
+
+            // Override framework from #:property TargetFramework if present
+            var tfmProperty = fileDirectives.GetProperty("TargetFramework");
+            if (tfmProperty != null)
+                resolvedFramework = targetFramework ?? tfmProperty;
         }
 
         var references = FrameworkResolver.GetFrameworkReferences(resolvedFramework);
@@ -118,10 +141,15 @@ public class TwohashProcessor
             })
             .ToList();
 
+        // Build meta: prefer directive-derived packages if present, else from project assets
+        var packages = fileDirectives.HasDirectives
+            ? fileDirectives.GetPackageReferences()
+            : projectAssets?.Packages ?? [];
+
         return new TwohashResult
         {
             Code = markers.ProcessedCode,
-            Original = markers.OriginalCode,
+            Original = originalSourceWithDirectives,
             Hovers = hovers,
             Errors = errors,
             Completions = completions,
@@ -129,8 +157,9 @@ public class TwohashProcessor
             Meta = new TwohashMeta
             {
                 TargetFramework = resolvedFramework,
-                Packages = projectAssets?.Packages ?? [],
+                Packages = packages,
                 CompileSucceeded = compileSucceeded,
+                Sdk = fileDirectives.GetSdk(),
             },
         };
     }

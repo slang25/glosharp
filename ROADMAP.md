@@ -10,11 +10,9 @@ Done. `ExtractDocComment()` now extracts `<summary>`, `<param>`, `<returns>`, `<
 
 Done. MarkerParser now recognizes `// @highlight`, `// @focus`, and `// @diff: +/-` directives with bare (next-line) and range (`N-M`) targeting. `TwohashResult.Highlights` is populated with `TwohashHighlight` entries (`line`, `character`, `length`, `kind`). Propagated through JSON output, Node bridge types (`TwohashHighlight` interface), and EC plugin rendering with theme-aware CSS for highlight backgrounds, focus dimming, and diff add/remove coloring.
 
-## 3. File-Based Apps (.NET 10)
+## ~~3. File-Based Apps (.NET 10)~~ ✅
 
-.NET 10 introduces `#:package`, `#:sdk`, and `#:property` directives for single-file apps. Twohash should recognize these, use them for compilation (resolve NuGet packages, set SDK properties), and strip them from rendered output. This would let a single `.cs` file be both a valid runnable app and a twohash input without needing a `.csproj`.
-
-**Scope**: MarkerParser (recognize `#:` directives) + new resolver for `#:package` NuGet references + TwohashProcessor integration + CLI passthrough.
+Done. `FileDirectiveParser` recognizes `#:package`, `#:sdk`, `#:property`, and `#:project` directives, strips them from rendered output, and preserves them in `original`. `FileBasedAppResolver` delegates to the .NET SDK (`dotnet build <file.cs>` + `--getProperty`) for NuGet resolution, reusing `ProjectAssetsResolver` for the generated `project.assets.json`. Auto-detected when source contains `#:` directives and no `--project` flag is provided. SDK version >= 10.0 is validated. `meta.packages` populated from directives, `meta.sdk` field added. Propagated through JSON output and Node bridge types.
 
 ## 4. Incremental/Cached Compilation
 

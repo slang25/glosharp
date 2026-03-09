@@ -211,4 +211,100 @@ public class TwohashProcessorTests
         await Assert.That(result.Hovers.Count).IsEqualTo(1);
         await Assert.That(result.Code).IsEqualTo("var x = 42;");
     }
+
+    // === File-based app directive tests ===
+
+    [Test]
+    public async Task Process_FileDirectives_StrippedFromOutput()
+    {
+        var source = "#:package Newtonsoft.Json@13.0.3\nvar x = 42;\n//  ^?";
+        var result = await _processor.ProcessAsync(source);
+
+        await Assert.That(result.Code).IsEqualTo("var x = 42;");
+        await Assert.That(result.Code).DoesNotContain("#:package");
+    }
+
+    [Test]
+    public async Task Process_FileDirectives_PreservedInOriginal()
+    {
+        var source = "#:package Newtonsoft.Json@13.0.3\nvar x = 42;";
+        var result = await _processor.ProcessAsync(source);
+
+        await Assert.That(result.Original).Contains("#:package Newtonsoft.Json@13.0.3");
+    }
+
+    [Test]
+    public async Task Process_FileDirectives_MetaPackagesPopulated()
+    {
+        var source = "#:package Newtonsoft.Json@13.0.3\nvar x = 42;";
+        var result = await _processor.ProcessAsync(source);
+
+        await Assert.That(result.Meta.Packages.Count).IsEqualTo(1);
+        await Assert.That(result.Meta.Packages[0].Name).IsEqualTo("Newtonsoft.Json");
+        await Assert.That(result.Meta.Packages[0].Version).IsEqualTo("13.0.3");
+    }
+
+    [Test]
+    public async Task Process_FileDirectives_MetaSdkPopulated()
+    {
+        var source = "#:sdk Microsoft.NET.Sdk.Web\nvar x = 42;";
+        var result = await _processor.ProcessAsync(source);
+
+        await Assert.That(result.Meta.Sdk).IsEqualTo("Microsoft.NET.Sdk.Web");
+    }
+
+    [Test]
+    public async Task Process_FileDirectives_MetaSdkNullWhenAbsent()
+    {
+        var source = "var x = 42;";
+        var result = await _processor.ProcessAsync(source);
+
+        await Assert.That(result.Meta.Sdk).IsNull();
+    }
+
+    [Test]
+    public async Task Process_FileDirectives_HoverPositionsCorrect()
+    {
+        // With 2 directive lines stripped, hover should still target the right line
+        var source = "#:package A@1.0\n#:package B@2.0\nvar x = 42;\n//  ^?";
+        var result = await _processor.ProcessAsync(source);
+
+        await Assert.That(result.Hovers.Count).IsEqualTo(1);
+        await Assert.That(result.Hovers[0].Line).IsEqualTo(0); // First line of processed output
+        await Assert.That(result.Hovers[0].Text).Contains("int");
+    }
+
+    [Test]
+    public async Task Process_FileBasedApp_ResolvesNuGetTypes()
+    {
+        var version = FileBasedAppResolver.GetDotnetSdkVersion();
+        if (version == null || version.Major < 10)
+            return; // Skip if .NET 10+ not available
+
+        var tempDir = Path.Combine(Path.GetTempPath(), $"twohash-e2e-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+        var filePath = Path.Combine(tempDir, "test.cs");
+
+        try
+        {
+            var source = "#:package Newtonsoft.Json@13.0.3\nusing Newtonsoft.Json;\nvar json = JsonConvert.SerializeObject(new { Name = \"test\" });\n//                    ^?";
+            File.WriteAllText(filePath, source);
+
+            var result = await _processor.ProcessAsync(source, new TwohashProcessorOptions
+            {
+                SourceFilePath = filePath,
+            });
+
+            await Assert.That(result.Hovers.Count).IsGreaterThanOrEqualTo(1);
+            await Assert.That(result.Hovers[0].Text).Contains("SerializeObject");
+            await Assert.That(result.Meta.CompileSucceeded).IsTrue();
+            await Assert.That(result.Meta.Packages.Count).IsGreaterThan(0);
+            await Assert.That(result.Meta.Packages.Any(p => p.Name == "Newtonsoft.Json")).IsTrue();
+            await Assert.That(result.Code).DoesNotContain("#:package");
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
 }

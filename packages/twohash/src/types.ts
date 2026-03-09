@@ -48,6 +48,7 @@ export interface TwohashMeta {
   targetFramework: string
   packages: { name: string; version: string }[]
   compileSucceeded: boolean
+  sdk?: string | null
 }
 
 export interface TwohashCompletionItem {
