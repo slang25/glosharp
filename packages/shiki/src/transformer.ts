@@ -1,10 +1,19 @@
 import { createTwohash, type TwohashOptions, type TwohashResult, type TwohashDisplayPart } from 'twohash'
+import { createHash } from 'node:crypto'
 import type { ShikiTransformer } from 'shiki'
 
 export interface TransformerTwohashOptions extends TwohashOptions {
   project?: string
   region?: string
 }
+
+export interface TwohashCodeBlock {
+  code: string
+  project?: string
+  region?: string
+}
+
+export type TwohashResultMap = Map<string, TwohashResult>
 
 const TWOHASH_MARKER_REGEX = /\/\/\s*\^[?|]|\/\/\s*@errors:|\/\/\s*@noErrors|\/\/\s*---cut---|\/\/\s*@hide|\/\/\s*@show/
 
@@ -30,32 +39,62 @@ export function transformerTwohashWithResult(result: TwohashResult): ShikiTransf
   }
 }
 
-// Convenience wrapper: detects markers and processes via CLI, then applies results.
-// Since Shiki preprocess is sync, this requires passing a pre-built result map.
-export function transformerTwohash(options: TransformerTwohashOptions = {}): ShikiTransformer {
-  const twohash = createTwohash(options)
-  let pendingResult: TwohashResult | undefined
+// Map-based transformer: looks up pre-computed results by hashing incoming code.
+// Use with processTwohashBlocks() for the recommended two-step pattern.
+export function transformerTwohashFromMap(resultMap: TwohashResultMap): ShikiTransformer {
+  let currentResult: TwohashResult | undefined
 
   return {
     name: 'twohash',
 
-    // Note: Shiki preprocess is synchronous, but CLI spawning is async.
-    // Users should call processCodeBlocks() before codeToHtml() to pre-populate results.
     preprocess(code) {
-      // Can't run async here — the result must already be available
-      // This is a limitation; use transformerTwohashWithResult for guaranteed behavior
-      return undefined
+      const hash = createHash('sha256').update(code).digest('hex')
+      currentResult = resultMap.get(hash)
+      return currentResult?.code
     },
 
     root(hast) {
-      if (!pendingResult) return
-      const result = pendingResult
-      pendingResult = undefined
+      if (!currentResult) return
+      const result = currentResult
+      currentResult = undefined
       injectHovers(hast as HastElement, result)
       injectErrors(hast as HastElement, result)
       injectCompletions(hast as HastElement, result)
     },
   }
+}
+
+// Batch-process multiple code blocks concurrently, returning a result map keyed by code hash.
+export async function processTwohashBlocks(
+  blocks: Array<string | TwohashCodeBlock>,
+  options: TransformerTwohashOptions = {},
+): Promise<TwohashResultMap> {
+  const twohash = createTwohash(options)
+  const resultMap: TwohashResultMap = new Map()
+
+  const tasks = blocks
+    .map(block => {
+      const code = typeof block === 'string' ? block : block.code
+      const project = typeof block === 'string' ? options.project : (block.project ?? options.project)
+      const region = typeof block === 'string' ? options.region : (block.region ?? options.region)
+      return { code, project, region }
+    })
+    .filter(({ code }) => hasMarkers(code))
+
+  const results = await Promise.all(
+    tasks.map(({ code, project, region }) =>
+      twohash.process({ code, project, region }).then(result => ({
+        hash: createHash('sha256').update(code).digest('hex'),
+        result,
+      }))
+    )
+  )
+
+  for (const { hash, result } of results) {
+    resultMap.set(hash, result)
+  }
+
+  return resultMap
 }
 
 // Helper to pre-process code blocks before running Shiki
@@ -106,9 +145,9 @@ function injectHovers(root: HastElement, result: TwohashResult): void {
       h('code', { class: 'twohash-popup-code' }, partNodes),
     ]
 
-    if (hover.docs) {
+    if (hover.docs?.summary) {
       popupChildren.push(
-        h('div', { class: 'twohash-popup-docs' }, [hText(hover.docs)])
+        h('div', { class: 'twohash-popup-docs' }, [hText(hover.docs.summary)])
       )
     }
 

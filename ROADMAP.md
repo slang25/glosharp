@@ -22,11 +22,9 @@ Done. Two-layer caching eliminates redundant work for documentation sites with m
 
 Done. `twohash render` CLI command outputs self-contained HTML with syntax highlighting, hover popups, error annotations, completion lists, and highlight/focus/diff styling — no Shiki or EC dependency needed. `SyntaxClassifier` wraps Roslyn's `Classifier.GetClassifiedSpansAsync()` for token classification (keywords, types, strings, comments, etc.) with deduplication of syntactic vs semantic spans. `HtmlRenderer` generates inline `<style>` with CSS anchor positioning for hover popups (`--th-N` anchors), `@supports not` fallback for older browsers, and theme-aware coloring. Two built-in themes: `github-dark` and `github-light`. Supports `--standalone` (full HTML page), `--output <path>` (file output), and `--theme <name>`. Propagated through CLI (`render` command) and core (`SyntaxClassifier`, `HtmlRenderer`, `TwohashTheme`, `TwohashProcessResult`).
 
-## 6. Shiki Async DX Improvements
+## ~~6. Shiki Async DX Improvements~~ ✅
 
-Shiki's `preprocess` hook is synchronous, forcing users to pre-compute twohash results before calling `codeToHtml`. Add a batch processing helper (`processTwohashBlocks(codeBlocks, options)`) and a result-map-based transformer that looks up pre-computed results by code hash, making the typical usage pattern cleaner.
-
-**Scope**: Shiki package only — new helper functions + updated transformer + tests + docs.
+Done. `processTwohashBlocks(blocks, options)` batch-processes multiple code blocks concurrently via `Promise.all`, returning a `TwohashResultMap` keyed by SHA256 hash. `transformerTwohashFromMap(resultMap)` creates a single Shiki transformer that looks up pre-computed results by hashing incoming code in `preprocess`. Blocks without markers are silently skipped. Accepts both `string[]` and `TwohashCodeBlock[]` (per-block `project`/`region` overrides). Removed broken `transformerTwohash()` which couldn't work due to sync `preprocess` limitation. Retained `transformerTwohashWithResult()` and `processTwohashCode()` for single-block use cases.
 
 ## 7. Language Version & Nullable Control
 
