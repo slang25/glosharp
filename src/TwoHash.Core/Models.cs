@@ -1,6 +1,19 @@
 using System.Text.Json.Serialization;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 
 namespace TwoHash.Core;
+
+/// <summary>
+/// Extended result that includes compilation context for downstream use (e.g., syntax classification).
+/// Not serialized to JSON — use <see cref="TwohashResult"/> for the JSON contract.
+/// </summary>
+public class TwohashProcessResult
+{
+    public required TwohashResult Result { get; init; }
+    public required CSharpCompilation Compilation { get; init; }
+    public required SyntaxTree SyntaxTree { get; init; }
+}
 
 public class TwohashResult
 {

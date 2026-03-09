@@ -13,6 +13,7 @@ return command switch
 {
     "process" => await RunProcess(args[1..]),
     "verify" => await RunVerify(args[1..]),
+    "render" => await RunRender(args[1..]),
     "--help" or "-h" => PrintUsageAndReturn(),
     _ => PrintUnknownCommand(command),
 };
@@ -256,6 +257,139 @@ static bool TryEnsureRestored(string projectPath)
     }
 }
 
+static async Task<int> RunRender(string[] args)
+{
+    string? filePath = null;
+    string? framework = null;
+    string? project = null;
+    string? region = null;
+    string? cacheDir = null;
+    string? themeName = null;
+    string? outputPath = null;
+    var useStdin = false;
+    var noRestore = false;
+    var standalone = false;
+
+    for (var i = 0; i < args.Length; i++)
+    {
+        switch (args[i])
+        {
+            case "--stdin":
+                useStdin = true;
+                break;
+            case "--framework" when i + 1 < args.Length:
+                framework = args[++i];
+                break;
+            case "--project" when i + 1 < args.Length:
+                project = args[++i];
+                break;
+            case "--region" when i + 1 < args.Length:
+                region = args[++i];
+                break;
+            case "--cache-dir" when i + 1 < args.Length:
+                cacheDir = args[++i];
+                break;
+            case "--theme" when i + 1 < args.Length:
+                themeName = args[++i];
+                break;
+            case "--output" when i + 1 < args.Length:
+                outputPath = args[++i];
+                break;
+            case "--standalone":
+                standalone = true;
+                break;
+            case "--no-restore":
+                noRestore = true;
+                break;
+            default:
+                if (!args[i].StartsWith('-'))
+                    filePath = args[i];
+                break;
+        }
+    }
+
+    // Validate theme
+    themeName ??= "github-dark";
+    var theme = TwohashTheme.GetBuiltIn(themeName);
+    if (theme == null)
+    {
+        Console.Error.WriteLine($"Error: unknown theme '{themeName}'. Valid themes: {string.Join(", ", TwohashTheme.BuiltInNames)}");
+        return 1;
+    }
+
+    // Validate --region with --stdin
+    if (region != null && (useStdin || filePath == null))
+    {
+        Console.Error.WriteLine("Error: --region cannot be used with --stdin (region extraction requires a file)");
+        return 1;
+    }
+
+    string source;
+    if (useStdin || filePath == null)
+    {
+        source = Console.In.ReadToEnd();
+    }
+    else
+    {
+        if (!File.Exists(filePath))
+        {
+            Console.Error.WriteLine($"Error: file not found: {filePath}");
+            return 1;
+        }
+        source = File.ReadAllText(filePath);
+    }
+
+    // Auto-restore if project specified and assets file missing
+    if (project != null && !noRestore)
+    {
+        if (!TryEnsureRestored(project))
+            return 1;
+    }
+
+    try
+    {
+        var processor = new TwohashProcessor();
+        var processResult = await processor.ProcessWithContextAsync(source, new TwohashProcessorOptions
+        {
+            TargetFramework = framework,
+            ProjectPath = project,
+            RegionName = region,
+            SourceFilePath = filePath,
+            NoRestore = noRestore,
+            CacheDir = cacheDir,
+        });
+
+        // Classify tokens for syntax highlighting
+        var tokens = await SyntaxClassifier.ClassifyAsync(
+            processResult.Result.Code,
+            processResult.Compilation,
+            processResult.SyntaxTree);
+
+        // Render HTML
+        var html = HtmlRenderer.Render(processResult.Result, tokens, theme, new HtmlRenderOptions
+        {
+            Standalone = standalone,
+        });
+
+        if (outputPath != null)
+        {
+            File.WriteAllText(outputPath, html);
+            Console.Error.WriteLine($"Written to {outputPath}");
+        }
+        else
+        {
+            Console.Write(html);
+        }
+
+        return processResult.Result.Meta.CompileSucceeded ? 0 : 1;
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"Error: {ex.Message}");
+        return 1;
+    }
+}
+
 static void PrintUsage()
 {
     Console.Error.WriteLine("Usage: twohash <command> [options]");
@@ -263,6 +397,7 @@ static void PrintUsage()
     Console.Error.WriteLine("Commands:");
     Console.Error.WriteLine("  process <file>    Process a C# file and output JSON metadata");
     Console.Error.WriteLine("  verify <dir>      Verify all .cs files in a directory compile");
+    Console.Error.WriteLine("  render <file>     Render a C# file as self-contained HTML");
     Console.Error.WriteLine();
     Console.Error.WriteLine("Options:");
     Console.Error.WriteLine("  --stdin             Read source from stdin");
@@ -271,6 +406,11 @@ static void PrintUsage()
     Console.Error.WriteLine("  --region <name>     Extract a named #region from the source file");
     Console.Error.WriteLine("  --no-restore        Skip automatic dotnet restore");
     Console.Error.WriteLine("  --cache-dir <path>  Directory for disk-based result caching");
+    Console.Error.WriteLine();
+    Console.Error.WriteLine("Render options:");
+    Console.Error.WriteLine("  --theme <name>      Color theme (github-dark, github-light; default: github-dark)");
+    Console.Error.WriteLine("  --standalone        Output a full HTML page instead of a fragment");
+    Console.Error.WriteLine("  --output <path>     Write HTML to a file instead of stdout");
 }
 
 static int PrintUsageAndReturn() { PrintUsage(); return 0; }
