@@ -57,6 +57,12 @@ public class TwohashProcessor
 
     public async Task<TwohashResult> ProcessAsync(string source, TwohashProcessorOptions? options = null)
     {
+        var processResult = await ProcessWithContextAsync(source, options);
+        return processResult.Result;
+    }
+
+    public async Task<TwohashProcessResult> ProcessWithContextAsync(string source, TwohashProcessorOptions? options = null)
+    {
         // Check disk-based result cache
         ResultCache? resultCache = null;
         string? resultCacheKey = null;
@@ -72,7 +78,10 @@ public class TwohashProcessor
 
             var cached = resultCache.TryGet(resultCacheKey);
             if (cached != null)
-                return cached;
+            {
+                // On cache hit, we still need compilation context for classification.
+                // Fall through to build it, but use the cached result.
+            }
         }
 
         var targetFramework = options?.TargetFramework;
@@ -152,6 +161,21 @@ public class TwohashProcessor
             new CSharpCompilationOptions(OutputKind.ConsoleApplication)
                 .WithNullableContextOptions(NullableContextOptions.Enable));
 
+        // Check if we have a cached result (skip extraction)
+        if (resultCache != null && resultCacheKey != null)
+        {
+            var cached = resultCache.TryGet(resultCacheKey);
+            if (cached != null)
+            {
+                return new TwohashProcessResult
+                {
+                    Result = cached,
+                    Compilation = compilation,
+                    SyntaxTree = tree,
+                };
+            }
+        }
+
         var model = compilation.GetSemanticModel(tree);
 
         // 5. Extract hovers
@@ -206,7 +230,12 @@ public class TwohashProcessor
             resultCache.Set(resultCacheKey, result);
         }
 
-        return result;
+        return new TwohashProcessResult
+        {
+            Result = result,
+            Compilation = compilation,
+            SyntaxTree = tree,
+        };
     }
 
     private async Task<List<TwohashCompletion>> ExtractCompletions(

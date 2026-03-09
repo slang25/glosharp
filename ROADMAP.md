@@ -18,11 +18,9 @@ Done. `FileDirectiveParser` recognizes `#:package`, `#:sdk`, `#:property`, and `
 
 Done. Two-layer caching eliminates redundant work for documentation sites with many snippets. `CompilationContextCache` reuses resolved `MetadataReference[]` arrays in-process (keyed by framework, packages, project assets hash) — the `verify` command resolves references once for all files sharing the same project. `ResultCache` provides disk-based caching via `--cache-dir <path>`: full `TwohashResult` JSON cached by SHA256 of (twohash version, framework, packages, project path, source code). Cache hits skip all Roslyn work. Atomic writes prevent corruption from concurrent CLI processes. Corrupt cache files are treated as misses. Propagated through CLI (`--cache-dir` on `process` and `verify`) and Node bridge (`cacheDir` option in `TwohashOptions` and `TwohashProcessOptions`).
 
-## 5. Standalone HTML Renderer
+## ~~5. Standalone HTML Renderer~~ ✅
 
-A `twohash render` CLI command that outputs self-contained HTML with syntax highlighting, hover popups, and error annotations — no Shiki or EC dependency needed. Useful for Hugo, Jekyll, plain HTML docs, or quick previews. Needs a syntax highlighting strategy (Roslyn's classifier or bundled TextMate grammars).
-
-**Scope**: New CLI command + HTML template + CSS bundle + syntax highlighting integration.
+Done. `twohash render` CLI command outputs self-contained HTML with syntax highlighting, hover popups, error annotations, completion lists, and highlight/focus/diff styling — no Shiki or EC dependency needed. `SyntaxClassifier` wraps Roslyn's `Classifier.GetClassifiedSpansAsync()` for token classification (keywords, types, strings, comments, etc.) with deduplication of syntactic vs semantic spans. `HtmlRenderer` generates inline `<style>` with CSS anchor positioning for hover popups (`--th-N` anchors), `@supports not` fallback for older browsers, and theme-aware coloring. Two built-in themes: `github-dark` and `github-light`. Supports `--standalone` (full HTML page), `--output <path>` (file output), and `--theme <name>`. Propagated through CLI (`render` command) and core (`SyntaxClassifier`, `HtmlRenderer`, `TwohashTheme`, `TwohashProcessResult`).
 
 ## 6. Shiki Async DX Improvements
 
