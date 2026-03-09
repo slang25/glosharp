@@ -50,6 +50,7 @@ public class TwohashMeta
     public required string TargetFramework { get; init; }
     public List<PackageReference> Packages { get; init; } = [];
     public required bool CompileSucceeded { get; init; }
+    public string? Sdk { get; init; }
 }
 
 public class TwohashCompletion

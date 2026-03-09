@@ -89,6 +89,8 @@ static async Task<int> RunProcess(string[] args)
             TargetFramework = framework,
             ProjectPath = project,
             RegionName = region,
+            SourceFilePath = filePath,
+            NoRestore = noRestore,
         });
 
         Console.Write(JsonOutput.Serialize(result));
@@ -167,6 +169,8 @@ static async Task<int> RunVerify(string[] args)
                 TargetFramework = framework,
                 ProjectPath = project,
                 RegionName = region,
+                SourceFilePath = file,
+                NoRestore = noRestore,
             });
             if (!result.Meta.CompileSucceeded)
             {
