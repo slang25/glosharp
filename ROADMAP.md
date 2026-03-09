@@ -30,11 +30,9 @@ Done. `processTwohashBlocks(blocks, options)` batch-processes multiple code bloc
 
 Done. `// @langVersion: <value>` and `// @nullable: <value>` markers parsed by `MarkerParser`, stripped from output, and applied to `CSharpParseOptions`/`CSharpCompilationOptions`. Supports numeric versions (`7`–`13`), named versions (`latest`, `preview`, `default`), and all nullable contexts (`enable`, `disable`, `warnings`, `annotations`). Case-insensitive, last-one-wins for duplicates. Invalid values produce `TH0001`/`TH0002` diagnostic errors listing valid options. `CompilationOptionsMapper` handles string-to-enum mapping. Global usings tree parsed with matching language version to avoid Roslyn's inconsistent-version error. `meta.langVersion` and `meta.nullable` fields added to JSON output (omitted when null). Propagated through Node bridge types (`TwohashMeta` interface).
 
-## 8. EditorConfig / Project Defaults
+## ~~8. EditorConfig / Project Defaults~~ ✅
 
-Support a `.twohashrc` or `twohash.config.json` file for project-wide defaults (framework, project path, region, cache settings) so every CLI call doesn't need `--framework net9.0 --project ./MyProject.csproj`. CLI args override config file values.
-
-**Scope**: Config file parsing + CLI integration + Node bridge config option.
+Done. `twohash.config.json` provides project-wide defaults for all CLI commands. `ConfigLoader` discovers the config file by walking up from the input file's directory, parses it with `System.Text.Json` (case-insensitive, unknown properties ignored), and resolves relative paths (`project`, `cacheDir`) relative to the config file's location. CLI arguments override config values (CLI always wins). `--config <path>` flag on all commands for explicit config path. `twohash init` command scaffolds a default config file (refuses overwrite unless `--force`). Supports all existing options: `framework`, `project`, `cacheDir`, `noRestore`, and render-specific `render.theme` and `render.standalone`. Propagated through Node bridge (`configFile` option in `TwohashOptions` and `TwohashProcessOptions`).
 
 ## 9. Portable Compilation (complog)
 
