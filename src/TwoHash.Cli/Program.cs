@@ -14,6 +14,7 @@ return command switch
     "process" => await RunProcess(args[1..]),
     "verify" => await RunVerify(args[1..]),
     "render" => await RunRender(args[1..]),
+    "init" => RunInit(args[1..]),
     "--help" or "-h" => PrintUsageAndReturn(),
     _ => PrintUnknownCommand(command),
 };
@@ -25,6 +26,7 @@ static async Task<int> RunProcess(string[] args)
     string? project = null;
     string? region = null;
     string? cacheDir = null;
+    string? configPath = null;
     var useStdin = false;
     var noRestore = false;
 
@@ -47,6 +49,9 @@ static async Task<int> RunProcess(string[] args)
             case "--cache-dir" when i + 1 < args.Length:
                 cacheDir = args[++i];
                 break;
+            case "--config" when i + 1 < args.Length:
+                configPath = args[++i];
+                break;
             case "--no-restore":
                 noRestore = true;
                 break;
@@ -55,6 +60,31 @@ static async Task<int> RunProcess(string[] args)
                     filePath = args[i];
                 break;
         }
+    }
+
+    // Load config file
+    TwohashConfig? config;
+    try
+    {
+        var startDir = filePath != null
+            ? Path.GetDirectoryName(Path.GetFullPath(filePath))!
+            : Directory.GetCurrentDirectory();
+        config = ConfigLoader.Load(configPath, startDir);
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"Error: {ex.Message}");
+        return 1;
+    }
+
+    // Merge: CLI args win over config
+    if (config != null)
+    {
+        framework ??= config.Framework;
+        project ??= config.Project;
+        cacheDir ??= config.CacheDir;
+        if (!noRestore && config.NoRestore == true)
+            noRestore = true;
     }
 
     // Validate --region is not used with --stdin
@@ -123,6 +153,7 @@ static async Task<int> RunVerify(string[] args)
     string? project = null;
     string? region = null;
     string? cacheDir = null;
+    string? configPath = null;
     var noRestore = false;
 
     for (var i = 1; i < args.Length; i++)
@@ -141,6 +172,9 @@ static async Task<int> RunVerify(string[] args)
             case "--cache-dir" when i + 1 < args.Length:
                 cacheDir = args[++i];
                 break;
+            case "--config" when i + 1 < args.Length:
+                configPath = args[++i];
+                break;
             case "--no-restore":
                 noRestore = true;
                 break;
@@ -151,6 +185,29 @@ static async Task<int> RunVerify(string[] args)
     {
         Console.Error.WriteLine($"Error: directory not found: {directory}");
         return 1;
+    }
+
+    // Load config file
+    TwohashConfig? config;
+    try
+    {
+        var startDir = Path.GetFullPath(directory);
+        config = ConfigLoader.Load(configPath, startDir);
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"Error: {ex.Message}");
+        return 1;
+    }
+
+    // Merge: CLI args win over config
+    if (config != null)
+    {
+        framework ??= config.Framework;
+        project ??= config.Project;
+        cacheDir ??= config.CacheDir;
+        if (!noRestore && config.NoRestore == true)
+            noRestore = true;
     }
 
     // Auto-restore if project specified and assets file missing
@@ -266,6 +323,7 @@ static async Task<int> RunRender(string[] args)
     string? cacheDir = null;
     string? themeName = null;
     string? outputPath = null;
+    string? configPath = null;
     var useStdin = false;
     var noRestore = false;
     var standalone = false;
@@ -295,6 +353,9 @@ static async Task<int> RunRender(string[] args)
             case "--output" when i + 1 < args.Length:
                 outputPath = args[++i];
                 break;
+            case "--config" when i + 1 < args.Length:
+                configPath = args[++i];
+                break;
             case "--standalone":
                 standalone = true;
                 break;
@@ -306,6 +367,34 @@ static async Task<int> RunRender(string[] args)
                     filePath = args[i];
                 break;
         }
+    }
+
+    // Load config file
+    TwohashConfig? config;
+    try
+    {
+        var startDir = filePath != null
+            ? Path.GetDirectoryName(Path.GetFullPath(filePath))!
+            : Directory.GetCurrentDirectory();
+        config = ConfigLoader.Load(configPath, startDir);
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"Error: {ex.Message}");
+        return 1;
+    }
+
+    // Merge: CLI args win over config
+    if (config != null)
+    {
+        framework ??= config.Framework;
+        project ??= config.Project;
+        cacheDir ??= config.CacheDir;
+        if (!noRestore && config.NoRestore == true)
+            noRestore = true;
+        themeName ??= config.Render?.Theme;
+        if (!standalone && config.Render?.Standalone == true)
+            standalone = true;
     }
 
     // Validate theme
@@ -390,6 +479,31 @@ static async Task<int> RunRender(string[] args)
     }
 }
 
+static int RunInit(string[] args)
+{
+    var force = args.Contains("--force");
+
+    try
+    {
+        ConfigLoader.WriteDefault(Directory.GetCurrentDirectory(), force);
+        Console.Error.WriteLine("Created twohash.config.json");
+        Console.Error.WriteLine();
+        Console.Error.WriteLine("Properties:");
+        Console.Error.WriteLine("  framework    - Target framework moniker (e.g., net9.0)");
+        Console.Error.WriteLine("  project      - Path to .csproj or directory for NuGet resolution");
+        Console.Error.WriteLine("  cacheDir     - Directory for disk-based result caching");
+        Console.Error.WriteLine("  noRestore    - Skip automatic dotnet restore (true/false)");
+        Console.Error.WriteLine("  render.theme - Color theme (github-dark, github-light)");
+        Console.Error.WriteLine("  render.standalone - Output full HTML page (true/false)");
+        return 0;
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"Error: {ex.Message}");
+        return 1;
+    }
+}
+
 static void PrintUsage()
 {
     Console.Error.WriteLine("Usage: twohash <command> [options]");
@@ -398,6 +512,7 @@ static void PrintUsage()
     Console.Error.WriteLine("  process <file>    Process a C# file and output JSON metadata");
     Console.Error.WriteLine("  verify <dir>      Verify all .cs files in a directory compile");
     Console.Error.WriteLine("  render <file>     Render a C# file as self-contained HTML");
+    Console.Error.WriteLine("  init              Create a twohash.config.json with defaults");
     Console.Error.WriteLine();
     Console.Error.WriteLine("Options:");
     Console.Error.WriteLine("  --stdin             Read source from stdin");
@@ -406,6 +521,7 @@ static void PrintUsage()
     Console.Error.WriteLine("  --region <name>     Extract a named #region from the source file");
     Console.Error.WriteLine("  --no-restore        Skip automatic dotnet restore");
     Console.Error.WriteLine("  --cache-dir <path>  Directory for disk-based result caching");
+    Console.Error.WriteLine("  --config <path>     Path to twohash.config.json (default: auto-discover)");
     Console.Error.WriteLine();
     Console.Error.WriteLine("Render options:");
     Console.Error.WriteLine("  --theme <name>      Color theme (github-dark, github-light; default: github-dark)");

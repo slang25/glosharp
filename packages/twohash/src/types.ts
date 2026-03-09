@@ -88,6 +88,7 @@ export interface TwohashOptions {
   executable?: string
   framework?: string
   cacheDir?: string
+  configFile?: string
 }
 
 export interface TwohashProcessOptions {
@@ -98,4 +99,5 @@ export interface TwohashProcessOptions {
   region?: string
   noRestore?: boolean
   cacheDir?: string
+  configFile?: string
 }
