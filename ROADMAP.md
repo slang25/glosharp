@@ -14,11 +14,9 @@ Done. MarkerParser now recognizes `// @highlight`, `// @focus`, and `// @diff: +
 
 Done. `FileDirectiveParser` recognizes `#:package`, `#:sdk`, `#:property`, and `#:project` directives, strips them from rendered output, and preserves them in `original`. `FileBasedAppResolver` delegates to the .NET SDK (`dotnet build <file.cs>` + `--getProperty`) for NuGet resolution, reusing `ProjectAssetsResolver` for the generated `project.assets.json`. Auto-detected when source contains `#:` directives and no `--project` flag is provided. SDK version >= 10.0 is validated. `meta.packages` populated from directives, `meta.sdk` field added. Propagated through JSON output and Node bridge types.
 
-## 4. Incremental/Cached Compilation
+## ~~4. Incremental/Cached Compilation~~ ✅
 
-For documentation sites with many snippets from the same project, the current approach recompiles from scratch each time. Add workspace-level caching: reuse the `CSharpCompilation` when the same project references are used, and add a `--cache-dir` CLI option for persisting compiled state across builds.
-
-**Scope**: TwohashProcessor caching layer + CLI `--cache-dir` option + Node bridge passthrough.
+Done. Two-layer caching eliminates redundant work for documentation sites with many snippets. `CompilationContextCache` reuses resolved `MetadataReference[]` arrays in-process (keyed by framework, packages, project assets hash) — the `verify` command resolves references once for all files sharing the same project. `ResultCache` provides disk-based caching via `--cache-dir <path>`: full `TwohashResult` JSON cached by SHA256 of (twohash version, framework, packages, project path, source code). Cache hits skip all Roslyn work. Atomic writes prevent corruption from concurrent CLI processes. Corrupt cache files are treated as misses. Propagated through CLI (`--cache-dir` on `process` and `verify`) and Node bridge (`cacheDir` option in `TwohashOptions` and `TwohashProcessOptions`).
 
 ## 5. Standalone HTML Renderer
 

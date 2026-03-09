@@ -23,6 +23,7 @@ static async Task<int> RunProcess(string[] args)
     string? framework = null;
     string? project = null;
     string? region = null;
+    string? cacheDir = null;
     var useStdin = false;
     var noRestore = false;
 
@@ -41,6 +42,9 @@ static async Task<int> RunProcess(string[] args)
                 break;
             case "--region" when i + 1 < args.Length:
                 region = args[++i];
+                break;
+            case "--cache-dir" when i + 1 < args.Length:
+                cacheDir = args[++i];
                 break;
             case "--no-restore":
                 noRestore = true;
@@ -91,6 +95,7 @@ static async Task<int> RunProcess(string[] args)
             RegionName = region,
             SourceFilePath = filePath,
             NoRestore = noRestore,
+            CacheDir = cacheDir,
         });
 
         Console.Write(JsonOutput.Serialize(result));
@@ -116,6 +121,7 @@ static async Task<int> RunVerify(string[] args)
     string? framework = null;
     string? project = null;
     string? region = null;
+    string? cacheDir = null;
     var noRestore = false;
 
     for (var i = 1; i < args.Length; i++)
@@ -130,6 +136,9 @@ static async Task<int> RunVerify(string[] args)
                 break;
             case "--region" when i + 1 < args.Length:
                 region = args[++i];
+                break;
+            case "--cache-dir" when i + 1 < args.Length:
+                cacheDir = args[++i];
                 break;
             case "--no-restore":
                 noRestore = true;
@@ -171,6 +180,7 @@ static async Task<int> RunVerify(string[] args)
                 RegionName = region,
                 SourceFilePath = file,
                 NoRestore = noRestore,
+                CacheDir = cacheDir,
             });
             if (!result.Meta.CompileSucceeded)
             {
@@ -260,6 +270,7 @@ static void PrintUsage()
     Console.Error.WriteLine("  --project <path>    Project (.csproj or directory) for NuGet resolution");
     Console.Error.WriteLine("  --region <name>     Extract a named #region from the source file");
     Console.Error.WriteLine("  --no-restore        Skip automatic dotnet restore");
+    Console.Error.WriteLine("  --cache-dir <path>  Directory for disk-based result caching");
 }
 
 static int PrintUsageAndReturn() { PrintUsage(); return 0; }

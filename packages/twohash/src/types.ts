@@ -85,6 +85,7 @@ export interface TwohashResult {
 export interface TwohashOptions {
   executable?: string
   framework?: string
+  cacheDir?: string
 }
 
 export interface TwohashProcessOptions {
@@ -94,4 +95,5 @@ export interface TwohashProcessOptions {
   project?: string
   region?: string
   noRestore?: boolean
+  cacheDir?: string
 }

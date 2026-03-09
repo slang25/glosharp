@@ -51,6 +51,11 @@ export function createTwohash(options: TwohashOptions = {}) {
       args.push('--no-restore')
     }
 
+    const cacheDir = opts.cacheDir ?? options.cacheDir
+    if (cacheDir) {
+      args.push('--cache-dir', cacheDir)
+    }
+
     const result = await spawnCli(executable, args, opts.code)
     cache.set(cacheKey, result)
     return result
