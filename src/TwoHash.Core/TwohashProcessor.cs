@@ -14,10 +14,18 @@ public class TwohashProcessorOptions
     public string? RegionName { get; init; }
     public string? SourceFilePath { get; init; }
     public bool NoRestore { get; init; }
+    public string? CacheDir { get; init; }
 }
 
 public class TwohashProcessor
 {
+    private readonly CompilationContextCache _contextCache;
+
+    public TwohashProcessor(CompilationContextCache? contextCache = null)
+    {
+        _contextCache = contextCache ?? new CompilationContextCache();
+    }
+
     private static readonly string[] DefaultGlobalUsings =
     [
         "System",
@@ -49,6 +57,24 @@ public class TwohashProcessor
 
     public async Task<TwohashResult> ProcessAsync(string source, TwohashProcessorOptions? options = null)
     {
+        // Check disk-based result cache
+        ResultCache? resultCache = null;
+        string? resultCacheKey = null;
+
+        if (options?.CacheDir != null)
+        {
+            resultCache = new ResultCache(options.CacheDir);
+            resultCacheKey = ResultCache.ComputeKey(
+                source,
+                options.TargetFramework ?? "net8.0",
+                null, // packages are embedded in source via #: directives
+                options.ProjectPath);
+
+            var cached = resultCache.TryGet(resultCacheKey);
+            if (cached != null)
+                return cached;
+        }
+
         var targetFramework = options?.TargetFramework;
         var originalSourceWithDirectives = source;
 
@@ -79,12 +105,13 @@ public class TwohashProcessor
         // Resolve references: project path > file-based app directives > framework-only
         ProjectAssetsResult? projectAssets = null;
         var resolvedFramework = targetFramework ?? "net8.0";
+        string? assetsFilePath = null;
 
         if (options?.ProjectPath != null)
         {
             // Explicit project path takes priority
-            var assetsFile = ProjectAssetsResolver.FindAssetsFile(options.ProjectPath);
-            projectAssets = ProjectAssetsResolver.Resolve(assetsFile, targetFramework);
+            assetsFilePath = ProjectAssetsResolver.FindAssetsFile(options.ProjectPath);
+            projectAssets = ProjectAssetsResolver.Resolve(assetsFilePath, targetFramework);
             resolvedFramework = targetFramework ?? projectAssets.TargetFramework;
         }
         else if (fileDirectives.HasDirectives && options?.SourceFilePath != null)
@@ -102,11 +129,21 @@ public class TwohashProcessor
                 resolvedFramework = targetFramework ?? tfmProperty;
         }
 
-        var references = FrameworkResolver.GetFrameworkReferences(resolvedFramework);
-        if (projectAssets != null)
+        // Use compilation context cache for reference resolution
+        var contextKey = CompilationContextCache.ComputeKey(
+            resolvedFramework,
+            projectAssets?.Packages,
+            assetsFilePath);
+
+        var references = _contextCache.GetOrAdd(contextKey, () =>
         {
-            references.AddRange(projectAssets.References);
-        }
+            var refs = FrameworkResolver.GetFrameworkReferences(resolvedFramework);
+            if (projectAssets != null)
+            {
+                refs.AddRange(projectAssets.References);
+            }
+            return refs;
+        });
 
         var compilation = CSharpCompilation.Create(
             "TwohashSnippet",
@@ -146,7 +183,7 @@ public class TwohashProcessor
             ? fileDirectives.GetPackageReferences()
             : projectAssets?.Packages ?? [];
 
-        return new TwohashResult
+        var result = new TwohashResult
         {
             Code = markers.ProcessedCode,
             Original = originalSourceWithDirectives,
@@ -162,6 +199,14 @@ public class TwohashProcessor
                 Sdk = fileDirectives.GetSdk(),
             },
         };
+
+        // Write to disk cache on miss
+        if (resultCache != null && resultCacheKey != null)
+        {
+            resultCache.Set(resultCacheKey, result);
+        }
+
+        return result;
     }
 
     private async Task<List<TwohashCompletion>> ExtractCompletions(
