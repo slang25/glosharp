@@ -307,4 +307,114 @@ public class TwohashProcessorTests
             Directory.Delete(tempDir, true);
         }
     }
+
+    // === Language version and nullable control tests ===
+
+    [Test]
+    public async Task Process_LangVersion7_RejectsModernFeatures()
+    {
+        // Tuple deconstruction is C# 7+ but collection expressions are C# 12+
+        var source = "// @langVersion: 7\n// @errors: CS8652\nvar x = [1, 2, 3];";
+        var result = await _processor.ProcessAsync(source);
+
+        // Should have diagnostics for unsupported features
+        await Assert.That(result.Errors.Count).IsGreaterThan(0);
+    }
+
+    [Test]
+    public async Task Process_NullableDisable_NoNullableWarnings()
+    {
+        var source = "// @nullable: disable\nstring s = null;\nConsole.WriteLine(s);";
+        var result = await _processor.ProcessAsync(source);
+
+        // With nullable disabled, assigning null to string should not produce CS8600
+        var nullableWarnings = result.Errors.Where(e => e.Code == "CS8600").ToList();
+        await Assert.That(nullableWarnings.Count).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task Process_NullableEnable_ProducesWarnings()
+    {
+        var source = "// @nullable: enable\n// @errors: CS8600\nstring s = null;\nConsole.WriteLine(s);";
+        var result = await _processor.ProcessAsync(source);
+
+        await Assert.That(result.Errors.Any(e => e.Code == "CS8600")).IsTrue();
+    }
+
+    [Test]
+    public async Task Process_DefaultBehavior_UnchangedWithoutMarkers()
+    {
+        // Default is Latest + Enable — this should work the same as before
+        var source = "var x = 42;\n//  ^?";
+        var result = await _processor.ProcessAsync(source);
+
+        await Assert.That(result.Hovers.Count).IsEqualTo(1);
+        await Assert.That(result.Hovers[0].Text).Contains("int");
+        await Assert.That(result.Meta.LangVersion).IsNull();
+        await Assert.That(result.Meta.Nullable).IsNull();
+    }
+
+    [Test]
+    public async Task Process_InvalidLangVersion_ProducesError()
+    {
+        var source = "// @langVersion: 99\nvar x = 42;";
+        var result = await _processor.ProcessAsync(source);
+
+        await Assert.That(result.Errors.Count).IsGreaterThan(0);
+        await Assert.That(result.Errors[0].Code).IsEqualTo("TH0001");
+        await Assert.That(result.Errors[0].Message).Contains("99");
+        await Assert.That(result.Meta.CompileSucceeded).IsFalse();
+    }
+
+    [Test]
+    public async Task Process_InvalidNullable_ProducesError()
+    {
+        var source = "// @nullable: sometimes\nvar x = 42;";
+        var result = await _processor.ProcessAsync(source);
+
+        await Assert.That(result.Errors.Count).IsGreaterThan(0);
+        await Assert.That(result.Errors[0].Code).IsEqualTo("TH0002");
+        await Assert.That(result.Errors[0].Message).Contains("sometimes");
+        await Assert.That(result.Meta.CompileSucceeded).IsFalse();
+    }
+
+    [Test]
+    public async Task Process_LangVersion_AppearsInMeta()
+    {
+        var source = "// @langVersion: 12\nvar x = 42;";
+        var result = await _processor.ProcessAsync(source);
+
+        await Assert.That(result.Meta.LangVersion).IsEqualTo("12");
+    }
+
+    [Test]
+    public async Task Process_Nullable_AppearsInMeta()
+    {
+        var source = "// @nullable: disable\nvar x = 42;";
+        var result = await _processor.ProcessAsync(source);
+
+        await Assert.That(result.Meta.Nullable).IsEqualTo("disable");
+    }
+
+    [Test]
+    public async Task Process_LangVersionAndNullable_OmittedFromJsonWhenAbsent()
+    {
+        var source = "var x = 42;";
+        var result = await _processor.ProcessAsync(source);
+        var json = JsonOutput.Serialize(result);
+
+        await Assert.That(json).DoesNotContain("\"langVersion\"");
+        await Assert.That(json).DoesNotContain("\"nullable\"");
+    }
+
+    [Test]
+    public async Task Process_LangVersionAndNullable_PresentInJsonWhenSet()
+    {
+        var source = "// @langVersion: 12\n// @nullable: disable\nvar x = 42;";
+        var result = await _processor.ProcessAsync(source);
+        var json = JsonOutput.Serialize(result);
+
+        await Assert.That(json).Contains("\"langVersion\": \"12\"");
+        await Assert.That(json).Contains("\"nullable\": \"disable\"");
+    }
 }

@@ -42,7 +42,7 @@ Each error entry SHALL contain: `line` (number), `character` (number), `length` 
 - **THEN** the error object has `code: "CS1002"`, `severity: "error"`, correct position fields, and `expected` reflecting whether it was declared via `// @errors:`
 
 ### Requirement: Meta object in JSON
-The `meta` object SHALL contain: `targetFramework` (string), `packages` (array of `{name, version}` objects), `compileSucceeded` (boolean), and `sdk` (string or null). The `packages` array SHALL be populated from `#:package` directives when present, or from `project.assets.json` when using project-based resolution. The `sdk` field SHALL contain the SDK identifier from `#:sdk` directive, or null when not specified.
+The `meta` object SHALL contain: `targetFramework` (string), `packages` (array of `{name, version}` objects), `compileSucceeded` (boolean), `sdk` (string or null), `langVersion` (string or null), and `nullable` (string or null). The `packages` array SHALL be populated from `#:package` directives when present, or from `project.assets.json` when using project-based resolution. The `sdk` field SHALL contain the SDK identifier from `#:sdk` directive, or null when not specified. The `langVersion` field SHALL contain the authored language version string when a `// @langVersion` marker is present, or null when using the default. The `nullable` field SHALL contain the authored nullable context string when a `// @nullable` marker is present, or null when using the default.
 
 #### Scenario: Successful compilation meta
 - **WHEN** compilation succeeds with no unexpected errors
@@ -63,6 +63,18 @@ The `meta` object SHALL contain: `targetFramework` (string), `packages` (array o
 #### Scenario: Meta with no packages
 - **WHEN** source has no `#:package` directives and no project-based resolution
 - **THEN** `meta.packages` is `[]`
+
+#### Scenario: Meta with language version
+- **WHEN** source contains `// @langVersion: 12`
+- **THEN** `meta.langVersion` is `"12"`
+
+#### Scenario: Meta with nullable context
+- **WHEN** source contains `// @nullable: disable`
+- **THEN** `meta.nullable` is `"disable"`
+
+#### Scenario: Meta without language version or nullable
+- **WHEN** source contains no `// @langVersion` or `// @nullable` markers
+- **THEN** `meta.langVersion` is null and `meta.nullable` is null (or omitted)
 
 ### Requirement: Empty arrays for unused fields
 Fields without data (`completions`, `highlights`, `hidden`) SHALL be present as empty arrays, not omitted. When directive markers are present, the `highlights` array SHALL contain `TwohashHighlight` objects instead of being empty.

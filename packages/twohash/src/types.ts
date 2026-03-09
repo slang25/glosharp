@@ -49,6 +49,8 @@ export interface TwohashMeta {
   packages: { name: string; version: string }[]
   compileSucceeded: boolean
   sdk?: string | null
+  langVersion?: string | null
+  nullable?: string | null
 }
 
 export interface TwohashCompletionItem {

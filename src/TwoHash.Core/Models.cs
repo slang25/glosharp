@@ -64,6 +64,8 @@ public class TwohashMeta
     public List<PackageReference> Packages { get; init; } = [];
     public required bool CompileSucceeded { get; init; }
     public string? Sdk { get; init; }
+    public string? LangVersion { get; init; }
+    public string? Nullable { get; init; }
 }
 
 public class TwohashCompletion

@@ -105,10 +105,84 @@ public class TwohashProcessor
 
         // 3. Build global usings
         var globalUsings = string.Join('\n', DefaultGlobalUsings.Select(u => $"global using {u};"));
-        var globalUsingsTree = CSharpSyntaxTree.ParseText(globalUsings, path: "__GlobalUsings.cs");
 
-        // 4. Parse and compile
-        var parseOptions = new CSharpParseOptions(LanguageVersion.Latest);
+        // 4. Resolve language version and nullable context from markers
+        var resolvedLangVersion = LanguageVersion.Latest;
+        var resolvedNullable = NullableContextOptions.Enable;
+        var validationErrors = new List<TwohashError>();
+
+        if (markers.LangVersion != null)
+        {
+            var mapped = CompilationOptionsMapper.MapLangVersion(markers.LangVersion);
+            if (mapped == null)
+            {
+                validationErrors.Add(new TwohashError
+                {
+                    Line = 0, Character = 0, Length = 0,
+                    Code = "TH0001",
+                    Message = $"Invalid language version '{markers.LangVersion}'. Valid values: {CompilationOptionsMapper.ValidLangVersions}",
+                    Severity = "error",
+                    Expected = false,
+                });
+            }
+            else
+            {
+                resolvedLangVersion = mapped.Value;
+            }
+        }
+
+        if (markers.Nullable != null)
+        {
+            var mapped = CompilationOptionsMapper.MapNullable(markers.Nullable);
+            if (mapped == null)
+            {
+                validationErrors.Add(new TwohashError
+                {
+                    Line = 0, Character = 0, Length = 0,
+                    Code = "TH0002",
+                    Message = $"Invalid nullable context '{markers.Nullable}'. Valid values: {CompilationOptionsMapper.ValidNullableValues}",
+                    Severity = "error",
+                    Expected = false,
+                });
+            }
+            else
+            {
+                resolvedNullable = mapped.Value;
+            }
+        }
+
+        if (validationErrors.Count > 0)
+        {
+            var errorResult = new TwohashResult
+            {
+                Code = markers.ProcessedCode,
+                Original = originalSourceWithDirectives,
+                Hovers = [],
+                Errors = validationErrors,
+                Meta = new TwohashMeta
+                {
+                    TargetFramework = targetFramework ?? "net8.0",
+                    CompileSucceeded = false,
+                    LangVersion = markers.LangVersion,
+                    Nullable = markers.Nullable,
+                },
+            };
+            var errorParseOptions = new CSharpParseOptions(LanguageVersion.Latest);
+            var errorTree = CSharpSyntaxTree.ParseText(compilationCode, errorParseOptions);
+            var errorCompilation = CSharpCompilation.Create("TwohashSnippet", [errorTree],
+                FrameworkResolver.GetFrameworkReferences("net8.0"),
+                new CSharpCompilationOptions(OutputKind.ConsoleApplication));
+            return new TwohashProcessResult
+            {
+                Result = errorResult,
+                Compilation = errorCompilation,
+                SyntaxTree = errorTree,
+            };
+        }
+
+        // Parse and compile
+        var parseOptions = new CSharpParseOptions(resolvedLangVersion);
+        var globalUsingsTree = CSharpSyntaxTree.ParseText(globalUsings, parseOptions, path: "__GlobalUsings.cs");
         var tree = CSharpSyntaxTree.ParseText(compilationCode, parseOptions);
 
         // Resolve references: project path > file-based app directives > framework-only
@@ -159,7 +233,7 @@ public class TwohashProcessor
             [tree, globalUsingsTree],
             references,
             new CSharpCompilationOptions(OutputKind.ConsoleApplication)
-                .WithNullableContextOptions(NullableContextOptions.Enable));
+                .WithNullableContextOptions(resolvedNullable));
 
         // Check if we have a cached result (skip extraction)
         if (resultCache != null && resultCacheKey != null)
@@ -186,7 +260,7 @@ public class TwohashProcessor
 
         // 7. Extract completions (only if ^| markers present)
         var completions = markers.CompletionQueries.Count > 0
-            ? await ExtractCompletions(markers, compilationCode, references, globalUsings)
+            ? await ExtractCompletions(markers, compilationCode, references, globalUsings, resolvedLangVersion, resolvedNullable)
             : [];
 
         // 8. Build highlights from parsed directives
@@ -221,6 +295,8 @@ public class TwohashProcessor
                 Packages = packages,
                 CompileSucceeded = compileSucceeded,
                 Sdk = fileDirectives.GetSdk(),
+                LangVersion = markers.LangVersion,
+                Nullable = markers.Nullable,
             },
         };
 
@@ -242,7 +318,9 @@ public class TwohashProcessor
         MarkerParseResult markers,
         string compilationCode,
         List<MetadataReference> references,
-        string globalUsings)
+        string globalUsings,
+        LanguageVersion langVersion,
+        NullableContextOptions nullableContext)
     {
         var completions = new List<TwohashCompletion>();
         var compilationLines = compilationCode.Split('\n');
@@ -252,8 +330,8 @@ public class TwohashProcessor
         var project = workspace.AddProject("TwohashCompletion", LanguageNames.CSharp);
         project = project
             .WithCompilationOptions(new CSharpCompilationOptions(OutputKind.ConsoleApplication)
-                .WithNullableContextOptions(NullableContextOptions.Enable))
-            .WithParseOptions(new CSharpParseOptions(LanguageVersion.Latest));
+                .WithNullableContextOptions(nullableContext))
+            .WithParseOptions(new CSharpParseOptions(langVersion));
         foreach (var r in references)
             project = project.AddMetadataReference(r);
         project = project.AddDocument("__GlobalUsings.cs", globalUsings).Project;

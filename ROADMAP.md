@@ -26,15 +26,9 @@ Done. `twohash render` CLI command outputs self-contained HTML with syntax highl
 
 Done. `processTwohashBlocks(blocks, options)` batch-processes multiple code blocks concurrently via `Promise.all`, returning a `TwohashResultMap` keyed by SHA256 hash. `transformerTwohashFromMap(resultMap)` creates a single Shiki transformer that looks up pre-computed results by hashing incoming code in `preprocess`. Blocks without markers are silently skipped. Accepts both `string[]` and `TwohashCodeBlock[]` (per-block `project`/`region` overrides). Removed broken `transformerTwohash()` which couldn't work due to sync `preprocess` limitation. Retained `transformerTwohashWithResult()` and `processTwohashCode()` for single-block use cases.
 
-## 7. Language Version & Nullable Control
+## ~~7. Language Version & Nullable Control~~ ✅
 
-Support per-snippet configuration via markers:
-- `// @langVersion: 12` — set C# language version
-- `// @nullable: enable|disable` — control nullable context
-
-Currently hardcoded to `LanguageVersion.Latest` and `NullableContextOptions.Enable`. These markers would be parsed, stripped from output, and applied to `CSharpParseOptions`/`CSharpCompilationOptions`.
-
-**Scope**: MarkerParser + TwohashProcessor options + tests.
+Done. `// @langVersion: <value>` and `// @nullable: <value>` markers parsed by `MarkerParser`, stripped from output, and applied to `CSharpParseOptions`/`CSharpCompilationOptions`. Supports numeric versions (`7`–`13`), named versions (`latest`, `preview`, `default`), and all nullable contexts (`enable`, `disable`, `warnings`, `annotations`). Case-insensitive, last-one-wins for duplicates. Invalid values produce `TH0001`/`TH0002` diagnostic errors listing valid options. `CompilationOptionsMapper` handles string-to-enum mapping. Global usings tree parsed with matching language version to avoid Roslyn's inconsistent-version error. `meta.langVersion` and `meta.nullable` fields added to JSON output (omitted when null). Propagated through Node bridge types (`TwohashMeta` interface).
 
 ## 8. EditorConfig / Project Defaults
 
