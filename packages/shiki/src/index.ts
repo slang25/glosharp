@@ -1,2 +1,2 @@
-export { transformerTwohash, transformerTwohashWithResult, processTwohashCode } from './transformer.js'
-export type { TransformerTwohashOptions } from './transformer.js'
+export { transformerTwohashWithResult, transformerTwohashFromMap, processTwohashCode, processTwohashBlocks } from './transformer.js'
+export type { TransformerTwohashOptions, TwohashCodeBlock, TwohashResultMap } from './transformer.js'

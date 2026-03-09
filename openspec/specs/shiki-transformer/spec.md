@@ -1,12 +1,5 @@
 ## ADDED Requirements
 
-### Requirement: Export transformer factory function
-The package SHALL export a `transformerTwohash()` function that returns a Shiki transformer object with `preprocess` and `root` hooks.
-
-#### Scenario: Register transformer
-- **WHEN** `transformerTwohash()` is passed in the `transformers` array of `codeToHtml()`
-- **THEN** the transformer hooks are called during Shiki's rendering pipeline
-
 ### Requirement: Detect twohash code blocks in preprocess
 The `preprocess` hook SHALL detect code blocks with language `csharp` (or `cs`) that contain twohash markers. Non-twohash code blocks SHALL be passed through unchanged.
 
