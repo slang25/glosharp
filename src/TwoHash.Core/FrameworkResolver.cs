@@ -62,7 +62,14 @@ public static class FrameworkResolver
         }
 
         return Directory.GetFiles(refPath, "*.dll")
-            .Select(dll => (MetadataReference)MetadataReference.CreateFromFile(dll))
+            .Select(dll =>
+            {
+                var xmlPath = Path.ChangeExtension(dll, ".xml");
+                var docProvider = File.Exists(xmlPath)
+                    ? XmlDocumentationProvider.CreateFromFile(xmlPath)
+                    : null;
+                return (MetadataReference)MetadataReference.CreateFromFile(dll, documentation: docProvider);
+            })
             .ToList();
     }
 

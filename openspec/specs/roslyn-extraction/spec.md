@@ -35,7 +35,7 @@ The system SHALL locate framework reference assemblies from the installed .NET S
 - **THEN** the target framework is inferred from the project's assets file
 
 ### Requirement: Extract hover information at queried positions
-The system SHALL resolve the syntax node at each hover query position, obtain symbol info via `SemanticModel.GetSymbolInfo()` or `SemanticModel.GetDeclaredSymbol()`, and produce structured hover data including display parts, documentation, and symbol kind.
+The system SHALL resolve the syntax node at each hover query position, obtain symbol info via `SemanticModel.GetSymbolInfo()` or `SemanticModel.GetDeclaredSymbol()`, and produce structured hover data including display parts, documentation, and symbol kind. The `Docs` field SHALL contain a structured `TwohashDocComment` object (or null) instead of a plain summary string.
 
 #### Scenario: Local variable hover
 - **WHEN** a hover query targets a local variable `x` of type `int`
@@ -46,8 +46,16 @@ The system SHALL resolve the syntax node at each hover query position, obtain sy
 - **THEN** the hover text shows the method signature with overload count and structured parts
 
 #### Scenario: Hover with XML doc comment
-- **WHEN** a hover query targets a symbol that has XML documentation
-- **THEN** the hover includes the `docs` field with the extracted documentation text
+- **WHEN** a hover query targets a symbol that has XML documentation with `<summary>`, `<param>`, and `<returns>` tags
+- **THEN** the hover includes a `docs` object with `summary`, `params`, and `returns` fields populated
+
+#### Scenario: Hover with summary-only doc comment
+- **WHEN** a hover query targets a symbol with only a `<summary>` XML doc
+- **THEN** the hover includes a `docs` object with `summary` set and `params`, `returns`, `remarks`, `examples`, `exceptions` as empty/null
+
+#### Scenario: Hover without documentation
+- **WHEN** a hover query targets a symbol with no XML documentation
+- **THEN** the hover `docs` field is null
 
 ### Requirement: Extract structured display parts
 The system SHALL use `ISymbol.ToDisplayParts()` to produce an array of display parts, each with a `kind` (mapped from `SymbolDisplayPartKind`) and `text` value.

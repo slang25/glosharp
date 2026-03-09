@@ -1,4 +1,4 @@
-import { createTwohash, type TwohashOptions, type TwohashResult, type TwohashHover, type TwohashError, type TwohashDisplayPart, type TwohashCompletion } from 'twohash'
+import { createTwohash, type TwohashOptions, type TwohashResult, type TwohashHover, type TwohashError, type TwohashDisplayPart, type TwohashCompletion, type TwohashDocComment, type TwohashDocParam, type TwohashDocException } from 'twohash'
 
 export interface PluginTwohashOptions extends TwohashOptions {
   project?: string
@@ -87,7 +87,60 @@ function buildBaseStyles(): string {
   margin-top: 6px;
   padding-top: 6px;
   border-top: 1px solid var(--twohash-popup-border, ${styleSettings.popupBorder.dark});
+}
+
+.twohash-popup-summary {
   font-style: italic;
+}
+
+.twohash-popup-params,
+.twohash-popup-returns,
+.twohash-popup-remarks,
+.twohash-popup-example,
+.twohash-popup-exceptions {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--twohash-popup-border, ${styleSettings.popupBorder.dark});
+}
+
+.twohash-popup-section-label {
+  font-size: 0.8em;
+  opacity: 0.7;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 2px;
+}
+
+.twohash-popup-param {
+  display: flex;
+  gap: 6px;
+  margin: 1px 0;
+}
+
+.twohash-popup-param-name {
+  font-family: inherit;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.twohash-popup-exception {
+  display: flex;
+  gap: 6px;
+  margin: 1px 0;
+}
+
+.twohash-popup-exception-type {
+  font-family: inherit;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.twohash-popup-example pre {
+  margin: 2px 0;
+  padding: 4px 6px;
+  background: rgba(128, 128, 128, 0.1);
+  border-radius: 2px;
+  font-size: 0.9em;
 }
 
 .twohash-error-underline {
@@ -247,12 +300,7 @@ class TwohashHoverAnnotation {
     }]
 
     if (this.hover.docs) {
-      popupChildren.push({
-        type: 'element',
-        tagName: 'div',
-        properties: { class: 'twohash-popup-docs' },
-        children: [{ type: 'text', value: this.hover.docs }],
-      })
+      popupChildren.push(...this.renderDocs(this.hover.docs))
     }
 
     return nodesToTransform.map(node => ({
@@ -275,6 +323,155 @@ class TwohashHoverAnnotation {
         },
       ],
     }))
+  }
+
+  private renderDocs(docs: TwohashDocComment): HastNode[] {
+    const sections: HastNode[] = []
+
+    // Wrapper div for all docs
+    const docsChildren: HastNode[] = []
+
+    if (docs.summary) {
+      docsChildren.push({
+        type: 'element',
+        tagName: 'div',
+        properties: { class: 'twohash-popup-summary' },
+        children: [{ type: 'text', value: docs.summary }],
+      })
+    }
+
+    if (docs.params && docs.params.length > 0) {
+      const paramItems: HastNode[] = docs.params.map((p: TwohashDocParam) => ({
+        type: 'element' as const,
+        tagName: 'div',
+        properties: { class: 'twohash-popup-param' },
+        children: [
+          {
+            type: 'element' as const,
+            tagName: 'span',
+            properties: { class: 'twohash-popup-param-name' },
+            children: [{ type: 'text' as const, value: p.name }],
+          },
+          { type: 'text' as const, value: ` — ${p.text}` },
+        ],
+      }))
+
+      docsChildren.push({
+        type: 'element',
+        tagName: 'div',
+        properties: { class: 'twohash-popup-params' },
+        children: [
+          {
+            type: 'element',
+            tagName: 'div',
+            properties: { class: 'twohash-popup-section-label' },
+            children: [{ type: 'text', value: 'Parameters' }],
+          },
+          ...paramItems,
+        ],
+      })
+    }
+
+    if (docs.returns) {
+      docsChildren.push({
+        type: 'element',
+        tagName: 'div',
+        properties: { class: 'twohash-popup-returns' },
+        children: [
+          {
+            type: 'element',
+            tagName: 'div',
+            properties: { class: 'twohash-popup-section-label' },
+            children: [{ type: 'text', value: 'Returns' }],
+          },
+          { type: 'text', value: docs.returns },
+        ],
+      })
+    }
+
+    if (docs.remarks) {
+      docsChildren.push({
+        type: 'element',
+        tagName: 'div',
+        properties: { class: 'twohash-popup-remarks' },
+        children: [
+          {
+            type: 'element',
+            tagName: 'div',
+            properties: { class: 'twohash-popup-section-label' },
+            children: [{ type: 'text', value: 'Remarks' }],
+          },
+          { type: 'text', value: docs.remarks },
+        ],
+      })
+    }
+
+    if (docs.examples && docs.examples.length > 0) {
+      const exampleNodes: HastNode[] = docs.examples.map((ex: string) => ({
+        type: 'element' as const,
+        tagName: 'pre',
+        properties: {},
+        children: [{ type: 'text' as const, value: ex }],
+      }))
+
+      docsChildren.push({
+        type: 'element',
+        tagName: 'div',
+        properties: { class: 'twohash-popup-example' },
+        children: [
+          {
+            type: 'element',
+            tagName: 'div',
+            properties: { class: 'twohash-popup-section-label' },
+            children: [{ type: 'text', value: 'Examples' }],
+          },
+          ...exampleNodes,
+        ],
+      })
+    }
+
+    if (docs.exceptions && docs.exceptions.length > 0) {
+      const exceptionItems: HastNode[] = docs.exceptions.map((e: TwohashDocException) => ({
+        type: 'element' as const,
+        tagName: 'div',
+        properties: { class: 'twohash-popup-exception' },
+        children: [
+          {
+            type: 'element' as const,
+            tagName: 'span',
+            properties: { class: 'twohash-popup-exception-type' },
+            children: [{ type: 'text' as const, value: e.type }],
+          },
+          { type: 'text' as const, value: ` — ${e.text}` },
+        ],
+      }))
+
+      docsChildren.push({
+        type: 'element',
+        tagName: 'div',
+        properties: { class: 'twohash-popup-exceptions' },
+        children: [
+          {
+            type: 'element',
+            tagName: 'div',
+            properties: { class: 'twohash-popup-section-label' },
+            children: [{ type: 'text', value: 'Exceptions' }],
+          },
+          ...exceptionItems,
+        ],
+      })
+    }
+
+    if (docsChildren.length > 0) {
+      sections.push({
+        type: 'element',
+        tagName: 'div',
+        properties: { class: 'twohash-popup-docs' },
+        children: docsChildren,
+      })
+    }
+
+    return sections
   }
 }
 

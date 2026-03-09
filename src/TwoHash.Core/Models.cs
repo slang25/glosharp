@@ -22,7 +22,7 @@ public class TwohashHover
     public required int Length { get; init; }
     public required string Text { get; init; }
     public required List<TwohashDisplayPart> Parts { get; init; }
-    public string? Docs { get; init; }
+    public TwohashDocComment? Docs { get; init; }
     public required string SymbolKind { get; init; }
     public required string TargetText { get; init; }
     public int? OverloadCount { get; init; }
@@ -70,4 +70,26 @@ public class PackageReference
 {
     public required string Name { get; init; }
     public required string Version { get; init; }
+}
+
+public class TwohashDocComment
+{
+    public string? Summary { get; init; }
+    public List<TwohashDocParam> Params { get; init; } = [];
+    public string? Returns { get; init; }
+    public string? Remarks { get; init; }
+    public List<string> Examples { get; init; } = [];
+    public List<TwohashDocException> Exceptions { get; init; } = [];
+}
+
+public class TwohashDocParam
+{
+    public required string Name { get; init; }
+    public required string Text { get; init; }
+}
+
+public class TwohashDocException
+{
+    public required string Type { get; init; }
+    public required string Text { get; init; }
 }

@@ -29,7 +29,23 @@ The `annotateCode` hook SHALL create `TwohashErrorAnnotation` instances for erro
 - **THEN** an inline error underline annotation and a block error message annotation are added for that line
 
 ### Requirement: Inject popup HTML in postprocessRenderedBlock
-The `postprocessRenderedBlock` hook SHALL inject hover popup HTML containers with CSS anchor positioning into the rendered output.
+The `postprocessRenderedBlock` hook SHALL inject hover popup HTML containers with CSS anchor positioning into the rendered output. Popup content SHALL include structured doc sections when available: summary text, a parameter list, return description, remarks, examples, and exception list. Each section SHALL be rendered in a distinct styled container.
+
+#### Scenario: Popup with summary only
+- **WHEN** a hover has `docs` with only `summary` populated
+- **THEN** the popup renders the summary in a `.twohash-popup-docs` div, visually identical to the current behavior
+
+#### Scenario: Popup with params and returns
+- **WHEN** a hover has `docs` with `summary`, `params`, and `returns`
+- **THEN** the popup renders the summary, followed by a params section listing each parameter name and description, followed by a returns section
+
+#### Scenario: Popup with all doc sections
+- **WHEN** a hover has `docs` with `summary`, `params`, `returns`, `remarks`, `examples`, and `exceptions`
+- **THEN** the popup renders all sections in order: summary, params, returns, remarks, examples, exceptions
+
+#### Scenario: Popup without docs
+- **WHEN** a hover has `docs` as null
+- **THEN** the popup renders only the type signature code, with no docs section
 
 #### Scenario: Popup container injected
 - **WHEN** rendering completes for a code block with hover annotations
@@ -99,3 +115,14 @@ The completion list SHALL use `styleSettings` for colors that adapt to the EC th
 #### Scenario: Completion list in dark theme
 - **WHEN** the EC instance uses a dark theme
 - **THEN** the completion list uses dark theme background and foreground colors from styleSettings
+
+### Requirement: Theme-aware styling for doc sections
+The plugin SHALL define CSS classes for each doc section (`.twohash-popup-params`, `.twohash-popup-returns`, `.twohash-popup-remarks`, `.twohash-popup-example`, `.twohash-popup-exceptions`) with styles consistent with the existing popup design. Parameter names SHALL be visually distinct (e.g., monospace or bold).
+
+#### Scenario: Param list styling
+- **WHEN** a popup with params is rendered
+- **THEN** each parameter is displayed with its name in a distinct style (code font) followed by its description
+
+#### Scenario: Section separators
+- **WHEN** a popup has multiple doc sections
+- **THEN** each section is visually separated (consistent with the existing `.twohash-popup-docs` border-top pattern)

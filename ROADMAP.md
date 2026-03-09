@@ -2,11 +2,9 @@
 
 Potential next features for twohash, roughly ordered by impact. Each item is self-contained and suitable for an `/opsx:propose` session.
 
-## 1. XML Documentation Enhancements
+## ~~1. XML Documentation Enhancements~~ ✅
 
-Currently `ExtractDocComment()` in `TwohashProcessor.cs` only extracts `<summary>`. Extend to include `<param>`, `<returns>`, `<remarks>`, `<example>`, and `<exception>` tags. Update `TwohashHover.Docs` from a single string to a structured object (or add new fields). Propagate through JSON output, Node bridge types, and Shiki/EC rendering (e.g. param list below the summary in the popup).
-
-**Scope**: Core extraction + models + JSON output + Node types + Shiki/EC popup rendering.
+Done. `ExtractDocComment()` now extracts `<summary>`, `<param>`, `<returns>`, `<remarks>`, `<example>`, and `<exception>` tags into a structured `TwohashDocComment` object. Propagated through JSON output, Node bridge types, and EC popup rendering. Framework and NuGet XML doc files are now loaded via `XmlDocumentationProvider`.
 
 ## 2. Directive Markers (@highlight, @focus, @diff)
 

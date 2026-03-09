@@ -3,13 +3,32 @@ export interface TwohashDisplayPart {
   text: string
 }
 
+export interface TwohashDocParam {
+  name: string
+  text: string
+}
+
+export interface TwohashDocException {
+  type: string
+  text: string
+}
+
+export interface TwohashDocComment {
+  summary?: string | null
+  params?: TwohashDocParam[]
+  returns?: string | null
+  remarks?: string | null
+  examples?: string[]
+  exceptions?: TwohashDocException[]
+}
+
 export interface TwohashHover {
   line: number
   character: number
   length: number
   text: string
   parts: TwohashDisplayPart[]
-  docs: string | null
+  docs: TwohashDocComment | null
   symbolKind: string
   targetText: string
   overloadCount?: number
