@@ -1,11 +1,11 @@
-import { createTwohash, type TwohashOptions, type TwohashResult, type TwohashHover, type TwohashError, type TwohashDisplayPart, type TwohashCompletion, type TwohashDocComment, type TwohashDocParam, type TwohashDocException } from 'twohash'
+import { createTwohash, type TwohashOptions, type TwohashResult, type TwohashHover, type TwohashError, type TwohashDisplayPart, type TwohashCompletion, type TwohashDocComment, type TwohashDocParam, type TwohashDocException, type TwohashHighlight } from 'twohash'
 
 export interface PluginTwohashOptions extends TwohashOptions {
   project?: string
   region?: string
 }
 
-const TWOHASH_MARKER_REGEX = /\/\/\s*\^[?|]|\/\/\s*@errors:|\/\/\s*@noErrors|\/\/\s*---cut---|\/\/\s*@hide|\/\/\s*@show/
+const TWOHASH_MARKER_REGEX = /\/\/\s*\^[?|]|\/\/\s*@errors:|\/\/\s*@noErrors|\/\/\s*---cut---|\/\/\s*@hide|\/\/\s*@show|\/\/\s*@highlight|\/\/\s*@focus|\/\/\s*@diff:/
 
 function hasMarkers(code: string): boolean {
   return TWOHASH_MARKER_REGEX.test(code)
@@ -18,6 +18,12 @@ const styleSettings = {
   popupBorder: { dark: '#3c3c3c', light: '#c8c8c8' },
   errorUnderline: { dark: '#f44747', light: '#e51400' },
   errorBackground: { dark: 'rgba(244, 71, 71, 0.1)', light: 'rgba(229, 20, 0, 0.1)' },
+  highlightBackground: { dark: 'rgba(173, 124, 255, 0.15)', light: 'rgba(139, 90, 230, 0.12)' },
+  focusDimOpacity: { dark: '0.4', light: '0.4' },
+  diffAddBackground: { dark: 'rgba(46, 160, 67, 0.15)', light: 'rgba(46, 160, 67, 0.12)' },
+  diffRemoveBackground: { dark: 'rgba(248, 81, 73, 0.15)', light: 'rgba(248, 81, 73, 0.12)' },
+  diffAddBorder: { dark: '#2ea043', light: '#2ea043' },
+  diffRemoveBorder: { dark: '#f85149', light: '#f85149' },
 }
 
 // Part kind colors (VS Code-like)
@@ -196,6 +202,25 @@ function buildBaseStyles(): string {
   margin-left: auto;
 }
 
+.twohash-highlight {
+  background: var(--twohash-highlight-bg, ${styleSettings.highlightBackground.dark});
+}
+
+.twohash-focus-dim {
+  opacity: var(--twohash-focus-dim-opacity, ${styleSettings.focusDimOpacity.dark});
+  transition: opacity 0.2s;
+}
+
+.twohash-diff-add {
+  background: var(--twohash-diff-add-bg, ${styleSettings.diffAddBackground.dark});
+  border-left: 3px solid var(--twohash-diff-add-border, ${styleSettings.diffAddBorder.dark});
+}
+
+.twohash-diff-remove {
+  background: var(--twohash-diff-remove-bg, ${styleSettings.diffRemoveBackground.dark});
+  border-left: 3px solid var(--twohash-diff-remove-border, ${styleSettings.diffRemoveBorder.dark});
+}
+
 ${partColorRules}
 `
 }
@@ -258,6 +283,35 @@ export function pluginTwohash(options: PluginTwohashOptions = {}) {
           const line = lines[completion.line]
           if (!line) continue
           line.addAnnotation(new TwohashCompletionAnnotation(completion))
+        }
+
+        // Add highlight and diff annotations
+        const hasFocus = result.highlights.some(h => h.kind === 'focus')
+        const focusedLines = new Set(result.highlights.filter(h => h.kind === 'focus').map(h => h.line))
+
+        for (const highlight of result.highlights) {
+          const line = lines[highlight.line]
+          if (!line) continue
+
+          switch (highlight.kind) {
+            case 'highlight':
+              line.addAnnotation(new TwohashHighlightAnnotation())
+              break
+            case 'add':
+            case 'remove':
+              line.addAnnotation(new TwohashDiffAnnotation(highlight.kind))
+              break
+            // focus lines stay at full opacity — no annotation needed
+          }
+        }
+
+        // If any focus entries exist, dim all non-focused lines
+        if (hasFocus) {
+          for (let i = 0; i < lines.length; i++) {
+            if (!focusedLines.has(i)) {
+              lines[i].addAnnotation(new TwohashFocusDimAnnotation())
+            }
+          }
         }
       },
 
@@ -560,6 +614,45 @@ class TwohashCompletionAnnotation {
     }
 
     return [...nodesToTransform, completionList]
+  }
+}
+
+class TwohashHighlightAnnotation {
+  render({ nodesToTransform }: { nodesToTransform: HastNode[] }): HastNode[] {
+    return nodesToTransform.map(node => ({
+      type: 'element' as const,
+      tagName: 'div',
+      properties: { class: 'twohash-highlight' },
+      children: [node],
+    }))
+  }
+}
+
+class TwohashDiffAnnotation {
+  readonly diffKind: 'add' | 'remove'
+
+  constructor(diffKind: 'add' | 'remove') {
+    this.diffKind = diffKind
+  }
+
+  render({ nodesToTransform }: { nodesToTransform: HastNode[] }): HastNode[] {
+    return nodesToTransform.map(node => ({
+      type: 'element' as const,
+      tagName: 'div',
+      properties: { class: `twohash-diff-${this.diffKind}` },
+      children: [node],
+    }))
+  }
+}
+
+class TwohashFocusDimAnnotation {
+  render({ nodesToTransform }: { nodesToTransform: HastNode[] }): HastNode[] {
+    return nodesToTransform.map(node => ({
+      type: 'element' as const,
+      tagName: 'div',
+      properties: { class: 'twohash-focus-dim' },
+      children: [node],
+    }))
   }
 }
 

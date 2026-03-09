@@ -105,6 +105,19 @@ public class TwohashProcessor
             ? await ExtractCompletions(markers, compilationCode, references, globalUsings)
             : [];
 
+        // 8. Build highlights from parsed directives
+        var processedLines = markers.ProcessedCode.Split('\n');
+        var highlights = markers.Highlights
+            .Where(h => h.TargetOriginalLine >= 0 && h.TargetOriginalLine < processedLines.Length)
+            .Select(h => new TwohashHighlight
+            {
+                Line = h.TargetOriginalLine, // Already remapped to processed line
+                Character = 0,
+                Length = processedLines[h.TargetOriginalLine].Length,
+                Kind = h.Kind,
+            })
+            .ToList();
+
         return new TwohashResult
         {
             Code = markers.ProcessedCode,
@@ -112,6 +125,7 @@ public class TwohashProcessor
             Hovers = hovers,
             Errors = errors,
             Completions = completions,
+            Highlights = highlights,
             Meta = new TwohashMeta
             {
                 TargetFramework = resolvedFramework,
