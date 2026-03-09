@@ -165,4 +165,50 @@ public class TwohashProcessorTests
         await Assert.That(result.Meta.Packages.Count).IsGreaterThan(0);
         await Assert.That(result.Meta.Packages.Any(p => p.Name == "Newtonsoft.Json")).IsTrue();
     }
+
+    [Test]
+    public async Task Process_HighlightDirective_PopulatesHighlights()
+    {
+        var source = "// @highlight\nvar x = 42;\nvar y = 10;";
+        var result = await _processor.ProcessAsync(source);
+
+        await Assert.That(result.Highlights.Count).IsEqualTo(1);
+        await Assert.That(result.Highlights[0].Line).IsEqualTo(0);
+        await Assert.That(result.Highlights[0].Kind).IsEqualTo("highlight");
+        await Assert.That(result.Highlights[0].Character).IsEqualTo(0);
+        await Assert.That(result.Highlights[0].Length).IsEqualTo("var x = 42;".Length);
+    }
+
+    [Test]
+    public async Task Process_DiffDirectives_PopulatesHighlights()
+    {
+        var source = "// @diff: +\nvar added = 1;\n// @diff: -\nvar removed = 2;";
+        var result = await _processor.ProcessAsync(source);
+
+        await Assert.That(result.Highlights.Count).IsEqualTo(2);
+        await Assert.That(result.Highlights[0].Kind).IsEqualTo("add");
+        await Assert.That(result.Highlights[1].Kind).IsEqualTo("remove");
+    }
+
+    [Test]
+    public async Task Process_FocusDirective_PopulatesHighlights()
+    {
+        var source = "var a = 1;\n// @focus\nvar b = 2;\nvar c = 3;";
+        var result = await _processor.ProcessAsync(source);
+
+        await Assert.That(result.Highlights.Count).IsEqualTo(1);
+        await Assert.That(result.Highlights[0].Kind).IsEqualTo("focus");
+        await Assert.That(result.Highlights[0].Line).IsEqualTo(1); // processed line 1 (var b = 2;)
+    }
+
+    [Test]
+    public async Task Process_HighlightWithHover_BothPopulated()
+    {
+        var source = "// @highlight\nvar x = 42;\n//  ^?";
+        var result = await _processor.ProcessAsync(source);
+
+        await Assert.That(result.Highlights.Count).IsEqualTo(1);
+        await Assert.That(result.Hovers.Count).IsEqualTo(1);
+        await Assert.That(result.Code).IsEqualTo("var x = 42;");
+    }
 }

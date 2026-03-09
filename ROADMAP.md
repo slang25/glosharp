@@ -6,16 +6,9 @@ Potential next features for twohash, roughly ordered by impact. Each item is sel
 
 Done. `ExtractDocComment()` now extracts `<summary>`, `<param>`, `<returns>`, `<remarks>`, `<example>`, and `<exception>` tags into a structured `TwohashDocComment` object. Propagated through JSON output, Node bridge types, and EC popup rendering. Framework and NuGet XML doc files are now loaded via `XmlDocumentationProvider`.
 
-## 2. Directive Markers (@highlight, @focus, @diff)
+## ~~2. Directive Markers (@highlight, @focus, @diff)~~ ✅
 
-The design docs reference presentation markers that aren't yet built:
-- `// @highlight: 3-5` — highlight specific lines
-- `// @focus: 7` — dim all lines except focused ones
-- `// @diff: +/-` — mark lines as added/removed for diff view
-
-These extend the marker parser, add new result fields (`highlights` is already a placeholder `unknown[]`), and need Shiki/EC rendering with appropriate CSS.
-
-**Scope**: MarkerParser + models + JSON output + Node types + Shiki HAST injection + EC annotations + CSS.
+Done. MarkerParser now recognizes `// @highlight`, `// @focus`, and `// @diff: +/-` directives with bare (next-line) and range (`N-M`) targeting. `TwohashResult.Highlights` is populated with `TwohashHighlight` entries (`line`, `character`, `length`, `kind`). Propagated through JSON output, Node bridge types (`TwohashHighlight` interface), and EC plugin rendering with theme-aware CSS for highlight backgrounds, focus dimming, and diff add/remove coloring.
 
 ## 3. File-Based Apps (.NET 10)
 

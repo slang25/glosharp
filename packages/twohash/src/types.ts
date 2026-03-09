@@ -62,6 +62,13 @@ export interface TwohashCompletion {
   items: TwohashCompletionItem[]
 }
 
+export interface TwohashHighlight {
+  line: number
+  character: number
+  length: number
+  kind: 'highlight' | 'focus' | 'add' | 'remove'
+}
+
 export interface TwohashResult {
   code: string
   original: string
@@ -69,7 +76,7 @@ export interface TwohashResult {
   hovers: TwohashHover[]
   errors: TwohashError[]
   completions: TwohashCompletion[]
-  highlights: unknown[]
+  highlights: TwohashHighlight[]
   hidden: unknown[]
   meta: TwohashMeta
 }

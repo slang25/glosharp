@@ -10,7 +10,7 @@ public class TwohashResult
     public required List<TwohashHover> Hovers { get; init; }
     public required List<TwohashError> Errors { get; init; }
     public List<TwohashCompletion> Completions { get; init; } = [];
-    public List<object> Highlights { get; init; } = [];
+    public List<TwohashHighlight> Highlights { get; init; } = [];
     public List<object> Hidden { get; init; } = [];
     public required TwohashMeta Meta { get; init; }
 }
@@ -70,6 +70,14 @@ public class PackageReference
 {
     public required string Name { get; init; }
     public required string Version { get; init; }
+}
+
+public class TwohashHighlight
+{
+    public required int Line { get; init; }
+    public required int Character { get; init; }
+    public required int Length { get; init; }
+    public required string Kind { get; init; }
 }
 
 public class TwohashDocComment

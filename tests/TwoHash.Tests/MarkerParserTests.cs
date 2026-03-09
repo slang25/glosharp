@@ -113,4 +113,143 @@ public class MarkerParserTests
         await Assert.That(compilationCode).Contains("var visible = 2;");
         await Assert.That(compilationCode).DoesNotContain("---cut---");
     }
+
+    // === Highlight directive tests ===
+
+    [Test]
+    public async Task Parse_HighlightBare_TargetsNextLine()
+    {
+        var source = "// @highlight\nvar x = 42;";
+        var result = MarkerParser.Parse(source);
+
+        await Assert.That(result.Highlights.Count).IsEqualTo(1);
+        await Assert.That(result.Highlights[0].Kind).IsEqualTo("highlight");
+        await Assert.That(result.Highlights[0].TargetOriginalLine).IsEqualTo(0); // processed line 0
+        await Assert.That(result.ProcessedCode).IsEqualTo("var x = 42;");
+    }
+
+    [Test]
+    public async Task Parse_HighlightSingleLine_TargetsSpecifiedLine()
+    {
+        var source = "var a = 1;\nvar b = 2;\nvar c = 3;\n// @highlight: 2";
+        var result = MarkerParser.Parse(source);
+
+        await Assert.That(result.Highlights.Count).IsEqualTo(1);
+        await Assert.That(result.Highlights[0].Kind).IsEqualTo("highlight");
+        await Assert.That(result.Highlights[0].TargetOriginalLine).IsEqualTo(1); // processed line 1 (0-based), which is line 2 (1-based)
+    }
+
+    [Test]
+    public async Task Parse_HighlightRange_ExpandsToPerLineEntries()
+    {
+        var source = "var a = 1;\nvar b = 2;\nvar c = 3;\n// @highlight: 1-3";
+        var result = MarkerParser.Parse(source);
+
+        await Assert.That(result.Highlights.Count).IsEqualTo(3);
+        await Assert.That(result.Highlights[0].TargetOriginalLine).IsEqualTo(0);
+        await Assert.That(result.Highlights[1].TargetOriginalLine).IsEqualTo(1);
+        await Assert.That(result.Highlights[2].TargetOriginalLine).IsEqualTo(2);
+    }
+
+    [Test]
+    public async Task Parse_HighlightStripped_FromOutput()
+    {
+        var source = "var a = 1;\n// @highlight\nvar b = 2;";
+        var result = MarkerParser.Parse(source);
+
+        await Assert.That(result.ProcessedCode).IsEqualTo("var a = 1;\nvar b = 2;");
+    }
+
+    // === Focus directive tests ===
+
+    [Test]
+    public async Task Parse_FocusBare_TargetsNextLine()
+    {
+        var source = "// @focus\nvar x = 42;";
+        var result = MarkerParser.Parse(source);
+
+        await Assert.That(result.Highlights.Count).IsEqualTo(1);
+        await Assert.That(result.Highlights[0].Kind).IsEqualTo("focus");
+        await Assert.That(result.Highlights[0].TargetOriginalLine).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task Parse_FocusRange_ExpandsToPerLineEntries()
+    {
+        var source = "var a = 1;\nvar b = 2;\nvar c = 3;\n// @focus: 2-3";
+        var result = MarkerParser.Parse(source);
+
+        await Assert.That(result.Highlights.Count).IsEqualTo(2);
+        await Assert.That(result.Highlights[0].Kind).IsEqualTo("focus");
+        await Assert.That(result.Highlights[0].TargetOriginalLine).IsEqualTo(1);
+        await Assert.That(result.Highlights[1].TargetOriginalLine).IsEqualTo(2);
+    }
+
+    // === Diff directive tests ===
+
+    [Test]
+    public async Task Parse_DiffAdd_TargetsNextLine()
+    {
+        var source = "// @diff: +\nvar x = 42;";
+        var result = MarkerParser.Parse(source);
+
+        await Assert.That(result.Highlights.Count).IsEqualTo(1);
+        await Assert.That(result.Highlights[0].Kind).IsEqualTo("add");
+        await Assert.That(result.Highlights[0].TargetOriginalLine).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task Parse_DiffRemove_TargetsNextLine()
+    {
+        var source = "// @diff: -\nvar x = 42;";
+        var result = MarkerParser.Parse(source);
+
+        await Assert.That(result.Highlights.Count).IsEqualTo(1);
+        await Assert.That(result.Highlights[0].Kind).IsEqualTo("remove");
+        await Assert.That(result.Highlights[0].TargetOriginalLine).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task Parse_DiffStripped_FromOutput()
+    {
+        var source = "var a = 1;\n// @diff: +\nvar b = 2;\n// @diff: -\nvar c = 3;";
+        var result = MarkerParser.Parse(source);
+
+        await Assert.That(result.ProcessedCode).IsEqualTo("var a = 1;\nvar b = 2;\nvar c = 3;");
+    }
+
+    // === Coexistence tests ===
+
+    [Test]
+    public async Task Parse_HighlightWithHover_BothWork()
+    {
+        var source = "// @highlight\nvar x = 42;\n//  ^?";
+        var result = MarkerParser.Parse(source);
+
+        await Assert.That(result.Highlights.Count).IsEqualTo(1);
+        await Assert.That(result.HoverQueries.Count).IsEqualTo(1);
+        await Assert.That(result.Highlights[0].TargetOriginalLine).IsEqualTo(0);
+        await Assert.That(result.HoverQueries[0].OriginalLine).IsEqualTo(0);
+        await Assert.That(result.ProcessedCode).IsEqualTo("var x = 42;");
+    }
+
+    [Test]
+    public async Task Parse_DirectiveAfterCut_CorrectPositions()
+    {
+        var source = "var setup = 1;\n// ---cut---\n// @highlight\nvar visible = 2;";
+        var result = MarkerParser.Parse(source);
+
+        await Assert.That(result.ProcessedCode).IsEqualTo("var visible = 2;");
+        await Assert.That(result.Highlights.Count).IsEqualTo(1);
+        await Assert.That(result.Highlights[0].TargetOriginalLine).IsEqualTo(0); // only visible line
+    }
+
+    [Test]
+    public async Task GetCompilationCode_ExcludesDirectiveMarkers()
+    {
+        var source = "var a = 1;\n// @highlight\nvar b = 2;\n// @focus: 1\n// @diff: +\nvar c = 3;";
+        var compilationCode = MarkerParser.GetCompilationCode(source);
+
+        await Assert.That(compilationCode).IsEqualTo("var a = 1;\nvar b = 2;\nvar c = 3;");
+    }
 }

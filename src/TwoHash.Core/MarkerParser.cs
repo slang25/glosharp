@@ -5,6 +5,7 @@ namespace TwoHash.Core;
 public record HoverQuery(int OriginalLine, int Column);
 public record CompletionQuery(int OriginalLine, int Column);
 public record ErrorExpectation(int OriginalLine, List<string> Codes);
+public record HighlightDirective(string Kind, int TargetOriginalLine);
 
 public class MarkerParseResult
 {
@@ -15,6 +16,7 @@ public class MarkerParseResult
     public required List<ErrorExpectation> ErrorExpectations { get; init; }
     public required bool NoErrors { get; init; }
     public required List<HiddenRange> HiddenRanges { get; init; }
+    public required List<HighlightDirective> Highlights { get; init; }
     public required int[] LineMap { get; init; } // processedLine -> originalLine
 }
 
@@ -29,6 +31,9 @@ public static partial class MarkerParser
     private static readonly Regex CutMarkerRegex = CutMarkerPattern();
     private static readonly Regex HideDirectiveRegex = HideDirectivePattern();
     private static readonly Regex ShowDirectiveRegex = ShowDirectivePattern();
+    private static readonly Regex HighlightDirectiveRegex = HighlightDirectivePattern();
+    private static readonly Regex FocusDirectiveRegex = FocusDirectivePattern();
+    private static readonly Regex DiffDirectiveRegex = DiffDirectivePattern();
 
     [GeneratedRegex(@"^(\s*)//\s*\^(\?)")]
     private static partial Regex HoverMarkerPattern();
@@ -51,6 +56,15 @@ public static partial class MarkerParser
     [GeneratedRegex(@"^\s*//\s*@show\s*$")]
     private static partial Regex ShowDirectivePattern();
 
+    [GeneratedRegex(@"^\s*//\s*@highlight(?::\s*(.+))?\s*$")]
+    private static partial Regex HighlightDirectivePattern();
+
+    [GeneratedRegex(@"^\s*//\s*@focus(?::\s*(.+))?\s*$")]
+    private static partial Regex FocusDirectivePattern();
+
+    [GeneratedRegex(@"^\s*//\s*@diff:\s*([+-])\s*$")]
+    private static partial Regex DiffDirectivePattern();
+
     public static MarkerParseResult Parse(string source)
     {
         var lines = source.Split('\n');
@@ -58,7 +72,11 @@ public static partial class MarkerParser
         var completionQueries = new List<CompletionQuery>();
         var errorExpectations = new List<ErrorExpectation>();
         var hiddenRanges = new List<HiddenRange>();
+        var highlights = new List<HighlightDirective>();
         var noErrors = false;
+
+        // Track range-based directives to resolve after line mapping
+        var rangeDirectives = new List<(string Kind, int StartLine, int EndLine)>(); // 1-based output lines
 
         // First pass: identify marker lines and collect metadata
         var isMarkerLine = new bool[lines.Length];
@@ -114,7 +132,7 @@ public static partial class MarkerParser
                     .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                     .ToList();
                 // Error expectations apply to the next code line
-                var targetLine = FindNextCodeLine(lines, i);
+                var targetLine = FindNextCodeLine(lines, isMarkerLine, i);
                 if (targetLine >= 0)
                 {
                     errorExpectations.Add(new ErrorExpectation(targetLine, codes));
@@ -160,6 +178,59 @@ public static partial class MarkerParser
                 isMarkerLine[i] = true;
                 continue;
             }
+
+            // @highlight or @highlight: N or @highlight: N-M
+            var highlightMatch = HighlightDirectiveRegex.Match(line);
+            if (highlightMatch.Success)
+            {
+                var arg = highlightMatch.Groups[1].Value.Trim();
+                if (string.IsNullOrEmpty(arg))
+                {
+                    // Bare @highlight — targets next code line
+                    var targetLine = FindNextCodeLine(lines, isMarkerLine, i);
+                    if (targetLine >= 0)
+                        highlights.Add(new HighlightDirective("highlight", targetLine));
+                }
+                else
+                {
+                    // Range argument — store for resolution after line mapping
+                    ParseLineRange(arg, "highlight", rangeDirectives);
+                }
+                isMarkerLine[i] = true;
+                continue;
+            }
+
+            // @focus or @focus: N or @focus: N-M
+            var focusMatch = FocusDirectiveRegex.Match(line);
+            if (focusMatch.Success)
+            {
+                var arg = focusMatch.Groups[1].Value.Trim();
+                if (string.IsNullOrEmpty(arg))
+                {
+                    var targetLine = FindNextCodeLine(lines, isMarkerLine, i);
+                    if (targetLine >= 0)
+                        highlights.Add(new HighlightDirective("focus", targetLine));
+                }
+                else
+                {
+                    ParseLineRange(arg, "focus", rangeDirectives);
+                }
+                isMarkerLine[i] = true;
+                continue;
+            }
+
+            // @diff: + or @diff: -
+            var diffMatch = DiffDirectiveRegex.Match(line);
+            if (diffMatch.Success)
+            {
+                var sign = diffMatch.Groups[1].Value;
+                var kind = sign == "+" ? "add" : "remove";
+                var targetLine = FindNextCodeLine(lines, isMarkerLine, i);
+                if (targetLine >= 0)
+                    highlights.Add(new HighlightDirective(kind, targetLine));
+                isMarkerLine[i] = true;
+                continue;
+            }
         }
 
         // If @hide was never closed, hide to end of file
@@ -189,6 +260,21 @@ public static partial class MarkerParser
 
             processedLines.Add(lines[i]);
             lineMap.Add(i);
+        }
+
+        // Resolve range-based directives (1-based output line numbers → 0-based processed lines)
+        foreach (var (kind, startLine, endLine) in rangeDirectives)
+        {
+            for (var lineNum = startLine; lineNum <= endLine; lineNum++)
+            {
+                var processedLine = lineNum - 1; // 1-based → 0-based
+                if (processedLine >= 0 && processedLine < processedLines.Count)
+                {
+                    // Store as a HighlightDirective with the original line from lineMap
+                    // so it gets remapped correctly below
+                    highlights.Add(new HighlightDirective(kind, lineMap[processedLine]));
+                }
+            }
         }
 
         // Remap hover queries from original line to processed line
@@ -224,6 +310,17 @@ public static partial class MarkerParser
             }
         }
 
+        // Remap highlight directives
+        var remappedHighlights = new List<HighlightDirective>();
+        foreach (var hl in highlights)
+        {
+            var processedLine = lineMap.IndexOf(hl.TargetOriginalLine);
+            if (processedLine >= 0)
+            {
+                remappedHighlights.Add(new HighlightDirective(hl.Kind, processedLine));
+            }
+        }
+
         return new MarkerParseResult
         {
             ProcessedCode = string.Join('\n', processedLines),
@@ -233,6 +330,7 @@ public static partial class MarkerParser
             ErrorExpectations = remappedErrors,
             NoErrors = noErrors,
             HiddenRanges = hiddenRanges,
+            Highlights = remappedHighlights,
             LineMap = lineMap.ToArray(),
         };
     }
@@ -254,7 +352,10 @@ public static partial class MarkerParser
                 NoErrorsDirectiveRegex.IsMatch(line) ||
                 CutMarkerRegex.IsMatch(line) ||
                 HideDirectiveRegex.IsMatch(line) ||
-                ShowDirectiveRegex.IsMatch(line))
+                ShowDirectiveRegex.IsMatch(line) ||
+                HighlightDirectiveRegex.IsMatch(line) ||
+                FocusDirectiveRegex.IsMatch(line) ||
+                DiffDirectiveRegex.IsMatch(line))
             {
                 continue;
             }
@@ -262,6 +363,22 @@ public static partial class MarkerParser
         }
 
         return string.Join('\n', compilationLines);
+    }
+
+    private static void ParseLineRange(string arg, string kind, List<(string Kind, int StartLine, int EndLine)> rangeDirectives)
+    {
+        var dashIndex = arg.IndexOf('-');
+        if (dashIndex >= 0)
+        {
+            if (int.TryParse(arg[..dashIndex], out var start) && int.TryParse(arg[(dashIndex + 1)..], out var end))
+            {
+                rangeDirectives.Add((kind, start, end));
+            }
+        }
+        else if (int.TryParse(arg, out var single))
+        {
+            rangeDirectives.Add((kind, single, single));
+        }
     }
 
     private static int FindPrecedingCodeLine(string[] lines, bool[] isMarkerLine, int fromLine)
@@ -274,10 +391,13 @@ public static partial class MarkerParser
         return -1;
     }
 
-    private static int FindNextCodeLine(string[] lines, int fromLine)
+    private static int FindNextCodeLine(string[] lines, bool[] isMarkerLine, int fromLine)
     {
         for (var i = fromLine + 1; i < lines.Length; i++)
         {
+            if (isMarkerLine[i])
+                continue;
+
             var line = lines[i];
             if (!HoverMarkerRegex.IsMatch(line) &&
                 !CompletionMarkerRegex.IsMatch(line) &&
@@ -285,7 +405,10 @@ public static partial class MarkerParser
                 !NoErrorsDirectiveRegex.IsMatch(line) &&
                 !CutMarkerRegex.IsMatch(line) &&
                 !HideDirectiveRegex.IsMatch(line) &&
-                !ShowDirectiveRegex.IsMatch(line))
+                !ShowDirectiveRegex.IsMatch(line) &&
+                !HighlightDirectiveRegex.IsMatch(line) &&
+                !FocusDirectiveRegex.IsMatch(line) &&
+                !DiffDirectiveRegex.IsMatch(line))
             {
                 return i;
             }
