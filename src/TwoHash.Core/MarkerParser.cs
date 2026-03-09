@@ -18,6 +18,8 @@ public class MarkerParseResult
     public required List<HiddenRange> HiddenRanges { get; init; }
     public required List<HighlightDirective> Highlights { get; init; }
     public required int[] LineMap { get; init; } // processedLine -> originalLine
+    public string? LangVersion { get; init; }
+    public string? Nullable { get; init; }
 }
 
 public record HiddenRange(int StartLine, int EndLine);
@@ -34,6 +36,8 @@ public static partial class MarkerParser
     private static readonly Regex HighlightDirectiveRegex = HighlightDirectivePattern();
     private static readonly Regex FocusDirectiveRegex = FocusDirectivePattern();
     private static readonly Regex DiffDirectiveRegex = DiffDirectivePattern();
+    private static readonly Regex LangVersionDirectiveRegex = LangVersionDirectivePattern();
+    private static readonly Regex NullableDirectiveRegex = NullableDirectivePattern();
 
     [GeneratedRegex(@"^(\s*)//\s*\^(\?)")]
     private static partial Regex HoverMarkerPattern();
@@ -65,6 +69,12 @@ public static partial class MarkerParser
     [GeneratedRegex(@"^\s*//\s*@diff:\s*([+-])\s*$")]
     private static partial Regex DiffDirectivePattern();
 
+    [GeneratedRegex(@"^\s*//\s*@langVersion:\s*(.+?)\s*$")]
+    private static partial Regex LangVersionDirectivePattern();
+
+    [GeneratedRegex(@"^\s*//\s*@nullable:\s*(.+?)\s*$")]
+    private static partial Regex NullableDirectivePattern();
+
     public static MarkerParseResult Parse(string source)
     {
         var lines = source.Split('\n');
@@ -74,6 +84,8 @@ public static partial class MarkerParser
         var hiddenRanges = new List<HiddenRange>();
         var highlights = new List<HighlightDirective>();
         var noErrors = false;
+        string? langVersion = null;
+        string? nullable = null;
 
         // Track range-based directives to resolve after line mapping
         var rangeDirectives = new List<(string Kind, int StartLine, int EndLine)>(); // 1-based output lines
@@ -175,6 +187,24 @@ public static partial class MarkerParser
                     hiddenRanges.Add(new HiddenRange(hideStart, i));
                     hideStart = -1;
                 }
+                isMarkerLine[i] = true;
+                continue;
+            }
+
+            // @langVersion: <value>
+            var langVersionMatch = LangVersionDirectiveRegex.Match(line);
+            if (langVersionMatch.Success)
+            {
+                langVersion = langVersionMatch.Groups[1].Value.Trim().ToLowerInvariant();
+                isMarkerLine[i] = true;
+                continue;
+            }
+
+            // @nullable: <value>
+            var nullableMatch = NullableDirectiveRegex.Match(line);
+            if (nullableMatch.Success)
+            {
+                nullable = nullableMatch.Groups[1].Value.Trim().ToLowerInvariant();
                 isMarkerLine[i] = true;
                 continue;
             }
@@ -332,6 +362,8 @@ public static partial class MarkerParser
             HiddenRanges = hiddenRanges,
             Highlights = remappedHighlights,
             LineMap = lineMap.ToArray(),
+            LangVersion = langVersion,
+            Nullable = nullable,
         };
     }
 
@@ -355,7 +387,9 @@ public static partial class MarkerParser
                 ShowDirectiveRegex.IsMatch(line) ||
                 HighlightDirectiveRegex.IsMatch(line) ||
                 FocusDirectiveRegex.IsMatch(line) ||
-                DiffDirectiveRegex.IsMatch(line))
+                DiffDirectiveRegex.IsMatch(line) ||
+                LangVersionDirectiveRegex.IsMatch(line) ||
+                NullableDirectiveRegex.IsMatch(line))
             {
                 continue;
             }
@@ -408,7 +442,9 @@ public static partial class MarkerParser
                 !ShowDirectiveRegex.IsMatch(line) &&
                 !HighlightDirectiveRegex.IsMatch(line) &&
                 !FocusDirectiveRegex.IsMatch(line) &&
-                !DiffDirectiveRegex.IsMatch(line))
+                !DiffDirectiveRegex.IsMatch(line) &&
+                !LangVersionDirectiveRegex.IsMatch(line) &&
+                !NullableDirectiveRegex.IsMatch(line))
             {
                 return i;
             }

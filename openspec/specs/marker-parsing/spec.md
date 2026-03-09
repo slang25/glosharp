@@ -48,11 +48,15 @@ The system SHALL recognize `// @hide` and `// @show` to toggle visibility of cod
 - **THEN** the output `code` excludes the hidden section but compilation includes it
 
 ### Requirement: Remove marker lines from output
-The system SHALL remove all marker lines (`^?` comments, `@errors` directives, `@noErrors`, cut markers, `@hide`/`@show`) from the processed output code.
+The system SHALL remove all marker lines (`^?` comments, `^|` comments, `@errors` directives, `@noErrors`, cut markers, `@hide`/`@show`, `@highlight`/`@focus`/`@diff` directives, `@langVersion` directives, `@nullable` directives) from the processed output code.
 
 #### Scenario: Clean output code
 - **WHEN** source contains markers interspersed with code
 - **THEN** the output `code` field contains only the actual C# code with no marker lines
+
+#### Scenario: LangVersion and nullable markers stripped
+- **WHEN** source contains `// @langVersion: 12` and `// @nullable: disable` alongside code
+- **THEN** both marker lines are removed from the processed output code
 
 ### Requirement: Build position offset map
 The system SHALL maintain a mapping from processed-code line numbers to original-code line numbers after removing marker lines. All output positions (hovers, errors) SHALL reference the processed code.
@@ -98,11 +102,15 @@ The system SHALL recognize `// @diff: +` and `// @diff: -` comment lines as mark
 - **THEN** the line is treated as a marker line, removed from processed output, and excluded from compilation code
 
 ### Requirement: Directive markers included in position offset map
-When directive marker lines are removed, the position offset map SHALL account for these removals. All output positions (hovers, errors, highlights) SHALL reference the processed code with directive lines removed.
+When directive marker lines are removed, the position offset map SHALL account for these removals. All output positions (hovers, errors, highlights) SHALL reference the processed code with directive lines removed. This includes `@langVersion` and `@nullable` marker lines.
 
 #### Scenario: Position adjustment after directive removal
 - **WHEN** a `// @highlight` line is removed between two code lines
 - **THEN** hover, error, and highlight positions in the output reference the adjusted line numbers in the processed code
+
+#### Scenario: Position adjustment after langVersion/nullable removal
+- **WHEN** `// @langVersion: 12` and `// @nullable: disable` lines appear before code with `^?` markers
+- **THEN** hover positions account for the two removed marker lines
 
 ### Requirement: Parse file-based app directive lines
 The system SHALL recognize lines starting with `#:` as directive marker lines. These lines SHALL be removed from processed output and excluded from compilation code. The position offset map SHALL account for removed `#:` lines.

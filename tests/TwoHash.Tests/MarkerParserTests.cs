@@ -252,4 +252,94 @@ public class MarkerParserTests
 
         await Assert.That(compilationCode).IsEqualTo("var a = 1;\nvar b = 2;\nvar c = 3;");
     }
+
+    // === LangVersion and Nullable marker tests ===
+
+    [Test]
+    public async Task Parse_LangVersion_ExtractsValue()
+    {
+        var source = "// @langVersion: 12\nvar x = 42;";
+        var result = MarkerParser.Parse(source);
+
+        await Assert.That(result.LangVersion).IsEqualTo("12");
+        await Assert.That(result.ProcessedCode).IsEqualTo("var x = 42;");
+    }
+
+    [Test]
+    public async Task Parse_LangVersion_CaseInsensitive()
+    {
+        var source = "// @langVersion: Latest\nvar x = 42;";
+        var result = MarkerParser.Parse(source);
+
+        await Assert.That(result.LangVersion).IsEqualTo("latest");
+    }
+
+    [Test]
+    public async Task Parse_LangVersion_LastOneWins()
+    {
+        var source = "// @langVersion: 12\n// @langVersion: 11\nvar x = 42;";
+        var result = MarkerParser.Parse(source);
+
+        await Assert.That(result.LangVersion).IsEqualTo("11");
+    }
+
+    [Test]
+    public async Task Parse_Nullable_ExtractsValue()
+    {
+        var source = "// @nullable: disable\nvar x = 42;";
+        var result = MarkerParser.Parse(source);
+
+        await Assert.That(result.Nullable).IsEqualTo("disable");
+        await Assert.That(result.ProcessedCode).IsEqualTo("var x = 42;");
+    }
+
+    [Test]
+    public async Task Parse_Nullable_CaseInsensitive()
+    {
+        var source = "// @nullable: Disable\nvar x = 42;";
+        var result = MarkerParser.Parse(source);
+
+        await Assert.That(result.Nullable).IsEqualTo("disable");
+    }
+
+    [Test]
+    public async Task Parse_LangVersionAndNullable_BothStrippedFromOutput()
+    {
+        var source = "// @langVersion: 12\n// @nullable: disable\nvar x = 42;";
+        var result = MarkerParser.Parse(source);
+
+        await Assert.That(result.LangVersion).IsEqualTo("12");
+        await Assert.That(result.Nullable).IsEqualTo("disable");
+        await Assert.That(result.ProcessedCode).IsEqualTo("var x = 42;");
+    }
+
+    [Test]
+    public async Task Parse_LangVersion_PositionOffsetCorrect()
+    {
+        var source = "// @langVersion: 12\n// @nullable: disable\nvar x = 42;\n//  ^?";
+        var result = MarkerParser.Parse(source);
+
+        await Assert.That(result.HoverQueries.Count).IsEqualTo(1);
+        await Assert.That(result.HoverQueries[0].OriginalLine).IsEqualTo(0);
+        await Assert.That(result.ProcessedCode).IsEqualTo("var x = 42;");
+    }
+
+    [Test]
+    public async Task Parse_NoLangVersionOrNullable_ReturnsNull()
+    {
+        var source = "var x = 42;";
+        var result = MarkerParser.Parse(source);
+
+        await Assert.That(result.LangVersion).IsNull();
+        await Assert.That(result.Nullable).IsNull();
+    }
+
+    [Test]
+    public async Task GetCompilationCode_ExcludesLangVersionAndNullable()
+    {
+        var source = "// @langVersion: 12\n// @nullable: enable\nvar x = 42;";
+        var compilationCode = MarkerParser.GetCompilationCode(source);
+
+        await Assert.That(compilationCode).IsEqualTo("var x = 42;");
+    }
 }
