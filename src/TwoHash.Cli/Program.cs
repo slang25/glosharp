@@ -27,6 +27,8 @@ static async Task<int> RunProcess(string[] args)
     string? region = null;
     string? cacheDir = null;
     string? configPath = null;
+    string? complog = null;
+    string? complogProject = null;
     var useStdin = false;
     var noRestore = false;
 
@@ -51,6 +53,12 @@ static async Task<int> RunProcess(string[] args)
                 break;
             case "--config" when i + 1 < args.Length:
                 configPath = args[++i];
+                break;
+            case "--complog" when i + 1 < args.Length:
+                complog = args[++i];
+                break;
+            case "--complog-project" when i + 1 < args.Length:
+                complogProject = args[++i];
                 break;
             case "--no-restore":
                 noRestore = true;
@@ -83,8 +91,22 @@ static async Task<int> RunProcess(string[] args)
         framework ??= config.Framework;
         project ??= config.Project;
         cacheDir ??= config.CacheDir;
+        complog ??= config.Complog;
+        complogProject ??= config.ComplogProject;
         if (!noRestore && config.NoRestore == true)
             noRestore = true;
+    }
+
+    // Validate mutual exclusivity
+    if (complog != null && project != null)
+    {
+        Console.Error.WriteLine("Error: --complog and --project are mutually exclusive");
+        return 1;
+    }
+    if (complogProject != null && complog == null)
+    {
+        Console.Error.WriteLine("Error: --complog-project requires --complog");
+        return 1;
     }
 
     // Validate --region is not used with --stdin
@@ -127,6 +149,8 @@ static async Task<int> RunProcess(string[] args)
             SourceFilePath = filePath,
             NoRestore = noRestore,
             CacheDir = cacheDir,
+            ComplogPath = complog,
+            ComplogProject = complogProject,
         });
 
         Console.Write(JsonOutput.Serialize(result));
@@ -154,6 +178,8 @@ static async Task<int> RunVerify(string[] args)
     string? region = null;
     string? cacheDir = null;
     string? configPath = null;
+    string? complog = null;
+    string? complogProject = null;
     var noRestore = false;
 
     for (var i = 1; i < args.Length; i++)
@@ -174,6 +200,12 @@ static async Task<int> RunVerify(string[] args)
                 break;
             case "--config" when i + 1 < args.Length:
                 configPath = args[++i];
+                break;
+            case "--complog" when i + 1 < args.Length:
+                complog = args[++i];
+                break;
+            case "--complog-project" when i + 1 < args.Length:
+                complogProject = args[++i];
                 break;
             case "--no-restore":
                 noRestore = true;
@@ -206,8 +238,22 @@ static async Task<int> RunVerify(string[] args)
         framework ??= config.Framework;
         project ??= config.Project;
         cacheDir ??= config.CacheDir;
+        complog ??= config.Complog;
+        complogProject ??= config.ComplogProject;
         if (!noRestore && config.NoRestore == true)
             noRestore = true;
+    }
+
+    // Validate mutual exclusivity
+    if (complog != null && project != null)
+    {
+        Console.Error.WriteLine("Error: --complog and --project are mutually exclusive");
+        return 1;
+    }
+    if (complogProject != null && complog == null)
+    {
+        Console.Error.WriteLine("Error: --complog-project requires --complog");
+        return 1;
     }
 
     // Auto-restore if project specified and assets file missing
@@ -239,6 +285,8 @@ static async Task<int> RunVerify(string[] args)
                 SourceFilePath = file,
                 NoRestore = noRestore,
                 CacheDir = cacheDir,
+                ComplogPath = complog,
+                ComplogProject = complogProject,
             });
             if (!result.Meta.CompileSucceeded)
             {
@@ -324,6 +372,8 @@ static async Task<int> RunRender(string[] args)
     string? themeName = null;
     string? outputPath = null;
     string? configPath = null;
+    string? complog = null;
+    string? complogProject = null;
     var useStdin = false;
     var noRestore = false;
     var standalone = false;
@@ -355,6 +405,12 @@ static async Task<int> RunRender(string[] args)
                 break;
             case "--config" when i + 1 < args.Length:
                 configPath = args[++i];
+                break;
+            case "--complog" when i + 1 < args.Length:
+                complog = args[++i];
+                break;
+            case "--complog-project" when i + 1 < args.Length:
+                complogProject = args[++i];
                 break;
             case "--standalone":
                 standalone = true;
@@ -390,11 +446,25 @@ static async Task<int> RunRender(string[] args)
         framework ??= config.Framework;
         project ??= config.Project;
         cacheDir ??= config.CacheDir;
+        complog ??= config.Complog;
+        complogProject ??= config.ComplogProject;
         if (!noRestore && config.NoRestore == true)
             noRestore = true;
         themeName ??= config.Render?.Theme;
         if (!standalone && config.Render?.Standalone == true)
             standalone = true;
+    }
+
+    // Validate mutual exclusivity
+    if (complog != null && project != null)
+    {
+        Console.Error.WriteLine("Error: --complog and --project are mutually exclusive");
+        return 1;
+    }
+    if (complogProject != null && complog == null)
+    {
+        Console.Error.WriteLine("Error: --complog-project requires --complog");
+        return 1;
     }
 
     // Validate theme
@@ -446,6 +516,8 @@ static async Task<int> RunRender(string[] args)
             SourceFilePath = filePath,
             NoRestore = noRestore,
             CacheDir = cacheDir,
+            ComplogPath = complog,
+            ComplogProject = complogProject,
         });
 
         // Classify tokens for syntax highlighting
@@ -493,6 +565,8 @@ static int RunInit(string[] args)
         Console.Error.WriteLine("  project      - Path to .csproj or directory for NuGet resolution");
         Console.Error.WriteLine("  cacheDir     - Directory for disk-based result caching");
         Console.Error.WriteLine("  noRestore    - Skip automatic dotnet restore (true/false)");
+        Console.Error.WriteLine("  complog      - Path to .complog file for portable compilation");
+        Console.Error.WriteLine("  complogProject - Project name to select from multi-project complog");
         Console.Error.WriteLine("  render.theme - Color theme (github-dark, github-light)");
         Console.Error.WriteLine("  render.standalone - Output full HTML page (true/false)");
         return 0;
@@ -521,6 +595,8 @@ static void PrintUsage()
     Console.Error.WriteLine("  --region <name>     Extract a named #region from the source file");
     Console.Error.WriteLine("  --no-restore        Skip automatic dotnet restore");
     Console.Error.WriteLine("  --cache-dir <path>  Directory for disk-based result caching");
+    Console.Error.WriteLine("  --complog <path>    Complog file for portable compilation (no SDK needed)");
+    Console.Error.WriteLine("  --complog-project <name>  Project to select from multi-project complog");
     Console.Error.WriteLine("  --config <path>     Path to twohash.config.json (default: auto-discover)");
     Console.Error.WriteLine();
     Console.Error.WriteLine("Render options:");

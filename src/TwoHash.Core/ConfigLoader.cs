@@ -17,6 +17,12 @@ public class TwohashConfig
     [JsonPropertyName("noRestore")]
     public bool? NoRestore { get; set; }
 
+    [JsonPropertyName("complog")]
+    public string? Complog { get; set; }
+
+    [JsonPropertyName("complogProject")]
+    public string? ComplogProject { get; set; }
+
     [JsonPropertyName("render")]
     public TwohashRenderConfig? Render { get; set; }
 }
@@ -112,6 +118,9 @@ public static class ConfigLoader
 
         if (config.CacheDir != null && !Path.IsPathRooted(config.CacheDir))
             config.CacheDir = Path.GetFullPath(Path.Combine(configDir, config.CacheDir));
+
+        if (config.Complog != null && !Path.IsPathRooted(config.Complog))
+            config.Complog = Path.GetFullPath(Path.Combine(configDir, config.Complog));
     }
 
     /// <summary>
@@ -131,6 +140,8 @@ public static class ConfigLoader
             Project = null,
             CacheDir = null,
             NoRestore = false,
+            Complog = null,
+            ComplogProject = null,
             Render = new TwohashRenderConfig
             {
                 Theme = "github-dark",

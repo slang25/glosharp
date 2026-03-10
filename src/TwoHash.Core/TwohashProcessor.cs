@@ -15,6 +15,8 @@ public class TwohashProcessorOptions
     public string? SourceFilePath { get; init; }
     public bool NoRestore { get; init; }
     public string? CacheDir { get; init; }
+    public string? ComplogPath { get; init; }
+    public string? ComplogProject { get; init; }
 }
 
 public class TwohashProcessor
@@ -74,7 +76,7 @@ public class TwohashProcessor
                 source,
                 options.TargetFramework ?? "net8.0",
                 null, // packages are embedded in source via #: directives
-                options.ProjectPath);
+                options.ComplogPath ?? options.ProjectPath);
 
             var cached = resultCache.TryGet(resultCacheKey);
             if (cached != null)
@@ -185,10 +187,60 @@ public class TwohashProcessor
         var globalUsingsTree = CSharpSyntaxTree.ParseText(globalUsings, parseOptions, path: "__GlobalUsings.cs");
         var tree = CSharpSyntaxTree.ParseText(compilationCode, parseOptions);
 
-        // Resolve references: project path > file-based app directives > framework-only
+        // Resolve references: complog > project path > file-based app directives > framework-only
         ProjectAssetsResult? projectAssets = null;
+        ComplogResolutionResult? complogResult = null;
         var resolvedFramework = targetFramework ?? "net8.0";
         string? assetsFilePath = null;
+
+        if (options?.ComplogPath != null)
+        {
+            // Complog takes highest priority — bypasses all other resolution
+            var complogLastWrite = File.GetLastWriteTimeUtc(options.ComplogPath).Ticks.ToString();
+            var complogContextKey = CompilationContextCache.ComputeKey(
+                options.ComplogPath,
+                null,
+                $"complog:{options.ComplogProject ?? ""}:{complogLastWrite}");
+
+            var complogRefs = _contextCache.GetOrAdd(complogContextKey, () =>
+            {
+                using var resolver = ComplogResolver.Open(options.ComplogPath);
+                complogResult = resolver.Resolve(options.ComplogProject);
+                return complogResult.References;
+            });
+
+            // If complogResult was populated in the factory, use it; otherwise re-resolve for metadata
+            if (complogResult == null)
+            {
+                using var resolver = ComplogResolver.Open(options.ComplogPath);
+                complogResult = resolver.Resolve(options.ComplogProject);
+            }
+
+            resolvedFramework = complogResult.TargetFramework;
+
+            // Use complog's parse options for language version if no marker override
+            if (markers.LangVersion == null)
+                resolvedLangVersion = complogResult.ParseOptions.LanguageVersion;
+            if (markers.Nullable == null)
+                resolvedNullable = complogResult.CompilationOptions.NullableContextOptions;
+
+            // Re-parse with potentially updated options
+            parseOptions = new CSharpParseOptions(resolvedLangVersion);
+            globalUsingsTree = CSharpSyntaxTree.ParseText(globalUsings, parseOptions, path: "__GlobalUsings.cs");
+            tree = CSharpSyntaxTree.ParseText(compilationCode, parseOptions);
+
+            var complogCompilation = CSharpCompilation.Create(
+                "TwohashSnippet",
+                [tree, globalUsingsTree],
+                complogRefs,
+                new CSharpCompilationOptions(OutputKind.ConsoleApplication)
+                    .WithNullableContextOptions(resolvedNullable));
+
+            return await BuildResult(complogCompilation, tree, markers, compilationCode, globalUsings,
+                complogRefs, resolvedLangVersion, resolvedNullable, resolvedFramework,
+                complogResult.Packages, fileDirectives, originalSourceWithDirectives,
+                options.ComplogPath, resultCache, resultCacheKey);
+        }
 
         if (options?.ProjectPath != null)
         {
@@ -235,6 +287,34 @@ public class TwohashProcessor
             new CSharpCompilationOptions(OutputKind.ConsoleApplication)
                 .WithNullableContextOptions(resolvedNullable));
 
+        // Build meta: prefer directive-derived packages if present, else from project assets
+        var packages = fileDirectives.HasDirectives
+            ? fileDirectives.GetPackageReferences()
+            : projectAssets?.Packages ?? [];
+
+        return await BuildResult(compilation, tree, markers, compilationCode, globalUsings,
+            references, resolvedLangVersion, resolvedNullable, resolvedFramework,
+            packages, fileDirectives, originalSourceWithDirectives,
+            null, resultCache, resultCacheKey);
+    }
+
+    private async Task<TwohashProcessResult> BuildResult(
+        CSharpCompilation compilation,
+        SyntaxTree tree,
+        MarkerParseResult markers,
+        string compilationCode,
+        string globalUsings,
+        List<MetadataReference> references,
+        LanguageVersion resolvedLangVersion,
+        NullableContextOptions resolvedNullable,
+        string resolvedFramework,
+        List<PackageReference> packages,
+        FileDirectiveResult fileDirectives,
+        string originalSourceWithDirectives,
+        string? complogPath,
+        ResultCache? resultCache,
+        string? resultCacheKey)
+    {
         // Check if we have a cached result (skip extraction)
         if (resultCache != null && resultCacheKey != null)
         {
@@ -252,34 +332,29 @@ public class TwohashProcessor
 
         var model = compilation.GetSemanticModel(tree);
 
-        // 5. Extract hovers
+        // Extract hovers
         var hovers = ExtractHovers(markers, tree, model, compilationCode);
 
-        // 6. Extract diagnostics
+        // Extract diagnostics
         var (errors, compileSucceeded) = ExtractDiagnostics(compilation, model, markers, compilationCode);
 
-        // 7. Extract completions (only if ^| markers present)
+        // Extract completions (only if ^| markers present)
         var completions = markers.CompletionQueries.Count > 0
             ? await ExtractCompletions(markers, compilationCode, references, globalUsings, resolvedLangVersion, resolvedNullable)
             : [];
 
-        // 8. Build highlights from parsed directives
+        // Build highlights from parsed directives
         var processedLines = markers.ProcessedCode.Split('\n');
         var highlights = markers.Highlights
             .Where(h => h.TargetOriginalLine >= 0 && h.TargetOriginalLine < processedLines.Length)
             .Select(h => new TwohashHighlight
             {
-                Line = h.TargetOriginalLine, // Already remapped to processed line
+                Line = h.TargetOriginalLine,
                 Character = 0,
                 Length = processedLines[h.TargetOriginalLine].Length,
                 Kind = h.Kind,
             })
             .ToList();
-
-        // Build meta: prefer directive-derived packages if present, else from project assets
-        var packages = fileDirectives.HasDirectives
-            ? fileDirectives.GetPackageReferences()
-            : projectAssets?.Packages ?? [];
 
         var result = new TwohashResult
         {
@@ -297,6 +372,7 @@ public class TwohashProcessor
                 Sdk = fileDirectives.GetSdk(),
                 LangVersion = markers.LangVersion,
                 Nullable = markers.Nullable,
+                Complog = complogPath,
             },
         };
 
