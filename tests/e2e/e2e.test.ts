@@ -1,18 +1,27 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeAll } from 'vitest'
 import { execFileSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { codeToHtml } from 'shiki'
 
 const CLI_PROJECT = join(__dirname, '../../src/TwoHash.Cli/TwoHash.Cli.csproj')
 const SAMPLES_DIR = join(__dirname, '../../samples')
 
+beforeAll(() => {
+  execFileSync('dotnet', ['build', CLI_PROJECT, '-v', 'q'], {
+    encoding: 'utf-8',
+    timeout: 60000,
+  })
+})
+
 function runCli(file: string): any {
-  const stdout = execFileSync('dotnet', ['run', '--project', CLI_PROJECT, '--', 'process', file], {
+  const stdout = execFileSync('dotnet', ['run', '--no-build', '--project', CLI_PROJECT, '--', 'process', file], {
     encoding: 'utf-8',
     timeout: 30000,
   })
-  return JSON.parse(stdout)
+  // Extract JSON in case there's any non-JSON output on stdout
+  const jsonStart = stdout.indexOf('{')
+  const jsonStr = jsonStart > 0 ? stdout.slice(jsonStart) : stdout
+  return JSON.parse(jsonStr)
 }
 
 describe('End-to-end: CLI → JSON', () => {
