@@ -291,4 +291,48 @@ public class ConfigLoaderTests
         var config = JsonSerializer.Deserialize<TwohashConfig>(json);
         await Assert.That(config!.Framework).IsEqualTo("net9.0");
     }
+
+    // --- Complog config tests ---
+
+    [Test]
+    public async Task Parse_ComplogConfig_PropertiesParsed()
+    {
+        var json = """{"complog": "./artifacts/build.complog", "complogProject": "MyLib"}""";
+        File.WriteAllText(Path.Combine(_tempDir, "twohash.config.json"), json);
+
+        var config = ConfigLoader.Load(null, _tempDir);
+
+        await Assert.That(config).IsNotNull();
+        await Assert.That(config!.Complog).IsEqualTo(
+            Path.GetFullPath(Path.Combine(_tempDir, "artifacts", "build.complog")));
+        await Assert.That(config.ComplogProject).IsEqualTo("MyLib");
+    }
+
+    [Test]
+    public async Task Parse_ComplogAbsolutePath_Unchanged()
+    {
+        var absolutePath = Path.Combine(Path.GetTempPath(), "build.complog");
+        var json = $$$"""{"complog": "{{{absolutePath.Replace("\\", "\\\\")}}}"}""";
+        File.WriteAllText(Path.Combine(_tempDir, "twohash.config.json"), json);
+
+        var config = ConfigLoader.Load(null, _tempDir);
+
+        await Assert.That(config).IsNotNull();
+        await Assert.That(config!.Complog).IsEqualTo(absolutePath);
+    }
+
+    [Test]
+    public async Task Parse_ComplogRelativePath_ResolvedToConfigDir()
+    {
+        var json = """{"complog": "./build.complog"}""";
+        File.WriteAllText(Path.Combine(_tempDir, "twohash.config.json"), json);
+        var nested = Path.Combine(_tempDir, "sub");
+        Directory.CreateDirectory(nested);
+
+        var config = ConfigLoader.Load(null, nested);
+
+        await Assert.That(config).IsNotNull();
+        await Assert.That(config!.Complog).IsEqualTo(
+            Path.GetFullPath(Path.Combine(_tempDir, "build.complog")));
+    }
 }

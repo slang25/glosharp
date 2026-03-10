@@ -51,6 +51,7 @@ export interface TwohashMeta {
   sdk?: string | null
   langVersion?: string | null
   nullable?: string | null
+  complog?: string | null
 }
 
 export interface TwohashCompletionItem {
@@ -89,6 +90,8 @@ export interface TwohashOptions {
   framework?: string
   cacheDir?: string
   configFile?: string
+  complog?: string
+  complogProject?: string
 }
 
 export interface TwohashProcessOptions {
@@ -100,4 +103,6 @@ export interface TwohashProcessOptions {
   noRestore?: boolean
   cacheDir?: string
   configFile?: string
+  complog?: string
+  complogProject?: string
 }

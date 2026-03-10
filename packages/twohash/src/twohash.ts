@@ -61,6 +61,16 @@ export function createTwohash(options: TwohashOptions = {}) {
       args.push('--config', configFile)
     }
 
+    const complog = opts.complog ?? options.complog
+    if (complog) {
+      args.push('--complog', complog)
+    }
+
+    const complogProject = opts.complogProject ?? options.complogProject
+    if (complogProject) {
+      args.push('--complog-project', complogProject)
+    }
+
     const result = await spawnCli(executable, args, opts.code)
     cache.set(cacheKey, result)
     return result

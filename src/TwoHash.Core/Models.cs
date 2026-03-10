@@ -66,6 +66,7 @@ public class TwohashMeta
     public string? Sdk { get; init; }
     public string? LangVersion { get; init; }
     public string? Nullable { get; init; }
+    public string? Complog { get; init; }
 }
 
 public class TwohashCompletion

@@ -34,11 +34,9 @@ Done. `// @langVersion: <value>` and `// @nullable: <value>` markers parsed by `
 
 Done. `twohash.config.json` provides project-wide defaults for all CLI commands. `ConfigLoader` discovers the config file by walking up from the input file's directory, parses it with `System.Text.Json` (case-insensitive, unknown properties ignored), and resolves relative paths (`project`, `cacheDir`) relative to the config file's location. CLI arguments override config values (CLI always wins). `--config <path>` flag on all commands for explicit config path. `twohash init` command scaffolds a default config file (refuses overwrite unless `--force`). Supports all existing options: `framework`, `project`, `cacheDir`, `noRestore`, and render-specific `render.theme` and `render.standalone`. Propagated through Node bridge (`configFile` option in `TwohashOptions` and `TwohashProcessOptions`).
 
-## 9. Portable Compilation (complog)
+## ~~9. Portable Compilation (complog)~~ ✅
 
-Accept `.complog` artifacts (Roslyn's portable compilation format) so documentation builds don't need the full SDK + NuGet cache. A CI step runs `dotnet build` and produces the complog; twohash consumes it for accurate type resolution. Referenced in design decisions (decision 003).
-
-**Scope**: New `--complog` option + complog parser + TwohashProcessor integration.
+Done. `ComplogResolver` opens `.complog` files (Roslyn's portable compilation format via `Basic.CompilerLog.Util`) and recreates full `CSharpCompilation` objects with all references, options, and source — bypassing FrameworkResolver/ProjectAssetsResolver/FileBasedAppResolver entirely. Selects compilation by project name or defaults to first C# compilation. Extracts package info from NuGet cache paths in reference data. `--complog <path>` and `--complog-project <name>` options on `process`, `verify`, and `render` commands (mutually exclusive with `--project`). Integrates with `CompilationContextCache` (keyed by complog path + project + last-write-time) and `ResultCache`. `meta.complog`, `meta.targetFramework`, and `meta.packages` populated from complog data. Config file supports `complog` and `complogProject` fields with relative path resolution. Propagated through Node bridge types (`TwohashOptions` and `TwohashProcessOptions`).
 
 ## 10. Richer Error Display
 
