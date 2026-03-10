@@ -417,4 +417,40 @@ public class TwohashProcessorTests
         await Assert.That(json).Contains("\"langVersion\": \"12\"");
         await Assert.That(json).Contains("\"nullable\": \"disable\"");
     }
+
+    // === Richer error display tests ===
+
+    [Test]
+    public async Task Process_SingleLineError_OmitsEndLineEndCharacter()
+    {
+        var source = "// @errors: CS0103\nConsole.WriteLine(undeclared);";
+        var result = await _processor.ProcessAsync(source);
+
+        var error = result.Errors.First(e => e.Code == "CS0103");
+        await Assert.That(error.EndLine).IsNull();
+        await Assert.That(error.EndCharacter).IsNull();
+    }
+
+    [Test]
+    public async Task Process_SingleLineError_JsonOmitsEndFields()
+    {
+        var source = "// @errors: CS0103\nConsole.WriteLine(undeclared);";
+        var result = await _processor.ProcessAsync(source);
+        var json = JsonOutput.Serialize(result);
+
+        await Assert.That(json).DoesNotContain("\"endLine\"");
+        await Assert.That(json).DoesNotContain("\"endCharacter\"");
+    }
+
+    [Test]
+    public async Task Process_WarningDiagnostic_HasWarningSeverity()
+    {
+        // Nullable enable produces CS8600 warning
+        var source = "// @nullable: enable\n// @errors: CS8600\nstring s = null;\nConsole.WriteLine(s);";
+        var result = await _processor.ProcessAsync(source);
+
+        var warning = result.Errors.FirstOrDefault(e => e.Code == "CS8600");
+        await Assert.That(warning).IsNotNull();
+        await Assert.That(warning!.Severity).IsEqualTo("warning");
+    }
 }

@@ -38,12 +38,6 @@ Done. `twohash.config.json` provides project-wide defaults for all CLI commands.
 
 Done. `ComplogResolver` opens `.complog` files (Roslyn's portable compilation format via `Basic.CompilerLog.Util`) and recreates full `CSharpCompilation` objects with all references, options, and source — bypassing FrameworkResolver/ProjectAssetsResolver/FileBasedAppResolver entirely. Selects compilation by project name or defaults to first C# compilation. Extracts package info from NuGet cache paths in reference data. `--complog <path>` and `--complog-project <name>` options on `process`, `verify`, and `render` commands (mutually exclusive with `--project`). Integrates with `CompilationContextCache` (keyed by complog path + project + last-write-time) and `ResultCache`. `meta.complog`, `meta.targetFramework`, and `meta.packages` populated from complog data. Config file supports `complog` and `complogProject` fields with relative path resolution. Propagated through Node bridge types (`TwohashOptions` and `TwohashProcessOptions`).
 
-## 10. Richer Error Display
+## ~~10. Richer Error Display~~ ✅
 
-Enhance error rendering with:
-- Quick-fix suggestions from Roslyn's `CodeFixProvider`
-- Warning severity icons/colors (distinct from errors)
-- Clickable error codes linking to MS docs
-- Multi-line error spans
-
-**Scope**: Core extraction + models + Shiki/EC rendering.
+Done. Severity-differentiated rendering across all three renderers (standalone HTML, EC plugin, Shiki transformer). Errors render in red, warnings in yellow/amber, and info diagnostics in blue — each with distinct underline and message colors via `.twohash-severity-{error|warning|info}` classes. `CS`-prefixed error codes (e.g., CS0246) rendered as clickable `<a>` links to Microsoft docs (`learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/csNNNN`); analyzer codes (CA/IDE) remain plain text. Multi-line error spans supported via optional `endLine`/`endCharacter` fields on `TwohashError` — continuation lines underlined from column 0, error message placed after the last affected line. `TwohashTheme` extended with `WarningColor`, `WarningBackground`, `InfoColor`, `InfoBackground`. Propagated through JSON output (additive, non-breaking), Node bridge types, and all renderers. QuickFix suggestions from `CodeFixProvider` were explicitly excluded — suitable as a standalone future feature.

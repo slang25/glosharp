@@ -23,11 +23,15 @@ The `process()` method SHALL spawn the CLI as a child process, pass source code,
 - **THEN** the CLI is spawned with the file path argument
 
 ### Requirement: TypeScript type definitions
-The package SHALL export TypeScript interfaces for `TwohashResult`, `TwohashHover`, `TwohashError`, `TwohashMeta`, and `TwohashDisplayPart` matching the JSON output schema.
+The package SHALL export TypeScript interfaces for `TwohashResult`, `TwohashHover`, `TwohashError`, `TwohashMeta`, and `TwohashDisplayPart` matching the JSON output schema. The `TwohashError` interface SHALL include optional `endLine` (number) and `endCharacter` (number) fields for multi-line diagnostic spans.
 
 #### Scenario: Type-safe access
 - **WHEN** a consumer accesses `result.hovers[0].parts[0].kind`
 - **THEN** TypeScript provides autocompletion and type checking for all fields
+
+#### Scenario: Type-safe multi-line error access
+- **WHEN** a consumer accesses `result.errors[0].endLine`
+- **THEN** TypeScript types the field as `number | undefined`
 
 ### Requirement: Cache results during build
 The instance SHALL cache results by source code hash to avoid re-processing identical snippets within a single build.

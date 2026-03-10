@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace TwoHash.Core;
 
@@ -95,7 +96,7 @@ public class HtmlRenderer
             RenderPopup(sb, result.Hovers[i], i, theme);
         }
 
-        // Render error messages
+        // Render error messages (placed after the last affected line)
         foreach (var error in result.Errors)
         {
             RenderErrorMessage(sb, error);
@@ -135,8 +136,12 @@ public class HtmlRenderer
         var lineErrors = new Dictionary<int, TwohashError>();
         foreach (var error in errors)
         {
+            // Match errors starting on this line, or multi-line errors spanning this line
             if (error.Line == lineIdx && !lineErrors.ContainsKey(error.Character))
                 lineErrors[error.Character] = error;
+            else if (error.EndLine != null && error.Line < lineIdx && error.EndLine >= lineIdx
+                     && !lineErrors.ContainsKey(0))
+                lineErrors[0] = error; // continuation line: underline from start
         }
 
         var pos = lineStart;
@@ -185,7 +190,7 @@ public class HtmlRenderer
             }
             else if (isError)
             {
-                sb.Append("<span class=\"twohash-error-underline\">");
+                sb.Append($"<span class=\"twohash-error-underline twohash-severity-{error!.Severity}\">");
                 sb.Append($"<span{colorAttr}>{Encode(tokenText)}</span>");
                 sb.Append("</span>");
             }
@@ -252,10 +257,22 @@ public class HtmlRenderer
         sb.AppendLine("</div>");
     }
 
+    private static readonly Regex CsCodeRegex = new(@"^CS\d+$", RegexOptions.Compiled);
+
     private static void RenderErrorMessage(StringBuilder sb, TwohashError error)
     {
-        sb.Append("<div class=\"twohash-error-message\">");
-        sb.Append($"<span class=\"twohash-error-code\">{Encode(error.Code)}</span>");
+        sb.Append($"<div class=\"twohash-error-message twohash-severity-{error.Severity}\">");
+
+        if (CsCodeRegex.IsMatch(error.Code))
+        {
+            var codeUrl = $"https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/{error.Code.ToLowerInvariant()}";
+            sb.Append($"<a class=\"twohash-error-code\" href=\"{Encode(codeUrl)}\" target=\"_blank\" rel=\"noopener\">{Encode(error.Code)}</a>");
+        }
+        else
+        {
+            sb.Append($"<span class=\"twohash-error-code\">{Encode(error.Code)}</span>");
+        }
+
         sb.Append($": {Encode(error.Message)}");
         sb.AppendLine("</div>");
     }
@@ -387,6 +404,12 @@ public class HtmlRenderer
 .twohash-error-underline {{
   border-bottom: 2px wavy {theme.ErrorColor};
 }}
+.twohash-error-underline.twohash-severity-warning {{
+  border-bottom-color: {theme.WarningColor};
+}}
+.twohash-error-underline.twohash-severity-info {{
+  border-bottom-color: {theme.InfoColor};
+}}
 .twohash-error-message {{
   display: block;
   padding: 2px 8px;
@@ -396,8 +419,25 @@ public class HtmlRenderer
   color: {theme.ErrorColor};
   font-size: 0.85em;
 }}
+.twohash-error-message.twohash-severity-warning {{
+  background: {theme.WarningBackground};
+  border-left-color: {theme.WarningColor};
+  color: {theme.WarningColor};
+}}
+.twohash-error-message.twohash-severity-info {{
+  background: {theme.InfoBackground};
+  border-left-color: {theme.InfoColor};
+  color: {theme.InfoColor};
+}}
 .twohash-error-code {{
   font-weight: bold;
+}}
+a.twohash-error-code {{
+  color: inherit;
+  text-decoration: none;
+}}
+a.twohash-error-code:hover {{
+  text-decoration: underline;
 }}
 .twohash-completion-list {{
   list-style: none;

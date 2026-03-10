@@ -19,11 +19,23 @@ The `root` hook SHALL walk the HAST tree, match token positions to hover data fr
 - **THEN** the HAST tree contains a `<span class="twohash-hover">` wrapping the token with `anchor-name: --twohash-N`, and a sibling `<div class="twohash-popup">` with `position-anchor: --twohash-N` containing the formatted hover text
 
 ### Requirement: Inject error annotations in root hook
-The `root` hook SHALL add error underline elements and error message elements for compiler diagnostics.
+The `root` hook SHALL add error underline elements and error message elements for compiler diagnostics. Underline and message elements SHALL include a severity CSS class (`twohash-severity-error`, `twohash-severity-warning`, or `twohash-severity-info`). Error codes matching `CS\d+` SHALL be rendered as `<a>` elements linking to Microsoft docs. When a diagnostic spans multiple lines, underline elements SHALL be applied to each affected line.
 
 #### Scenario: Error at a position
 - **WHEN** the twohash result contains an error at line 3, character 8
 - **THEN** the HAST tree contains an error underline span at that position and an error message element with the diagnostic text
+
+#### Scenario: Warning with severity class
+- **WHEN** the twohash result contains a warning diagnostic
+- **THEN** the underline and message elements have class `twohash-severity-warning`
+
+#### Scenario: Error code linked to docs
+- **WHEN** the twohash result contains a diagnostic with code `CS0246`
+- **THEN** the error code in the message element is an `<a>` linking to `https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/cs0246`
+
+#### Scenario: Multi-line diagnostic underlines
+- **WHEN** the twohash result contains a diagnostic spanning lines 2-4
+- **THEN** underline elements are applied to lines 2, 3, and 4, and the error message appears after line 4
 
 ### Requirement: CSS anchor positioning for popups
 Hover popups SHALL use CSS anchor positioning (`anchor-name`, `position-anchor`, `inset-area: top`) and be shown/hidden via `:hover` CSS pseudo-class. No JavaScript SHALL be required.

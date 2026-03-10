@@ -610,11 +610,28 @@ public class TwohashProcessor
             if (severity == "error" && !expected)
                 hasUnexpectedErrors = true;
 
+            // Extract end position for multi-line spans
+            var endSpan = span.EndLinePosition;
+            int? endLine = null;
+            int? endCharacter = null;
+
+            if (endSpan.Line != compLine)
+            {
+                var processedEndLine = MapCompilationLineToProcessed(endSpan.Line, markers, compilationCode);
+                if (processedEndLine >= 0)
+                {
+                    endLine = processedEndLine;
+                    endCharacter = endSpan.Character;
+                }
+            }
+
             errors.Add(new TwohashError
             {
                 Line = processedLine,
                 Character = compChar,
                 Length = Math.Max(1, diagnostic.Location.SourceSpan.Length),
+                EndLine = endLine,
+                EndCharacter = endCharacter,
                 Code = code,
                 Message = diagnostic.GetMessage(),
                 Severity = severity,
