@@ -52,6 +52,8 @@ public class TwohashError
     public required int Line { get; init; }
     public required int Character { get; init; }
     public required int Length { get; init; }
+    public int? EndLine { get; init; }
+    public int? EndCharacter { get; init; }
     public required string Code { get; init; }
     public required string Message { get; init; }
     public required string Severity { get; init; }

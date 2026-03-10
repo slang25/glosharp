@@ -283,4 +283,86 @@ public class HtmlRendererTests
         await Assert.That(html).Contains("--th-1");
         await Assert.That(html).Contains("--th-2");
     }
+
+    // === Richer error display tests ===
+
+    [Test]
+    public async Task Render_ErrorSeverity_AppliesSeverityClass()
+    {
+        var error = new TwohashError
+        {
+            Line = 0, Character = 0, Length = 3,
+            Code = "CS1002", Message = "; expected",
+            Severity = "error", Expected = false,
+        };
+        var result = CreateSimpleResult(errors: [error]);
+        var tokens = CreateSimpleTokens("var x = 42;");
+        var html = HtmlRenderer.Render(result, tokens, TwohashTheme.GithubDark);
+
+        await Assert.That(html).Contains("twohash-severity-error");
+    }
+
+    [Test]
+    public async Task Render_WarningSeverity_AppliesWarningClass()
+    {
+        var warning = new TwohashError
+        {
+            Line = 0, Character = 0, Length = 3,
+            Code = "CS8600", Message = "Converting null to non-nullable",
+            Severity = "warning", Expected = false,
+        };
+        var result = CreateSimpleResult(errors: [warning]);
+        var tokens = CreateSimpleTokens("var x = 42;");
+        var html = HtmlRenderer.Render(result, tokens, TwohashTheme.GithubDark);
+
+        await Assert.That(html).Contains("twohash-severity-warning");
+    }
+
+    [Test]
+    public async Task Render_CsErrorCode_RenderedAsLink()
+    {
+        var error = new TwohashError
+        {
+            Line = 0, Character = 0, Length = 3,
+            Code = "CS0246", Message = "type not found",
+            Severity = "error", Expected = false,
+        };
+        var result = CreateSimpleResult(errors: [error]);
+        var tokens = CreateSimpleTokens("var x = 42;");
+        var html = HtmlRenderer.Render(result, tokens, TwohashTheme.GithubDark);
+
+        await Assert.That(html).Contains("<a class=\"twohash-error-code\" href=\"https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/cs0246\"");
+        await Assert.That(html).Contains("target=\"_blank\"");
+        await Assert.That(html).Contains("rel=\"noopener\"");
+    }
+
+    [Test]
+    public async Task Render_AnalyzerCode_RenderedAsPlainText()
+    {
+        var error = new TwohashError
+        {
+            Line = 0, Character = 0, Length = 3,
+            Code = "CA1234", Message = "analyzer warning",
+            Severity = "warning", Expected = false,
+        };
+        var result = CreateSimpleResult(errors: [error]);
+        var tokens = CreateSimpleTokens("var x = 42;");
+        var html = HtmlRenderer.Render(result, tokens, TwohashTheme.GithubDark);
+
+        await Assert.That(html).Contains("<span class=\"twohash-error-code\">CA1234</span>");
+        await Assert.That(html).DoesNotContain("<a class=\"twohash-error-code\"");
+    }
+
+    [Test]
+    public async Task Render_CssContainsSeverityStyles()
+    {
+        var result = CreateSimpleResult();
+        var tokens = CreateSimpleTokens("var x = 42;");
+        var html = HtmlRenderer.Render(result, tokens, TwohashTheme.GithubDark);
+
+        await Assert.That(html).Contains("twohash-severity-warning");
+        await Assert.That(html).Contains("twohash-severity-info");
+        await Assert.That(html).Contains(TwohashTheme.GithubDark.WarningColor);
+        await Assert.That(html).Contains(TwohashTheme.GithubDark.InfoColor);
+    }
 }

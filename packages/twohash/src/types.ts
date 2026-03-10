@@ -38,6 +38,8 @@ export interface TwohashError {
   line: number
   character: number
   length: number
+  endLine?: number
+  endCharacter?: number
   code: string
   message: string
   severity: 'error' | 'warning' | 'info' | 'hidden'

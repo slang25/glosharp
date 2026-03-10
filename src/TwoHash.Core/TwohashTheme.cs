@@ -20,6 +20,14 @@ public record TwohashTheme
     public required string ErrorColor { get; init; }
     public required string ErrorBackground { get; init; }
 
+    // Warning colors
+    public required string WarningColor { get; init; }
+    public required string WarningBackground { get; init; }
+
+    // Info colors
+    public required string InfoColor { get; init; }
+    public required string InfoBackground { get; init; }
+
     // Highlight colors
     public required string HighlightBackground { get; init; }
     public required string FocusDimOpacity { get; init; }
@@ -32,6 +40,13 @@ public record TwohashTheme
 
     public string GetTokenColor(string kind) =>
         TokenColors.GetValueOrDefault(kind, Foreground);
+
+    public (string Color, string Background) GetSeverityColors(string severity) => severity switch
+    {
+        "warning" => (WarningColor, WarningBackground),
+        "info" => (InfoColor, InfoBackground),
+        _ => (ErrorColor, ErrorBackground),
+    };
 
     public static TwohashTheme? GetBuiltIn(string name) => name switch
     {
@@ -75,6 +90,10 @@ public record TwohashTheme
         PopupBorder = "#30363d",
         ErrorColor = "#f85149",
         ErrorBackground = "rgba(248, 81, 73, 0.1)",
+        WarningColor = "#d29922",
+        WarningBackground = "rgba(210, 153, 34, 0.15)",
+        InfoColor = "#539bf5",
+        InfoBackground = "rgba(83, 155, 245, 0.15)",
         HighlightBackground = "rgba(173, 124, 255, 0.15)",
         FocusDimOpacity = "0.4",
         DiffAddBackground = "rgba(46, 160, 67, 0.15)",
@@ -116,6 +135,10 @@ public record TwohashTheme
         PopupBorder = "#d0d7de",
         ErrorColor = "#cf222e",
         ErrorBackground = "rgba(207, 34, 46, 0.1)",
+        WarningColor = "#9a6700",
+        WarningBackground = "rgba(154, 103, 0, 0.15)",
+        InfoColor = "#0969da",
+        InfoBackground = "rgba(9, 105, 218, 0.15)",
         HighlightBackground = "rgba(139, 90, 230, 0.12)",
         FocusDimOpacity = "0.4",
         DiffAddBackground = "rgba(46, 160, 67, 0.12)",

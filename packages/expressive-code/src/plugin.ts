@@ -18,6 +18,10 @@ const styleSettings = {
   popupBorder: { dark: '#3c3c3c', light: '#c8c8c8' },
   errorUnderline: { dark: '#f44747', light: '#e51400' },
   errorBackground: { dark: 'rgba(244, 71, 71, 0.1)', light: 'rgba(229, 20, 0, 0.1)' },
+  warningUnderline: { dark: '#d29922', light: '#9a6700' },
+  warningBackground: { dark: 'rgba(210, 153, 34, 0.15)', light: 'rgba(154, 103, 0, 0.15)' },
+  infoUnderline: { dark: '#539bf5', light: '#0969da' },
+  infoBackground: { dark: 'rgba(83, 155, 245, 0.15)', light: 'rgba(9, 105, 218, 0.15)' },
   highlightBackground: { dark: 'rgba(173, 124, 255, 0.15)', light: 'rgba(139, 90, 230, 0.12)' },
   focusDimOpacity: { dark: '0.4', light: '0.4' },
   diffAddBackground: { dark: 'rgba(46, 160, 67, 0.15)', light: 'rgba(46, 160, 67, 0.12)' },
@@ -153,6 +157,14 @@ function buildBaseStyles(): string {
   border-bottom: 2px wavy var(--twohash-error-underline, ${styleSettings.errorUnderline.dark});
 }
 
+.twohash-error-underline.twohash-severity-warning {
+  border-bottom-color: var(--twohash-warning-underline, ${styleSettings.warningUnderline.dark});
+}
+
+.twohash-error-underline.twohash-severity-info {
+  border-bottom-color: var(--twohash-info-underline, ${styleSettings.infoUnderline.dark});
+}
+
 .twohash-error-message {
   display: block;
   padding: 2px 8px;
@@ -163,8 +175,29 @@ function buildBaseStyles(): string {
   font-size: 0.85em;
 }
 
+.twohash-error-message.twohash-severity-warning {
+  background: var(--twohash-warning-bg, ${styleSettings.warningBackground.dark});
+  border-left-color: var(--twohash-warning-underline, ${styleSettings.warningUnderline.dark});
+  color: var(--twohash-warning-underline, ${styleSettings.warningUnderline.dark});
+}
+
+.twohash-error-message.twohash-severity-info {
+  background: var(--twohash-info-bg, ${styleSettings.infoBackground.dark});
+  border-left-color: var(--twohash-info-underline, ${styleSettings.infoUnderline.dark});
+  color: var(--twohash-info-underline, ${styleSettings.infoUnderline.dark});
+}
+
 .twohash-error-code {
   font-weight: bold;
+}
+
+a.twohash-error-code {
+  color: inherit;
+  text-decoration: none;
+}
+
+a.twohash-error-code:hover {
+  text-decoration: underline;
 }
 
 .twohash-completion-list {
@@ -273,9 +306,34 @@ export function pluginTwohash(options: PluginTwohashOptions = {}) {
         // Add error annotations
         for (const error of result.errors) {
           if (error.expected) continue
-          const line = lines[error.line]
-          if (!line) continue
-          line.addAnnotation(new TwohashErrorAnnotation(error))
+
+          if (error.endLine != null && error.endLine > error.line) {
+            // Multi-line error: underline annotations on each affected line
+            for (let lineIdx = error.line; lineIdx <= error.endLine; lineIdx++) {
+              const line = lines[lineIdx]
+              if (!line) continue
+              // Create underline-only annotation for each line (no message)
+              const lineError = { ...error }
+              if (lineIdx === error.line) {
+                // First line: from character to end
+                line.addAnnotation(new TwohashErrorAnnotation(lineError))
+              } else {
+                // Continuation lines: full line underline
+                const contError = { ...error, character: 0, length: 1000 }
+                line.addAnnotation(new TwohashErrorAnnotation(contError))
+              }
+            }
+            // Place message on last affected line
+            const lastLine = lines[error.endLine]
+            if (lastLine) {
+              lastLine.addAnnotation(new TwohashErrorAnnotation(error, { messageOnly: true }))
+            }
+          } else {
+            // Single-line error
+            const line = lines[error.line]
+            if (!line) continue
+            line.addAnnotation(new TwohashErrorAnnotation(error))
+          }
         }
 
         // Add completion annotations
@@ -529,12 +587,38 @@ class TwohashHoverAnnotation {
   }
 }
 
+const CS_CODE_REGEX = /^CS\d+$/
+
+function buildErrorCodeNode(code: string): HastNode {
+  if (CS_CODE_REGEX.test(code)) {
+    return {
+      type: 'element',
+      tagName: 'a',
+      properties: {
+        class: 'twohash-error-code',
+        href: `https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/${code.toLowerCase()}`,
+        target: '_blank',
+        rel: 'noopener',
+      },
+      children: [{ type: 'text', value: code }],
+    }
+  }
+  return {
+    type: 'element',
+    tagName: 'span',
+    properties: { class: 'twohash-error-code' },
+    children: [{ type: 'text', value: code }],
+  }
+}
+
 class TwohashErrorAnnotation {
   readonly error: TwohashError
   readonly inlineRange: { columnStart: number; columnEnd: number }
+  readonly isMessageOnly: boolean
 
-  constructor(error: TwohashError) {
+  constructor(error: TwohashError, opts?: { messageOnly?: boolean }) {
     this.error = error
+    this.isMessageOnly = opts?.messageOnly ?? false
     this.inlineRange = {
       columnStart: error.character,
       columnEnd: error.character + error.length,
@@ -542,23 +626,36 @@ class TwohashErrorAnnotation {
   }
 
   render({ nodesToTransform }: { nodesToTransform: HastNode[] }): HastNode[] {
+    const severityClass = `twohash-severity-${this.error.severity}`
+
+    if (this.isMessageOnly) {
+      // Message-only annotation for multi-line errors (placed on last line)
+      return [
+        ...nodesToTransform,
+        {
+          type: 'element',
+          tagName: 'div',
+          properties: { class: `twohash-error-message ${severityClass}` },
+          children: [
+            buildErrorCodeNode(this.error.code),
+            { type: 'text', value: `: ${this.error.message}` },
+          ],
+        },
+      ]
+    }
+
     return nodesToTransform.map(node => ({
       type: 'element' as const,
       tagName: 'span',
-      properties: { class: 'twohash-error-underline' },
+      properties: { class: `twohash-error-underline ${severityClass}` },
       children: [
         node,
         {
           type: 'element',
           tagName: 'div',
-          properties: { class: 'twohash-error-message' },
+          properties: { class: `twohash-error-message ${severityClass}` },
           children: [
-            {
-              type: 'element',
-              tagName: 'span',
-              properties: { class: 'twohash-error-code' },
-              children: [{ type: 'text', value: this.error.code }],
-            },
+            buildErrorCodeNode(this.error.code),
             { type: 'text', value: `: ${this.error.message}` },
           ],
         },

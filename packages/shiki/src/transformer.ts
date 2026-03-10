@@ -155,23 +155,47 @@ function injectHovers(root: HastElement, result: TwohashResult): void {
   }
 }
 
+const CS_CODE_REGEX = /^CS\d+$/
+
+function buildErrorCodeNode(code: string): HastElement {
+  if (CS_CODE_REGEX.test(code)) {
+    return h('a', {
+      class: 'twohash-error-code',
+      href: `https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/${code.toLowerCase()}`,
+      target: '_blank',
+      rel: 'noopener',
+    }, [hText(code)])
+  }
+  return h('span', { class: 'twohash-error-code' }, [hText(code)])
+}
+
 function injectErrors(root: HastElement, result: TwohashResult): void {
   const lines = findCodeLines(root)
 
   for (const error of result.errors) {
     if (error.expected) continue
 
-    const line = lines[error.line]
-    if (!line) continue
+    const severityClass = `twohash-severity-${error.severity}`
 
-    const errorMessage = h('div', { class: 'twohash-error-message' }, [
-      h('span', { class: 'twohash-error-code' }, [hText(error.code)]),
+    const errorMessage = h('div', { class: `twohash-error-message ${severityClass}` }, [
+      buildErrorCodeNode(error.code),
       hText(': '),
       hText(error.message),
     ])
 
-    if (line.children) {
-      line.children.push(errorMessage)
+    if (error.endLine != null && error.endLine > error.line) {
+      // Multi-line: place message after last affected line
+      const lastLine = lines[error.endLine]
+      if (lastLine?.children) {
+        lastLine.children.push(errorMessage)
+      }
+    } else {
+      // Single-line
+      const line = lines[error.line]
+      if (!line) continue
+      if (line.children) {
+        line.children.push(errorMessage)
+      }
     }
   }
 }
