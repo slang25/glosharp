@@ -11,7 +11,7 @@ beforeAll(() => {
     encoding: 'utf-8',
     timeout: 60000,
   })
-})
+}, 120000)
 
 function runCli(file: string): any {
   const stdout = execFileSync('dotnet', ['run', '--no-build', '--project', CLI_PROJECT, '--', 'process', file], {
