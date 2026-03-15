@@ -129,29 +129,46 @@ function hText(value: string): HastElement {
 
 function injectHovers(root: HastElement, result: TwohashResult): void {
   const lines = findCodeLines(root)
-  let anchorIndex = 0
 
-  for (const hover of result.hovers) {
-    const line = lines[hover.line]
+  // Group hovers by line, then process each line's hovers right-to-left
+  // so that injected popup nodes don't shift column positions of earlier hovers.
+  const hoversByLine = new Map<number, Array<{ hover: TwohashResult['hovers'][0]; index: number }>>()
+  for (let i = 0; i < result.hovers.length; i++) {
+    const hover = result.hovers[i]
+    let group = hoversByLine.get(hover.line)
+    if (!group) {
+      group = []
+      hoversByLine.set(hover.line, group)
+    }
+    group.push({ hover, index: i })
+  }
+
+  for (const [lineIdx, group] of hoversByLine) {
+    const line = lines[lineIdx]
     if (!line) continue
 
-    const anchorName = `--th-${anchorIndex++}`
+    // Sort right-to-left by character position
+    group.sort((a, b) => b.hover.character - a.hover.character)
 
-    const partNodes: HastNode[] = hover.parts.map((part: TwohashDisplayPart) =>
-      h('span', { class: `twohash-${part.kind}` }, [hText(part.text)])
-    )
+    for (const { hover, index } of group) {
+      const anchorName = `--th-${index}`
 
-    const popupChildren: HastNode[] = [
-      h('code', { class: 'twohash-popup-code' }, partNodes),
-    ]
-
-    if (hover.docs?.summary) {
-      popupChildren.push(
-        h('div', { class: 'twohash-popup-docs' }, [hText(hover.docs.summary)])
+      const partNodes: HastNode[] = hover.parts.map((part: TwohashDisplayPart) =>
+        h('span', { class: `twohash-${part.kind}` }, [hText(part.text)])
       )
-    }
 
-    wrapTokenAtPosition(line, hover.character, hover.length, anchorName, popupChildren)
+      const popupChildren: HastNode[] = [
+        h('code', { class: 'twohash-popup-code' }, partNodes),
+      ]
+
+      if (hover.docs?.summary) {
+        popupChildren.push(
+          h('div', { class: 'twohash-popup-docs' }, [hText(hover.docs.summary)])
+        )
+      }
+
+      wrapTokenAtPosition(line, hover.character, hover.length, anchorName, popupChildren)
+    }
   }
 }
 
@@ -173,8 +190,6 @@ function injectErrors(root: HastElement, result: TwohashResult): void {
   const lines = findCodeLines(root)
 
   for (const error of result.errors) {
-    if (error.expected) continue
-
     const severityClass = `twohash-severity-${error.severity}`
 
     const errorMessage = h('div', { class: `twohash-error-message ${severityClass}` }, [
@@ -266,17 +281,52 @@ function wrapTokenAtPosition(
     const spanEnd = col + text.length
 
     if (spanStart <= targetStart && spanEnd >= targetEnd) {
+      const offsetInToken = targetStart - spanStart
+      const tokenText = text
+
+      // If the hover covers the whole token, wrap it directly
+      if (offsetInToken === 0 && length === tokenText.length) {
+        const wrapper = h('span', {
+          class: 'twohash-hover',
+          style: `anchor-name: ${anchorName}`,
+        }, [child])
+
+        const popup = h('div', {
+          class: 'twohash-popup',
+          style: `position-anchor: ${anchorName}`,
+        }, popupChildren)
+
+        line.children.splice(i, 1, wrapper, popup)
+        return
+      }
+
+      // Otherwise, split the token: [before][hover target][after]
+      const props = child.tagName === 'span' ? { ...(child.properties ?? {}) } : {}
+      const parts: HastNode[] = []
+
+      if (offsetInToken > 0) {
+        parts.push(h('span', { ...props }, [hText(tokenText.slice(0, offsetInToken))]))
+      }
+
+      const hoverSpan = h('span', { ...props }, [hText(tokenText.slice(offsetInToken, offsetInToken + length))])
       const wrapper = h('span', {
         class: 'twohash-hover',
         style: `anchor-name: ${anchorName}`,
-      }, [child])
+      }, [hoverSpan])
+      parts.push(wrapper)
 
       const popup = h('div', {
         class: 'twohash-popup',
         style: `position-anchor: ${anchorName}`,
       }, popupChildren)
+      parts.push(popup)
 
-      line.children.splice(i, 1, wrapper, popup)
+      const afterStart = offsetInToken + length
+      if (afterStart < tokenText.length) {
+        parts.push(h('span', { ...props }, [hText(tokenText.slice(afterStart))]))
+      }
+
+      line.children.splice(i, 1, ...parts)
       return
     }
 

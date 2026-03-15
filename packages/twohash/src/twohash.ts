@@ -6,15 +6,19 @@ import type { TwohashOptions, TwohashProcessOptions, TwohashResult } from './typ
 export function createTwohash(options: TwohashOptions = {}) {
   const cache = new Map<string, TwohashResult>()
 
-  async function findExecutable(): Promise<string> {
-    if (options.executable) return options.executable
+  async function findExecutable(): Promise<{ command: string; prefix?: string[] }> {
+    if (options.executable) return { command: options.executable }
     const found = await which('twohash')
-    if (!found) {
-      throw new Error(
-        'twohash CLI not found on PATH. Install it with: dotnet tool install -g twohash'
-      )
+    if (found) return { command: found }
+    // Fall back to local dotnet tool
+    const dotnet = await which('dotnet')
+    if (dotnet && await spawnCheck(dotnet, ['tool', 'list'])) {
+      return { command: dotnet, prefix: ['twohash'] }
     }
-    return found
+    throw new Error(
+      'twohash CLI not found. Install it with: dotnet tool install -g twohash\n' +
+      'Or as a local tool: dotnet tool install twohash --local --add-source .nupkg/'
+    )
   }
 
   async function process(opts: TwohashProcessOptions): Promise<TwohashResult> {
@@ -25,7 +29,6 @@ export function createTwohash(options: TwohashOptions = {}) {
     const cached = cache.get(cacheKey)
     if (cached) return cached
 
-    const executable = await findExecutable()
     const args = ['process']
 
     if (opts.file) {
@@ -71,12 +74,24 @@ export function createTwohash(options: TwohashOptions = {}) {
       args.push('--complog-project', complogProject)
     }
 
-    const result = await spawnCli(executable, args, opts.code)
+    const { command, prefix } = await findExecutable()
+    const fullArgs = [...(prefix ?? []), ...args]
+    const result = await spawnCli(command, fullArgs, opts.code)
     cache.set(cacheKey, result)
     return result
   }
 
   return { process }
+}
+
+function spawnCheck(command: string, args: string[]): Promise<boolean> {
+  return new Promise((resolve) => {
+    const child = spawn(command, args, { stdio: ['ignore', 'pipe', 'ignore'] })
+    let stdout = ''
+    child.stdout.on('data', (data: Buffer) => { stdout += data.toString() })
+    child.on('error', () => resolve(false))
+    child.on('close', () => resolve(stdout.includes('twohash')))
+  })
 }
 
 function spawnCli(executable: string, args: string[], stdin?: string): Promise<TwohashResult> {

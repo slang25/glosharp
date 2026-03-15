@@ -28,6 +28,10 @@ Thumbs.db
 
 # Build artifacts
 *.nupkg
+.nupkg/
+
+# Example output
+examples/standalone/output.html
 
 # Test output
 tests/e2e/smoke-test.html

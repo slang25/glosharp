@@ -3,6 +3,9 @@
   "workspaces": [
     "packages/twohash",
     "packages/shiki",
-    "packages/expressive-code"
+    "packages/expressive-code",
+    "examples/astro-blog",
+    "examples/docusaurus-docs",
+    "examples/standalone"
   ]
 }

@@ -1,0 +1,22 @@
+{
+  "name": "twohash-docusaurus-example",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "docusaurus": "docusaurus",
+    "start": "docusaurus start",
+    "build": "docusaurus build"
+  },
+  "dependencies": {
+    "@docusaurus/core": "^3.7.0",
+    "@docusaurus/preset-classic": "^3.7.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "twohash": "*",
+    "@twohash/shiki": "*",
+    "rehype-raw": "^7.0.0"
+  },
+  "devDependencies": {
+    "@docusaurus/module-type-aliases": "^3.7.0"
+  }
+}
