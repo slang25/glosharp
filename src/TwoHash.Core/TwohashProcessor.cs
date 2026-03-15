@@ -552,10 +552,15 @@ public class TwohashProcessor
             // XML doc comments
             var docs = ExtractDocComment(symbol);
 
+            // Use the token's actual column in the compilation code (which matches
+            // the processed/clean code line content), not the marker's ^ column.
+            var tokenLineSpan = token.GetLocation().GetLineSpan();
+            var tokenCharacter = tokenLineSpan.StartLinePosition.Character;
+
             hovers.Add(new TwohashHover
             {
                 Line = query.OriginalLine,
-                Character = query.Column,
+                Character = tokenCharacter,
                 Length = token.Text.Length,
                 Text = text,
                 Parts = displayParts,

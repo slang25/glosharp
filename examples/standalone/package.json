@@ -1,0 +1,14 @@
+{
+  "name": "twohash-standalone-example",
+  "type": "module",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "render": "node render.mjs"
+  },
+  "dependencies": {
+    "twohash": "*",
+    "@twohash/shiki": "*",
+    "shiki": "^4.0.0"
+  }
+}
