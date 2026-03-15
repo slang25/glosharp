@@ -18,7 +18,7 @@
     "twohash": "0.1.0"
   },
   "peerDependencies": {
-    "@expressive-code/core": "^0.38.0"
+    "@expressive-code/core": "^0.38.0 || ^0.41.0"
   },
   "files": [
     "dist"
