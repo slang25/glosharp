@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  dotnet-build-and-test:
+    name: .NET Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Restore test fixtures
+        run: dotnet restore tests/TwoHash.Tests/fixtures/sample-project/SampleProject.csproj
+
+      - name: Build
+        run: dotnet build --no-restore
+
+      - name: Test
+        run: dotnet run --project tests/TwoHash.Tests/
+
+  node-build-and-test:
+    name: Node Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build packages
+        run: |
+          npm run build --workspace=packages/twohash
+          npm run build --workspace=packages/shiki
+          npm run build --workspace=packages/expressive-code
+
+      - name: E2E tests
+        run: npm test --workspace=tests/e2e
