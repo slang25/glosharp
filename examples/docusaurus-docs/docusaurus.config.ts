@@ -1,5 +1,6 @@
 import type { Config } from '@docusaurus/types'
 import type * as Preset from '@docusaurus/preset-classic'
+import { remarkTwohash } from './src/plugins/twohash-plugin'
 
 const config: Config = {
   title: 'My C# Library',
@@ -14,8 +15,12 @@ const config: Config = {
         docs: {
           routeBasePath: '/',
           sidebarPath: './sidebars.ts',
+          beforeDefaultRemarkPlugins: [remarkTwohash],
         },
         blog: false,
+        theme: {
+          customCss: './src/css/custom.css',
+        },
       } satisfies Preset.Options,
     ],
   ],
