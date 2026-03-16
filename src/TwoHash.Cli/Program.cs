@@ -155,7 +155,9 @@ static async Task<int> RunProcess(string[] args)
 
         Console.Write(JsonOutput.Serialize(result));
 
-        return result.Meta.CompileSucceeded ? 0 : 1;
+        // Exit 0 when we successfully produce JSON output.
+        // The compileSucceeded field in the JSON communicates compilation status.
+        return 0;
     }
     catch (Exception ex)
     {
@@ -542,7 +544,7 @@ static async Task<int> RunRender(string[] args)
             Console.Write(html);
         }
 
-        return processResult.Result.Meta.CompileSucceeded ? 0 : 1;
+        return 0;
     }
     catch (Exception ex)
     {

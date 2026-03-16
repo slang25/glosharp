@@ -14,7 +14,9 @@
     "react-dom": "^19.0.0",
     "twohash": "*",
     "@twohash/shiki": "*",
-    "rehype-raw": "^7.0.0"
+    "rehype-raw": "^7.0.0",
+    "shiki": "^3.0.0",
+    "unist-util-visit": "^5.0.0"
   },
   "devDependencies": {
     "@docusaurus/module-type-aliases": "^3.7.0"
