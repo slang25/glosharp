@@ -39,6 +39,8 @@ public class TwohashHover
     public required string SymbolKind { get; init; }
     public required string TargetText { get; init; }
     public int? OverloadCount { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool Persistent { get; init; }
 }
 
 public class TwohashDisplayPart

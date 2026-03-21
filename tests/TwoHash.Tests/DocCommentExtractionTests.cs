@@ -15,9 +15,9 @@ public class DocCommentExtractionTests
             """;
         var result = await _processor.ProcessAsync(source);
 
-        await Assert.That(result.Hovers.Count).IsEqualTo(1);
-        await Assert.That(result.Hovers[0].Docs).IsNotNull();
-        await Assert.That(result.Hovers[0].Docs!.Summary).IsNotNull();
+        var persistent = result.Hovers.First(h => h.Persistent);
+        await Assert.That(persistent.Docs).IsNotNull();
+        await Assert.That(persistent.Docs!.Summary).IsNotNull();
     }
 
     [Test]
@@ -26,8 +26,8 @@ public class DocCommentExtractionTests
         var source = "var x = 42;\n//  ^?";
         var result = await _processor.ProcessAsync(source);
 
-        await Assert.That(result.Hovers.Count).IsEqualTo(1);
-        await Assert.That(result.Hovers[0].Docs).IsNull();
+        var persistent = result.Hovers.First(h => h.Persistent);
+        await Assert.That(persistent.Docs).IsNull();
     }
 
     [Test]
@@ -51,8 +51,7 @@ public class DocCommentExtractionTests
             """;
         var result = await _processor.ProcessAsync(source);
 
-        await Assert.That(result.Hovers.Count).IsEqualTo(1);
-        var docs = result.Hovers[0].Docs;
+        var docs = result.Hovers.First(h => h.Persistent).Docs;
         await Assert.That(docs).IsNotNull();
         await Assert.That(docs!.Summary).IsEqualTo("Adds two numbers together.");
         await Assert.That(docs.Params.Count).IsEqualTo(2);
@@ -84,8 +83,7 @@ public class DocCommentExtractionTests
             """;
         var result = await _processor.ProcessAsync(source);
 
-        await Assert.That(result.Hovers.Count).IsEqualTo(1);
-        var docs = result.Hovers[0].Docs;
+        var docs = result.Hovers.First(h => h.Persistent).Docs;
         await Assert.That(docs).IsNotNull();
         await Assert.That(docs!.Summary).IsEqualTo("Converts to String.");
     }
@@ -106,8 +104,7 @@ public class DocCommentExtractionTests
             """;
         var result = await _processor.ProcessAsync(source);
 
-        await Assert.That(result.Hovers.Count).IsEqualTo(1);
-        var docs = result.Hovers[0].Docs;
+        var docs = result.Hovers.First(h => h.Persistent).Docs;
         await Assert.That(docs).IsNotNull();
         await Assert.That(docs!.Summary).IsEqualTo("Returns value as-is.");
     }
@@ -127,8 +124,7 @@ public class DocCommentExtractionTests
             """;
         var result = await _processor.ProcessAsync(source);
 
-        await Assert.That(result.Hovers.Count).IsEqualTo(1);
-        var docs = result.Hovers[0].Docs;
+        var docs = result.Hovers.First(h => h.Persistent).Docs;
         await Assert.That(docs).IsNotNull();
         await Assert.That(docs!.Summary).IsEqualTo("A simple method.");
         await Assert.That(docs.Params.Count).IsEqualTo(0);

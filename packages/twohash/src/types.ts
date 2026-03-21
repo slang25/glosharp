@@ -32,6 +32,7 @@ export interface TwohashHover {
   symbolKind: string
   targetText: string
   overloadCount?: number
+  persistent?: boolean
 }
 
 export interface TwohashError {

@@ -12,11 +12,11 @@ public class TwohashProcessorTests
         var source = "var x = 42;\n//  ^?";
         var result = await _processor.ProcessAsync(source);
 
-        await Assert.That(result.Hovers.Count).IsEqualTo(1);
-        await Assert.That(result.Hovers[0].Text).Contains("int");
-        await Assert.That(result.Hovers[0].Text).Contains("x");
-        await Assert.That(result.Hovers[0].SymbolKind).IsEqualTo("Local");
-        await Assert.That(result.Hovers[0].TargetText).IsEqualTo("x");
+        var persistent = result.Hovers.First(h => h.Persistent);
+        await Assert.That(persistent.Text).Contains("int");
+        await Assert.That(persistent.Text).Contains("x");
+        await Assert.That(persistent.SymbolKind).IsEqualTo("Local");
+        await Assert.That(persistent.TargetText).IsEqualTo("x");
     }
 
     [Test]
@@ -25,9 +25,9 @@ public class TwohashProcessorTests
         var source = "var greeting = \"hello\";\n//      ^?";
         var result = await _processor.ProcessAsync(source);
 
-        await Assert.That(result.Hovers.Count).IsEqualTo(1);
-        await Assert.That(result.Hovers[0].Text).Contains("string");
-        await Assert.That(result.Hovers[0].Text).Contains("greeting");
+        var persistent = result.Hovers.First(h => h.Persistent);
+        await Assert.That(persistent.Text).Contains("string");
+        await Assert.That(persistent.Text).Contains("greeting");
     }
 
     [Test]
@@ -36,10 +36,10 @@ public class TwohashProcessorTests
         var source = "Console.WriteLine(\"test\");\n//        ^?";
         var result = await _processor.ProcessAsync(source);
 
-        await Assert.That(result.Hovers.Count).IsEqualTo(1);
-        await Assert.That(result.Hovers[0].Text).Contains("overloads");
-        await Assert.That(result.Hovers[0].OverloadCount).IsNotNull();
-        await Assert.That(result.Hovers[0].OverloadCount!.Value).IsGreaterThan(1);
+        var persistent = result.Hovers.First(h => h.Persistent);
+        await Assert.That(persistent.Text).Contains("overloads");
+        await Assert.That(persistent.OverloadCount).IsNotNull();
+        await Assert.That(persistent.OverloadCount!.Value).IsGreaterThan(1);
     }
 
     [Test]
@@ -48,7 +48,7 @@ public class TwohashProcessorTests
         var source = "var x = 42;\n//  ^?";
         var result = await _processor.ProcessAsync(source);
 
-        var parts = result.Hovers[0].Parts;
+        var parts = result.Hovers.First(h => h.Persistent).Parts;
         await Assert.That(parts.Any(p => p.Kind == "keyword" && p.Text == "int")).IsTrue();
         await Assert.That(parts.Any(p => p.Kind == "localName" && p.Text == "x")).IsTrue();
         await Assert.That(parts.Any(p => p.Kind == "text" && p.Text == "local variable")).IsTrue();
@@ -81,8 +81,8 @@ public class TwohashProcessorTests
 
         await Assert.That(result.Code).DoesNotContain("StringBuilder()");
         await Assert.That(result.Code).Contains("sb.Append");
-        await Assert.That(result.Hovers.Count).IsEqualTo(1);
-        await Assert.That(result.Hovers[0].Text).Contains("Append");
+        var persistent = result.Hovers.First(h => h.Persistent);
+        await Assert.That(persistent.Text).Contains("Append");
     }
 
     [Test]
@@ -91,8 +91,8 @@ public class TwohashProcessorTests
         var source = "var list = new List<int> { 1, 2, 3 };\n//    ^?";
         var result = await _processor.ProcessAsync(source);
 
-        await Assert.That(result.Hovers.Count).IsEqualTo(1);
-        await Assert.That(result.Hovers[0].Text).Contains("List<int>");
+        var persistent = result.Hovers.First(h => h.Persistent);
+        await Assert.That(persistent.Text).Contains("List<int>");
     }
 
     [Test]
@@ -159,8 +159,8 @@ public class TwohashProcessorTests
             ProjectPath = fixtureDir,
         });
 
-        await Assert.That(result.Hovers.Count).IsGreaterThanOrEqualTo(1);
-        await Assert.That(result.Hovers[0].Text).Contains("SerializeObject");
+        var persistent = result.Hovers.First(h => h.Persistent);
+        await Assert.That(persistent.Text).Contains("SerializeObject");
         await Assert.That(result.Meta.CompileSucceeded).IsTrue();
         await Assert.That(result.Meta.Packages.Count).IsGreaterThan(0);
         await Assert.That(result.Meta.Packages.Any(p => p.Name == "Newtonsoft.Json")).IsTrue();
@@ -208,7 +208,7 @@ public class TwohashProcessorTests
         var result = await _processor.ProcessAsync(source);
 
         await Assert.That(result.Highlights.Count).IsEqualTo(1);
-        await Assert.That(result.Hovers.Count).IsEqualTo(1);
+        await Assert.That(result.Hovers.Any(h => h.Persistent)).IsTrue();
         await Assert.That(result.Code).IsEqualTo("var x = 42;");
     }
 
@@ -269,9 +269,9 @@ public class TwohashProcessorTests
         var source = "#:package A@1.0\n#:package B@2.0\nvar x = 42;\n//  ^?";
         var result = await _processor.ProcessAsync(source);
 
-        await Assert.That(result.Hovers.Count).IsEqualTo(1);
-        await Assert.That(result.Hovers[0].Line).IsEqualTo(0); // First line of processed output
-        await Assert.That(result.Hovers[0].Text).Contains("int");
+        var persistent = result.Hovers.First(h => h.Persistent);
+        await Assert.That(persistent.Line).IsEqualTo(0); // First line of processed output
+        await Assert.That(persistent.Text).Contains("int");
     }
 
     [Test]
@@ -295,8 +295,8 @@ public class TwohashProcessorTests
                 SourceFilePath = filePath,
             });
 
-            await Assert.That(result.Hovers.Count).IsGreaterThanOrEqualTo(1);
-            await Assert.That(result.Hovers[0].Text).Contains("SerializeObject");
+            var persistent = result.Hovers.First(h => h.Persistent);
+            await Assert.That(persistent.Text).Contains("SerializeObject");
             await Assert.That(result.Meta.CompileSucceeded).IsTrue();
             await Assert.That(result.Meta.Packages.Count).IsGreaterThan(0);
             await Assert.That(result.Meta.Packages.Any(p => p.Name == "Newtonsoft.Json")).IsTrue();
@@ -348,8 +348,8 @@ public class TwohashProcessorTests
         var source = "var x = 42;\n//  ^?";
         var result = await _processor.ProcessAsync(source);
 
-        await Assert.That(result.Hovers.Count).IsEqualTo(1);
-        await Assert.That(result.Hovers[0].Text).Contains("int");
+        var persistent = result.Hovers.First(h => h.Persistent);
+        await Assert.That(persistent.Text).Contains("int");
         await Assert.That(result.Meta.LangVersion).IsNull();
         await Assert.That(result.Meta.Nullable).IsNull();
     }
@@ -452,5 +452,69 @@ public class TwohashProcessorTests
         var warning = result.Errors.FirstOrDefault(e => e.Code == "CS8600");
         await Assert.That(warning).IsNotNull();
         await Assert.That(warning!.Severity).IsEqualTo("warning");
+    }
+
+    // === Auto-hover extraction tests ===
+
+    [Test]
+    public async Task Process_AutoHover_ExtractsHoversForIdentifiers()
+    {
+        var source = "var x = 42;";
+        var result = await _processor.ProcessAsync(source);
+
+        // Should have auto-hovers for identifiers (var, x) but not for punctuation/literals
+        await Assert.That(result.Hovers.Count).IsGreaterThan(0);
+        await Assert.That(result.Hovers.All(h => !h.Persistent)).IsTrue();
+        // Should have hover for 'x'
+        await Assert.That(result.Hovers.Any(h => h.TargetText == "x")).IsTrue();
+        // Should NOT have hover for '42' or ';'
+        await Assert.That(result.Hovers.Any(h => h.TargetText == "42")).IsFalse();
+        await Assert.That(result.Hovers.Any(h => h.TargetText == ";")).IsFalse();
+    }
+
+    [Test]
+    public async Task Process_PersistentHover_HasPersistentFlag()
+    {
+        var source = "var x = 42;\n//  ^?";
+        var result = await _processor.ProcessAsync(source);
+
+        var persistent = result.Hovers.Where(h => h.Persistent).ToList();
+        await Assert.That(persistent.Count).IsEqualTo(1);
+        await Assert.That(persistent[0].TargetText).IsEqualTo("x");
+    }
+
+    [Test]
+    public async Task Process_Deduplication_PersistentTakesPrecedence()
+    {
+        var source = "var x = 42;\n//  ^?";
+        var result = await _processor.ProcessAsync(source);
+
+        // Only one hover for 'x' — the persistent one, not both
+        var xHovers = result.Hovers.Where(h => h.TargetText == "x").ToList();
+        await Assert.That(xHovers.Count).IsEqualTo(1);
+        await Assert.That(xHovers[0].Persistent).IsTrue();
+    }
+
+    [Test]
+    public async Task Process_AutoHover_PositionMappingWithMarkers()
+    {
+        var source = "// @highlight\nvar x = 42;";
+        var result = await _processor.ProcessAsync(source);
+
+        // 'x' should be on processed line 0 (highlight marker removed)
+        var xHover = result.Hovers.First(h => h.TargetText == "x");
+        await Assert.That(xHover.Line).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task Process_AutoHover_ExcludesHiddenSections()
+    {
+        var source = "var hidden = 1;\n// ---cut---\nvar visible = 2;";
+        var result = await _processor.ProcessAsync(source);
+
+        // Should NOT have hover for 'hidden' (before cut)
+        await Assert.That(result.Hovers.Any(h => h.TargetText == "hidden")).IsFalse();
+        // Should have hover for 'visible' (after cut)
+        await Assert.That(result.Hovers.Any(h => h.TargetText == "visible")).IsTrue();
     }
 }

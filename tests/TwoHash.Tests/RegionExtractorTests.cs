@@ -83,7 +83,7 @@ public class RegionExtractorTests
 
         await Assert.That(result.Code).Contains("var result = helper * 2;");
         await Assert.That(result.Code).DoesNotContain("var helper = 42;");
-        await Assert.That(result.Hovers.Count).IsEqualTo(1);
-        await Assert.That(result.Hovers[0].Text).Contains("int");
+        var persistent = result.Hovers.First(h => h.Persistent);
+        await Assert.That(persistent.Text).Contains("int");
     }
 }

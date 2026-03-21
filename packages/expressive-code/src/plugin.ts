@@ -5,12 +5,6 @@ export interface PluginTwohashOptions extends TwohashOptions {
   region?: string
 }
 
-const TWOHASH_MARKER_REGEX = /\/\/\s*\^[?|]|\/\/\s*@errors:|\/\/\s*@noErrors|\/\/\s*---cut---|\/\/\s*@hide|\/\/\s*@show|\/\/\s*@highlight|\/\/\s*@focus|\/\/\s*@diff:/
-
-function hasMarkers(code: string): boolean {
-  return TWOHASH_MARKER_REGEX.test(code)
-}
-
 // Style settings for theme-aware colors
 const styleSettings = {
   popupBackground: { dark: '#1e1e1e', light: '#f3f3f3' },
@@ -62,8 +56,11 @@ function buildBaseStyles(): string {
   return `
 .twohash-hover {
   position: relative;
-  border-bottom: 1px dotted currentColor;
   cursor: pointer;
+}
+
+.twohash-hover-persistent {
+  border-bottom: 1px dotted currentColor;
 }
 
 .twohash-popup {
@@ -86,6 +83,10 @@ function buildBaseStyles(): string {
 
 .twohash-hover:hover + .twohash-popup,
 .twohash-popup:hover {
+  display: block;
+}
+
+.twohash-hover-persistent + .twohash-popup {
   display: block;
 }
 
@@ -271,7 +272,6 @@ export function pluginTwohash(options: PluginTwohashOptions = {}) {
       async preprocessCode({ codeBlock }: { codeBlock: { code: string; language: string; meta: string } }) {
         const lang = codeBlock.language
         if (lang !== 'csharp' && lang !== 'cs' && lang !== 'c#') return
-        if (!hasMarkers(codeBlock.code)) return
 
         try {
           const result = await twohash.process({ code: codeBlock.code, project: options.project, region: options.region })
@@ -415,11 +415,15 @@ class TwohashHoverAnnotation {
       popupChildren.push(...this.renderDocs(this.hover.docs))
     }
 
+    const hoverClass = this.hover.persistent
+      ? 'twohash-hover twohash-hover-persistent'
+      : 'twohash-hover'
+
     return nodesToTransform.map(node => ({
       type: 'element' as const,
       tagName: 'span',
       properties: {
-        class: 'twohash-hover',
+        class: hoverClass,
         style: `anchor-name: ${anchorName}`,
       },
       children: [
