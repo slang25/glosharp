@@ -15,12 +15,6 @@ export interface TwohashCodeBlock {
 
 export type TwohashResultMap = Map<string, TwohashResult>
 
-const TWOHASH_MARKER_REGEX = /\/\/\s*\^[?|]|\/\/\s*@errors:|\/\/\s*@noErrors|\/\/\s*---cut---|\/\/\s*@hide|\/\/\s*@show/
-
-function hasMarkers(code: string): boolean {
-  return TWOHASH_MARKER_REGEX.test(code)
-}
-
 // Pre-processed transformer that takes an already-computed result.
 // This is the recommended approach since Shiki's preprocess hook is synchronous.
 export function transformerTwohashWithResult(result: TwohashResult): ShikiTransformer {
@@ -79,8 +73,6 @@ export async function processTwohashBlocks(
       const region = typeof block === 'string' ? options.region : (block.region ?? options.region)
       return { code, project, region }
     })
-    .filter(({ code }) => hasMarkers(code))
-
   const results = await Promise.all(
     tasks.map(({ code, project, region }) =>
       twohash.process({ code, project, region }).then(result => ({
@@ -102,7 +94,6 @@ export async function processTwohashCode(
   code: string,
   options: TransformerTwohashOptions = {},
 ): Promise<TwohashResult | null> {
-  if (!hasMarkers(code)) return null
   const twohash = createTwohash(options)
   return twohash.process({ code, project: options.project, region: options.region })
 }
@@ -167,7 +158,7 @@ function injectHovers(root: HastElement, result: TwohashResult): void {
         )
       }
 
-      wrapTokenAtPosition(line, hover.character, hover.length, anchorName, popupChildren)
+      wrapTokenAtPosition(line, hover.character, hover.length, anchorName, popupChildren, hover.persistent)
     }
   }
 }
@@ -267,7 +258,9 @@ function wrapTokenAtPosition(
   length: number,
   anchorName: string,
   popupChildren: HastNode[],
+  persistent?: boolean,
 ): void {
+  const hoverClass = persistent ? 'twohash-hover twohash-hover-persistent' : 'twohash-hover'
   if (!line.children) return
 
   let col = 0
@@ -287,7 +280,7 @@ function wrapTokenAtPosition(
       // If the hover covers the whole token, wrap it directly
       if (offsetInToken === 0 && length === tokenText.length) {
         const wrapper = h('span', {
-          class: 'twohash-hover',
+          class: hoverClass,
           style: `anchor-name: ${anchorName}`,
         }, [child])
 

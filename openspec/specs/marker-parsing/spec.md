@@ -1,15 +1,15 @@
 ## ADDED Requirements
 
 ### Requirement: Parse hover query markers
-The system SHALL recognize `^?` markers in comment lines to indicate hover queries. The `^` character's column position in the comment SHALL determine which token on the preceding line is queried.
+The system SHALL recognize `^?` markers in comment lines to indicate persistent hover requests. The `^` character's column position in the comment SHALL determine which token on the preceding line is targeted for a persistent (always-visible) hover display.
 
-#### Scenario: Single hover query
+#### Scenario: Single persistent hover marker
 - **WHEN** source contains `var x = 42;` followed by `//  ^?` where `^` aligns with column 4
-- **THEN** the system records a hover query targeting the token at line 0, character 4
+- **THEN** the system records a persistent hover request targeting the token at line 0, character 4
 
-#### Scenario: Multiple hover queries
+#### Scenario: Multiple persistent hover markers
 - **WHEN** source contains multiple `^?` marker lines at different positions
-- **THEN** the system records one hover query per marker, each targeting the correct line and column
+- **THEN** the system records one persistent hover request per marker, each targeting the correct line and column
 
 ### Requirement: Parse error expectation markers
 The system SHALL recognize `// @errors: NNNN` directives to declare expected compiler errors on the following line. Multiple error codes SHALL be supported as a comma-separated list.

@@ -466,18 +466,29 @@ public class TwohashProcessor
         SemanticModel model,
         string compilationCode)
     {
+        var persistentHovers = ExtractPersistentHovers(markers, tree, model, compilationCode);
+        var autoHovers = ExtractAllHovers(markers, tree, model, compilationCode, persistentHovers);
+
+        // Merge: persistent hovers first, then auto-hovers (already deduplicated)
+        var merged = new List<TwohashHover>(persistentHovers.Count + autoHovers.Count);
+        merged.AddRange(persistentHovers);
+        merged.AddRange(autoHovers);
+        return merged;
+    }
+
+    private List<TwohashHover> ExtractPersistentHovers(
+        MarkerParseResult markers,
+        SyntaxTree tree,
+        SemanticModel model,
+        string compilationCode)
+    {
         var hovers = new List<TwohashHover>();
         var root = tree.GetCompilationUnitRoot();
         var compilationLines = compilationCode.Split('\n');
 
         foreach (var query in markers.HoverQueries)
         {
-            // Map processed line back to compilation line
-            // The compilation code has all lines except markers
-            // We need to find the position in compilation code
             var originalLine = markers.LineMap[query.OriginalLine];
-
-            // Find this original line in the compilation code
             var compilationLine = FindCompilationLine(compilationCode, originalLine, markers);
             if (compilationLine < 0) continue;
 
@@ -487,91 +498,152 @@ public class TwohashProcessor
             var token = root.FindToken(position);
             if (token == default) continue;
 
-            var node = GetMeaningfulNode(token);
-            if (node == null) continue;
-
-            var symbolInfo = model.GetSymbolInfo(node);
-            var symbol = symbolInfo.Symbol ?? symbolInfo.CandidateSymbols.FirstOrDefault();
-
-            // Try GetDeclaredSymbol for declarations
-            if (symbol == null)
-            {
-                symbol = model.GetDeclaredSymbol(node);
-            }
-
-            // Walk up to find a declaration
-            if (symbol == null)
-            {
-                for (var current = node.Parent; current != null && symbol == null; current = current.Parent)
-                {
-                    symbol = model.GetDeclaredSymbol(current);
-                }
-            }
-
-            if (symbol == null) continue;
-
-            var parts = symbol.ToDisplayParts(DisplayFormat);
-            var prefix = GetSymbolPrefix(symbol);
-
-            var displayParts = new List<TwohashDisplayPart>();
-            if (prefix != null)
-            {
-                displayParts.Add(new TwohashDisplayPart { Kind = "punctuation", Text = "(" });
-                displayParts.Add(new TwohashDisplayPart { Kind = "text", Text = prefix });
-                displayParts.Add(new TwohashDisplayPart { Kind = "punctuation", Text = ")" });
-                displayParts.Add(new TwohashDisplayPart { Kind = "space", Text = " " });
-            }
-
-            foreach (var part in parts)
-            {
-                displayParts.Add(new TwohashDisplayPart
-                {
-                    Kind = SymbolDisplayPartKindMapping.ToJsonKind(part.Kind),
-                    Text = part.ToString(),
-                });
-            }
-
-            var text = prefix != null
-                ? $"({prefix}) {symbol.ToDisplayString(DisplayFormat)}"
-                : symbol.ToDisplayString(DisplayFormat);
-
-            // Overload count for methods
-            int? overloadCount = null;
-            if (symbol is IMethodSymbol method)
-            {
-                var overloads = method.ContainingType.GetMembers(method.Name)
-                    .OfType<IMethodSymbol>()
-                    .Count();
-                if (overloads > 1)
-                {
-                    overloadCount = overloads;
-                    text += $" (+ {overloads - 1} overloads)";
-                }
-            }
-
-            // XML doc comments
-            var docs = ExtractDocComment(symbol);
-
-            // Use the token's actual column in the compilation code (which matches
-            // the processed/clean code line content), not the marker's ^ column.
-            var tokenLineSpan = token.GetLocation().GetLineSpan();
-            var tokenCharacter = tokenLineSpan.StartLinePosition.Character;
-
-            hovers.Add(new TwohashHover
-            {
-                Line = query.OriginalLine,
-                Character = tokenCharacter,
-                Length = token.Text.Length,
-                Text = text,
-                Parts = displayParts,
-                Docs = docs,
-                SymbolKind = SymbolDisplayPartKindMapping.ToSymbolKindString(symbol),
-                TargetText = token.Text,
-                OverloadCount = overloadCount,
-            });
+            var hover = BuildHoverFromToken(token, model, query.OriginalLine, persistent: true);
+            if (hover != null)
+                hovers.Add(hover);
         }
 
         return hovers;
+    }
+
+    private List<TwohashHover> ExtractAllHovers(
+        MarkerParseResult markers,
+        SyntaxTree tree,
+        SemanticModel model,
+        string compilationCode,
+        List<TwohashHover> persistentHovers)
+    {
+        var hovers = new List<TwohashHover>();
+        var root = tree.GetCompilationUnitRoot();
+
+        // Build set of persistent hover positions for deduplication
+        var persistentPositions = new HashSet<(int Line, int Character)>();
+        foreach (var ph in persistentHovers)
+            persistentPositions.Add((ph.Line, ph.Character));
+
+        // Build set of visible original lines (lines that appear in processed output)
+        var visibleOriginalLines = new HashSet<int>(markers.LineMap);
+
+        foreach (var token in root.DescendantTokens())
+        {
+            // Skip tokens that won't have meaningful hover info
+            if (token.IsKind(SyntaxKind.SemicolonToken) ||
+                token.IsKind(SyntaxKind.OpenBraceToken) ||
+                token.IsKind(SyntaxKind.CloseBraceToken) ||
+                token.IsKind(SyntaxKind.OpenParenToken) ||
+                token.IsKind(SyntaxKind.CloseParenToken) ||
+                token.IsKind(SyntaxKind.CommaToken) ||
+                token.IsKind(SyntaxKind.DotToken) ||
+                token.IsKind(SyntaxKind.EqualsToken) ||
+                token.IsKind(SyntaxKind.EndOfFileToken) ||
+                token.IsKind(SyntaxKind.StringLiteralToken) ||
+                token.IsKind(SyntaxKind.Utf8StringLiteralToken) ||
+                token.IsKind(SyntaxKind.NumericLiteralToken) ||
+                token.IsKind(SyntaxKind.CharacterLiteralToken) ||
+                token.IsKind(SyntaxKind.InterpolatedStringTextToken) ||
+                token.IsKind(SyntaxKind.InterpolatedStringStartToken) ||
+                token.IsKind(SyntaxKind.InterpolatedStringEndToken))
+                continue;
+
+            var tokenLineSpan = token.GetLocation().GetLineSpan();
+            var compilationLine = tokenLineSpan.StartLinePosition.Line;
+
+            // Map compilation line to processed line
+            var processedLine = MapCompilationLineToProcessed(compilationLine, markers, compilationCode);
+            if (processedLine < 0) continue;
+
+            // Check if this compilation line maps to a visible original line
+            var originalLine = markers.LineMap.Length > processedLine ? markers.LineMap[processedLine] : -1;
+            if (originalLine < 0 || !visibleOriginalLines.Contains(originalLine)) continue;
+
+            var tokenCharacter = tokenLineSpan.StartLinePosition.Character;
+
+            // Skip if a persistent hover already covers this position
+            if (persistentPositions.Contains((processedLine, tokenCharacter)))
+                continue;
+
+            var hover = BuildHoverFromToken(token, model, processedLine, persistent: false);
+            if (hover != null)
+                hovers.Add(hover);
+        }
+
+        return hovers;
+    }
+
+    private static TwohashHover? BuildHoverFromToken(SyntaxToken token, SemanticModel model, int line, bool persistent)
+    {
+        var node = GetMeaningfulNode(token);
+        if (node == null) return null;
+
+        var symbolInfo = model.GetSymbolInfo(node);
+        var symbol = symbolInfo.Symbol ?? symbolInfo.CandidateSymbols.FirstOrDefault();
+
+        if (symbol == null)
+            symbol = model.GetDeclaredSymbol(node);
+
+        if (symbol == null)
+        {
+            for (var current = node.Parent; current != null && symbol == null; current = current.Parent)
+                symbol = model.GetDeclaredSymbol(current);
+        }
+
+        if (symbol == null) return null;
+
+        var parts = symbol.ToDisplayParts(DisplayFormat);
+        var prefix = GetSymbolPrefix(symbol);
+
+        var displayParts = new List<TwohashDisplayPart>();
+        if (prefix != null)
+        {
+            displayParts.Add(new TwohashDisplayPart { Kind = "punctuation", Text = "(" });
+            displayParts.Add(new TwohashDisplayPart { Kind = "text", Text = prefix });
+            displayParts.Add(new TwohashDisplayPart { Kind = "punctuation", Text = ")" });
+            displayParts.Add(new TwohashDisplayPart { Kind = "space", Text = " " });
+        }
+
+        foreach (var part in parts)
+        {
+            displayParts.Add(new TwohashDisplayPart
+            {
+                Kind = SymbolDisplayPartKindMapping.ToJsonKind(part.Kind),
+                Text = part.ToString(),
+            });
+        }
+
+        var text = prefix != null
+            ? $"({prefix}) {symbol.ToDisplayString(DisplayFormat)}"
+            : symbol.ToDisplayString(DisplayFormat);
+
+        int? overloadCount = null;
+        if (symbol is IMethodSymbol method)
+        {
+            var overloads = method.ContainingType.GetMembers(method.Name)
+                .OfType<IMethodSymbol>()
+                .Count();
+            if (overloads > 1)
+            {
+                overloadCount = overloads;
+                text += $" (+ {overloads - 1} overloads)";
+            }
+        }
+
+        var docs = ExtractDocComment(symbol);
+        var tokenLineSpan = token.GetLocation().GetLineSpan();
+        var tokenCharacter = tokenLineSpan.StartLinePosition.Character;
+
+        return new TwohashHover
+        {
+            Line = line,
+            Character = tokenCharacter,
+            Length = token.Text.Length,
+            Text = text,
+            Parts = displayParts,
+            Docs = docs,
+            SymbolKind = SymbolDisplayPartKindMapping.ToSymbolKindString(symbol),
+            TargetText = token.Text,
+            OverloadCount = overloadCount,
+            Persistent = persistent,
+        };
     }
 
     private (List<TwohashError> Errors, bool CompileSucceeded) ExtractDiagnostics(
