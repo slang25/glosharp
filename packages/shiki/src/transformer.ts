@@ -98,6 +98,9 @@ export async function processTwohashCode(
   return twohash.process({ code, project: options.project, region: options.region })
 }
 
+// Global counter ensures unique CSS anchor names across multiple code blocks on a page.
+let anchorCounter = 0
+
 // ---- HAST manipulation utilities ----
 
 interface HastElement {
@@ -141,8 +144,8 @@ function injectHovers(root: HastElement, result: TwohashResult): void {
     // Sort right-to-left by character position
     group.sort((a, b) => b.hover.character - a.hover.character)
 
-    for (const { hover, index } of group) {
-      const anchorName = `--th-${index}`
+    for (const { hover } of group) {
+      const anchorName = `--th-${anchorCounter++}`
 
       const partNodes: HastNode[] = hover.parts.map((part: TwohashDisplayPart) =>
         h('span', { class: `twohash-${part.kind}` }, [hText(part.text)])
