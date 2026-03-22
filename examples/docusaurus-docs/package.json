@@ -4,7 +4,9 @@
   "private": true,
   "scripts": {
     "docusaurus": "docusaurus",
+    "prestart": "npm run build -w twohash -w @twohash/shiki",
     "start": "docusaurus start",
+    "prebuild": "npm run build -w twohash -w @twohash/shiki",
     "build": "docusaurus build"
   },
   "dependencies": {
