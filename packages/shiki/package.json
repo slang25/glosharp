@@ -1,5 +1,5 @@
 {
-  "name": "@slang25/shiki",
+  "name": "@twohash/shiki",
   "version": "0.1.0-alpha.1",
   "description": "Shiki transformer for twohash C# type information",
   "type": "module",
@@ -17,7 +17,7 @@
     "build": "tsc"
   },
   "dependencies": {
-    "@slang25/twohash": "0.1.0-alpha.1"
+    "@twohash/core": "0.1.0-alpha.1"
   },
   "peerDependencies": {
     "shiki": "^3.0.0 || ^4.0.0"

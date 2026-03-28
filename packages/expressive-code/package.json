@@ -1,5 +1,5 @@
 {
-  "name": "@slang25/expressive-code",
+  "name": "@twohash/expressive-code",
   "version": "0.1.0-alpha.1",
   "description": "Expressive Code plugin for twohash C# type information",
   "type": "module",
@@ -15,7 +15,7 @@
     "build": "tsc"
   },
   "dependencies": {
-    "@slang25/twohash": "0.1.0-alpha.1"
+    "@twohash/core": "0.1.0-alpha.1"
   },
   "peerDependencies": {
     "@expressive-code/core": "^0.38.0 || ^0.41.0"

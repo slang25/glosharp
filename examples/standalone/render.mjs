@@ -2,7 +2,7 @@
  * Standalone rendering script — generates a self-contained HTML page from C# snippets.
  *
  * Prerequisites:
- *   npm install @slang25/twohash @slang25/shiki shiki
+ *   npm install @twohash/core @twohash/shiki shiki
  *   dotnet tool install -g twohash
  *
  * Usage:
@@ -13,7 +13,7 @@
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs'
 import { basename, resolve } from 'node:path'
 import { codeToHtml } from 'shiki'
-import { processTwohashCode, transformerTwohashWithResult } from '@slang25/shiki'
+import { processTwohashCode, transformerTwohashWithResult } from '@twohash/shiki'
 
 const files = process.argv.slice(2)
 const csFiles = files.length > 0

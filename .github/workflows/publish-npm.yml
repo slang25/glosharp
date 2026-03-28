@@ -21,14 +21,14 @@ jobs:
 
       - name: Build packages
         run: |
-          npm run build -w @slang25/twohash
-          npm run build -w @slang25/shiki
-          npm run build -w @slang25/expressive-code
+          npm run build -w @twohash/core
+          npm run build -w @twohash/shiki
+          npm run build -w @twohash/expressive-code
 
       - name: Publish packages
         run: |
-          npm publish -w @slang25/twohash --access public --tag alpha
-          npm publish -w @slang25/shiki --access public --tag alpha
-          npm publish -w @slang25/expressive-code --access public --tag alpha
+          npm publish -w @twohash/core --access public --tag alpha
+          npm publish -w @twohash/shiki --access public --tag alpha
+          npm publish -w @twohash/expressive-code --access public --tag alpha
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
