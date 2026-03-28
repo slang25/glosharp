@@ -283,6 +283,7 @@ export function pluginTwohash(options: PluginTwohashOptions = {}) {
   return {
     name: 'twohash',
     baseStyles: buildBaseStyles(),
+    styleSettings,
 
     hooks: {
       async preprocessCode({ codeBlock }: { codeBlock: ExpressiveCodeBlock }) {
@@ -294,7 +295,8 @@ export function pluginTwohash(options: PluginTwohashOptions = {}) {
           resultCache.set(codeBlock.code, result)
           // Replace code with cleaned version (markers removed)
           // EC blocks don't allow setting .code directly, so replace line by line
-          const newLines = result.code.replace(/\n$/, '').split('\n')
+          const cleaned = result.code.replace(/\n$/, '')
+          const newLines = cleaned === '' ? [] : cleaned.split('\n')
           const oldLines = codeBlock.getLines()
           // Delete all old lines (in reverse to keep indices stable)
           const indicesToDelete = Array.from({ length: oldLines.length }, (_, i) => i)

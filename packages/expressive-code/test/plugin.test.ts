@@ -25,12 +25,13 @@ describe('pluginTwohash', () => {
     expect(plugin.baseStyles).toContain('position-area: top')
   })
 
-  it('baseStyles includes theme-aware CSS variables', () => {
+  it('has theme-aware styleSettings', () => {
     const plugin = pluginTwohash()
-    // Style values are embedded in baseStyles via CSS custom properties
-    expect(plugin.baseStyles).toContain('--twohash-popup-bg')
-    expect(plugin.baseStyles).toContain('--twohash-popup-fg')
-    expect(plugin.baseStyles).toContain('--twohash-error-underline')
+    expect(plugin.styleSettings).toBeDefined()
+    expect(plugin.styleSettings.popupBackground).toHaveProperty('dark')
+    expect(plugin.styleSettings.popupBackground).toHaveProperty('light')
+    expect(plugin.styleSettings.errorUnderline).toHaveProperty('dark')
+    expect(plugin.styleSettings.errorUnderline).toHaveProperty('light')
   })
 
   it('baseStyles includes part kind color classes', () => {
@@ -53,7 +54,7 @@ describe('pluginTwohash', () => {
     const plugin = pluginTwohash()
     const lines = ['var x = 42;']
     const codeBlock = {
-      code: 'var x = 42;',
+      get code() { return lines.join('\n') },
       language: 'csharp',
       meta: '',
       getLines: () => lines.map(text => ({ text })),
@@ -67,7 +68,7 @@ describe('pluginTwohash', () => {
     } as any
     await plugin.hooks.preprocessCode({ codeBlock })
     // Code without markers should remain the same
-    expect(lines.join('\n')).toBe('var x = 42;')
+    expect(codeBlock.code).toBe('var x = 42;')
   })
 
   it('accepts project option', () => {
