@@ -6,6 +6,7 @@
     "packages/expressive-code",
     "examples/astro-blog",
     "examples/docusaurus-docs",
+    "examples/expressive-code",
     "examples/standalone",
     "tests/e2e"
   ]

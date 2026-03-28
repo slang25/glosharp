@@ -43,6 +43,21 @@ npm run dev
 The key integration point is `astro.config.mjs`, which adds a custom Shiki
 transformer that calls twohash during Markdown processing.
 
+### [`expressive-code/`](./expressive-code/)
+
+An Astro site that uses `astro-expressive-code` with the `@twohash/expressive-code`
+plugin. This is the simplest framework integration — just add `pluginTwohash()` to
+your Expressive Code config and all C# code blocks get type hovers automatically.
+
+```bash
+cd expressive-code
+npm install
+npm run dev
+```
+
+The key integration point is `astro.config.mjs`, which passes the twohash plugin
+to `astro-expressive-code`.
+
 ### [`docusaurus-docs/`](./docusaurus-docs/)
 
 A Docusaurus documentation site with a custom remark plugin that processes C#

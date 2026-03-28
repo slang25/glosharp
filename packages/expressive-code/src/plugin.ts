@@ -1,4 +1,5 @@
 import { createTwohash, type TwohashOptions, type TwohashResult, type TwohashHover, type TwohashError, type TwohashDisplayPart, type TwohashCompletion, type TwohashDocComment, type TwohashDocParam, type TwohashDocException, type TwohashHighlight } from 'twohash'
+import type { ExpressiveCodeBlock } from '@expressive-code/core'
 
 export interface PluginTwohashOptions extends TwohashOptions {
   project?: string
@@ -56,11 +57,27 @@ function buildBaseStyles(): string {
   return `
 .twohash-hover {
   position: relative;
+  border-bottom: 1px dotted transparent;
+  transition: border-color 0.3s ease;
   cursor: pointer;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .twohash-hover { transition: none; }
+}
+
+/* Container hover: subtle underline on all hoverable tokens */
+.expressive-code:hover .twohash-hover:not(:hover):not(.twohash-hover-persistent) {
+  border-bottom-color: color-mix(in srgb, currentColor 40%, transparent);
+}
+
+/* Token hover: strong underline */
+.twohash-hover:hover {
+  border-bottom-color: currentColor;
+}
+
 .twohash-hover-persistent {
-  border-bottom: 1px dotted currentColor;
+  border-bottom-color: currentColor;
 }
 
 .twohash-popup {
@@ -81,12 +98,12 @@ function buildBaseStyles(): string {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
-.twohash-hover:hover + .twohash-popup,
+.twohash-hover:hover > .twohash-popup,
 .twohash-popup:hover {
   display: block;
 }
 
-.twohash-hover-persistent + .twohash-popup {
+.twohash-hover-persistent > .twohash-popup {
   display: block;
 }
 
@@ -261,7 +278,7 @@ ${partColorRules}
 
 export function pluginTwohash(options: PluginTwohashOptions = {}) {
   const twohash = createTwohash(options)
-  const resultCache = new Map<string, TwohashResult>()
+  const resultCache = new WeakMap<ExpressiveCodeBlock, TwohashResult>()
 
   return {
     name: 'twohash',
@@ -269,29 +286,35 @@ export function pluginTwohash(options: PluginTwohashOptions = {}) {
     styleSettings,
 
     hooks: {
-      async preprocessCode({ codeBlock }: { codeBlock: { code: string; language: string; meta: string } }) {
+      async preprocessCode({ codeBlock }: { codeBlock: ExpressiveCodeBlock }) {
         const lang = codeBlock.language
         if (lang !== 'csharp' && lang !== 'cs' && lang !== 'c#') return
 
         try {
           const result = await twohash.process({ code: codeBlock.code, project: options.project, region: options.region })
-          resultCache.set(codeBlock.code, result)
+          resultCache.set(codeBlock, result)
           // Replace code with cleaned version (markers removed)
-          codeBlock.code = result.code
+          // EC blocks don't allow setting .code directly, so replace line by line
+          const cleaned = result.code.replace(/\n$/, '')
+          const newLines = cleaned === '' ? [] : cleaned.split('\n')
+          const oldLines = codeBlock.getLines()
+          // Delete all old lines
+          const indicesToDelete = Array.from({ length: oldLines.length }, (_, i) => i).reverse()
+          if (indicesToDelete.length > 0) {
+            codeBlock.deleteLines(indicesToDelete)
+          }
+          // Insert the new cleaned lines
+          if (newLines.length > 0) {
+            codeBlock.insertLines(0, newLines)
+          }
         } catch {
           // Silently pass through if CLI fails
         }
       },
 
       annotateCode({ codeBlock }: { codeBlock: { code: string; getLines: () => Array<{ addAnnotation: (ann: unknown) => void }> } }) {
-        // Find result by checking if we have a cached result
-        let result: TwohashResult | undefined
-        for (const [, r] of resultCache) {
-          if (r.code === codeBlock.code) {
-            result = r
-            break
-          }
-        }
+        // codeBlock is the same object passed to preprocessCode (an ExpressiveCodeBlock)
+        const result = resultCache.get(codeBlock as unknown as ExpressiveCodeBlock)
         if (!result) return
 
         const lines = codeBlock.getLines()
