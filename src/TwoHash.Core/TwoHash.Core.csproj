@@ -4,6 +4,9 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <PackageId>TwoHash.Core</PackageId>
+    <Version>0.1.0</Version>
+    <Description>Core library for TwoHash — compiler-driven type information for C# documentation</Description>
   </PropertyGroup>
 
   <ItemGroup>
