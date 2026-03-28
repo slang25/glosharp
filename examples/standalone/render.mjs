@@ -82,12 +82,16 @@ const page = `<!DOCTYPE html>
     }
 
     /* Container hover: subtle underline on all hoverable tokens */
-    pre:hover .twohash-hover:not(:hover) {
+    pre:hover .twohash-hover:not(:hover):not(.twohash-hover-persistent) {
       border-bottom-color: color-mix(in srgb, currentColor 40%, transparent);
     }
 
     /* Token hover: strong underline */
     .twohash-hover:hover {
+      border-bottom-color: currentColor;
+    }
+
+    .twohash-hover-persistent {
       border-bottom-color: currentColor;
     }
 

@@ -67,7 +67,7 @@ function buildBaseStyles(): string {
 }
 
 /* Container hover: subtle underline on all hoverable tokens */
-.expressive-code:hover .twohash-hover:not(:hover) {
+.expressive-code:hover .twohash-hover:not(:hover):not(.twohash-hover-persistent) {
   border-bottom-color: color-mix(in srgb, currentColor 40%, transparent);
 }
 
@@ -278,7 +278,7 @@ ${partColorRules}
 
 export function pluginTwohash(options: PluginTwohashOptions = {}) {
   const twohash = createTwohash(options)
-  const resultCache = new Map<string, TwohashResult>()
+  const resultCache = new WeakMap<ExpressiveCodeBlock, TwohashResult>()
 
   return {
     name: 'twohash',
@@ -292,14 +292,14 @@ export function pluginTwohash(options: PluginTwohashOptions = {}) {
 
         try {
           const result = await twohash.process({ code: codeBlock.code, project: options.project, region: options.region })
-          resultCache.set(codeBlock.code, result)
+          resultCache.set(codeBlock, result)
           // Replace code with cleaned version (markers removed)
           // EC blocks don't allow setting .code directly, so replace line by line
           const cleaned = result.code.replace(/\n$/, '')
           const newLines = cleaned === '' ? [] : cleaned.split('\n')
           const oldLines = codeBlock.getLines()
-          // Delete all old lines (in reverse to keep indices stable)
-          const indicesToDelete = Array.from({ length: oldLines.length }, (_, i) => i)
+          // Delete all old lines
+          const indicesToDelete = Array.from({ length: oldLines.length }, (_, i) => i).reverse()
           if (indicesToDelete.length > 0) {
             codeBlock.deleteLines(indicesToDelete)
           }
@@ -313,14 +313,8 @@ export function pluginTwohash(options: PluginTwohashOptions = {}) {
       },
 
       annotateCode({ codeBlock }: { codeBlock: { code: string; getLines: () => Array<{ addAnnotation: (ann: unknown) => void }> } }) {
-        // Find result by checking if we have a cached result
-        let result: TwohashResult | undefined
-        for (const [, r] of resultCache) {
-          if (r.code === codeBlock.code) {
-            result = r
-            break
-          }
-        }
+        // codeBlock is the same object passed to preprocessCode (an ExpressiveCodeBlock)
+        const result = resultCache.get(codeBlock as unknown as ExpressiveCodeBlock)
         if (!result) return
 
         const lines = codeBlock.getLines()
