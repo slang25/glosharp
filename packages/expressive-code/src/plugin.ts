@@ -1,4 +1,4 @@
-import { createTwohash, type TwohashOptions, type TwohashResult, type TwohashHover, type TwohashError, type TwohashDisplayPart, type TwohashCompletion, type TwohashDocComment, type TwohashDocParam, type TwohashDocException, type TwohashHighlight } from 'twohash'
+import { createTwohash, type TwohashOptions, type TwohashResult, type TwohashHover, type TwohashError, type TwohashDisplayPart, type TwohashCompletion, type TwohashDocComment, type TwohashDocParam, type TwohashDocException, type TwohashHighlight } from '@slang25/twohash'
 import type { ExpressiveCodeBlock } from '@expressive-code/core'
 
 export interface PluginTwohashOptions extends TwohashOptions {
