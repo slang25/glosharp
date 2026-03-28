@@ -1,4 +1,4 @@
-import { processTwohashCode, transformerTwohashWithResult } from '@slang25/shiki'
+import { processTwohashCode, transformerTwohashWithResult } from '@twohash/shiki'
 import { visit } from 'unist-util-visit'
 
 /**

@@ -4,16 +4,16 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "predev": "npm run build -w @slang25/twohash -w @slang25/expressive-code",
+    "predev": "npm run build -w @twohash/core -w @twohash/expressive-code",
     "dev": "astro dev",
-    "prebuild": "npm run build -w @slang25/twohash -w @slang25/expressive-code",
+    "prebuild": "npm run build -w @twohash/core -w @twohash/expressive-code",
     "build": "astro build",
     "preview": "astro preview"
   },
   "dependencies": {
-    "@slang25/expressive-code": "*",
+    "@twohash/expressive-code": "*",
     "astro": "^5.7.0",
     "astro-expressive-code": "^0.41.0",
-    "@slang25/twohash": "*"
+    "@twohash/core": "*"
   }
 }

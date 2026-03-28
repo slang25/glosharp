@@ -4,9 +4,9 @@
   "private": true,
   "scripts": {
     "docusaurus": "docusaurus",
-    "prestart": "npm run build -w @slang25/twohash -w @slang25/shiki",
+    "prestart": "npm run build -w @twohash/core -w @twohash/shiki",
     "start": "docusaurus start",
-    "prebuild": "npm run build -w @slang25/twohash -w @slang25/shiki",
+    "prebuild": "npm run build -w @twohash/core -w @twohash/shiki",
     "build": "docusaurus build"
   },
   "dependencies": {
@@ -14,8 +14,8 @@
     "@docusaurus/preset-classic": "^3.7.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "@slang25/twohash": "*",
-    "@slang25/shiki": "*",
+    "@twohash/core": "*",
+    "@twohash/shiki": "*",
     "rehype-raw": "^7.0.0",
     "shiki": "^3.0.0",
     "unist-util-visit": "^5.0.0"

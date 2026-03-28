@@ -1,4 +1,4 @@
-import { createTwohash, type TwohashOptions, type TwohashResult, type TwohashDisplayPart } from '@slang25/twohash'
+import { createTwohash, type TwohashOptions, type TwohashResult, type TwohashDisplayPart } from '@twohash/core'
 import { createHash } from 'node:crypto'
 import type { ShikiTransformer } from 'shiki'
 

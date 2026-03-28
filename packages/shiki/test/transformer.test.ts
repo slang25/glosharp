@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { createHash } from 'node:crypto'
 import { codeToHtml } from 'shiki'
 import { transformerTwohashWithResult, transformerTwohashFromMap, processTwohashBlocks, type TransformerTwohashOptions, type TwohashResultMap } from '../src/index.js'
-import type { TwohashResult } from '@slang25/twohash'
+import type { TwohashResult } from '@twohash/core'
 
 const sampleResult: TwohashResult = {
   code: 'var x = 42;\nConsole.WriteLine(x);',
