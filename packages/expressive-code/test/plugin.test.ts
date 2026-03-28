@@ -25,13 +25,12 @@ describe('pluginTwohash', () => {
     expect(plugin.baseStyles).toContain('position-area: top')
   })
 
-  it('has theme-aware styleSettings', () => {
+  it('baseStyles includes theme-aware CSS variables', () => {
     const plugin = pluginTwohash()
-    expect(plugin.styleSettings).toBeDefined()
-    expect(plugin.styleSettings.popupBackground).toHaveProperty('dark')
-    expect(plugin.styleSettings.popupBackground).toHaveProperty('light')
-    expect(plugin.styleSettings.errorUnderline).toHaveProperty('dark')
-    expect(plugin.styleSettings.errorUnderline).toHaveProperty('light')
+    // Style values are embedded in baseStyles via CSS custom properties
+    expect(plugin.baseStyles).toContain('--twohash-popup-bg')
+    expect(plugin.baseStyles).toContain('--twohash-popup-fg')
+    expect(plugin.baseStyles).toContain('--twohash-error-underline')
   })
 
   it('baseStyles includes part kind color classes', () => {
@@ -44,17 +43,31 @@ describe('pluginTwohash', () => {
 
   it('preprocessCode skips non-csharp blocks', async () => {
     const plugin = pluginTwohash()
-    const codeBlock = { code: 'const x = 42;\n//  ^?', language: 'javascript', meta: '' }
+    const codeBlock = { code: 'const x = 42;\n//  ^?', language: 'javascript', meta: '' } as any
     // Should not throw or modify
     await plugin.hooks.preprocessCode({ codeBlock })
     expect(codeBlock.code).toBe('const x = 42;\n//  ^?')
   })
 
-  it('preprocessCode skips csharp blocks without markers', async () => {
+  it('preprocessCode processes csharp blocks without markers', async () => {
     const plugin = pluginTwohash()
-    const codeBlock = { code: 'var x = 42;', language: 'csharp', meta: '' }
+    const lines = ['var x = 42;']
+    const codeBlock = {
+      code: 'var x = 42;',
+      language: 'csharp',
+      meta: '',
+      getLines: () => lines.map(text => ({ text })),
+      deleteLines: (indices: number[]) => {
+        const sorted = [...indices].sort((a, b) => b - a)
+        for (const i of sorted) lines.splice(i, 1)
+      },
+      insertLines: (index: number, newLines: string[]) => {
+        lines.splice(index, 0, ...newLines)
+      },
+    } as any
     await plugin.hooks.preprocessCode({ codeBlock })
-    expect(codeBlock.code).toBe('var x = 42;')
+    // Code without markers should remain the same
+    expect(lines.join('\n')).toBe('var x = 42;')
   })
 
   it('accepts project option', () => {
