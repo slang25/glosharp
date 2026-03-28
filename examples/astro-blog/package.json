@@ -3,16 +3,16 @@
   "type": "module",
   "version": "0.0.1",
   "scripts": {
-    "predev": "npm run build -w twohash -w @twohash/shiki",
+    "predev": "npm run build -w @slang25/twohash -w @slang25/shiki",
     "dev": "astro dev",
-    "prebuild": "npm run build -w twohash -w @twohash/shiki",
+    "prebuild": "npm run build -w @slang25/twohash -w @slang25/shiki",
     "build": "astro build",
     "preview": "astro preview"
   },
   "dependencies": {
-    "@twohash/shiki": "*",
+    "@slang25/shiki": "*",
     "astro": "^5.7.0",
-    "twohash": "*",
+    "@slang25/twohash": "*",
     "unist-util-visit": "^5.1.0"
   }
 }

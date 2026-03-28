@@ -1,4 +1,4 @@
-import { processTwohashCode, type TransformerTwohashOptions } from '@twohash/shiki'
+import { processTwohashCode, type TransformerTwohashOptions } from '@slang25/shiki'
 import { codeToHtml } from 'shiki'
 
 /**
@@ -28,7 +28,7 @@ export function remarkTwohash(options: TransformerTwohashOptions = {}) {
       if (!result) continue
 
       // Render with Shiki + twohash transformer
-      const { transformerTwohashWithResult } = await import('@twohash/shiki')
+      const { transformerTwohashWithResult } = await import('@slang25/shiki')
       const html = await codeToHtml(result.code, {
         lang: 'csharp',
         themes: { light: 'github-light', dark: 'github-dark' },

@@ -1,6 +1,6 @@
 {
-  "name": "twohash",
-  "version": "0.1.0",
+  "name": "@slang25/twohash",
+  "version": "0.1.0-alpha.1",
   "description": "Node.js bridge for the twohash C# type extraction CLI",
   "type": "module",
   "main": "./dist/index.js",

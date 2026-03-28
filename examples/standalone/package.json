@@ -7,8 +7,8 @@
     "render": "node render.mjs"
   },
   "dependencies": {
-    "twohash": "*",
-    "@twohash/shiki": "*",
+    "@slang25/twohash": "*",
+    "@slang25/shiki": "*",
     "shiki": "^4.0.0"
   }
 }

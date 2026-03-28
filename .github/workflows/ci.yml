@@ -51,9 +51,9 @@ jobs:
 
       - name: Build packages
         run: |
-          npm run build --workspace=packages/twohash
-          npm run build --workspace=packages/shiki
-          npm run build --workspace=packages/expressive-code
+          npm run build -w @slang25/twohash
+          npm run build -w @slang25/shiki
+          npm run build -w @slang25/expressive-code
 
       - name: E2E tests
         run: npm test --workspace=tests/e2e
