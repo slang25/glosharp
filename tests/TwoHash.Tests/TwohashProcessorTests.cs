@@ -681,15 +681,28 @@ public class TwohashProcessorTests
     [Test]
     public async Task Process_ImplicitUsings_ReplacesDefaults()
     {
-        // System.Text is not in the defaults. With custom implicitUsings that include it,
-        // StringBuilder should resolve without an explicit using.
-        var source = "// @noErrors\nvar sb = new System.Text.StringBuilder();\nConsole.WriteLine(sb);";
+        // Use unqualified StringBuilder — only resolves if System.Text is in implicit usings.
+        // Also verify System.Linq (a default) is NOT available since replace semantics removes it.
+        var source = "// @noErrors\nvar sb = new StringBuilder();\nConsole.WriteLine(sb);";
         var result = await _processor.ProcessAsync(source, new TwohashProcessorOptions
         {
             ImplicitUsings = ["System", "System.Text"],
         });
 
         await Assert.That(result.Meta.CompileSucceeded).IsTrue();
+    }
+
+    [Test]
+    public async Task Process_ImplicitUsings_ReplacesDefaults_DefaultsUnavailable()
+    {
+        // System.Linq is in defaults but NOT in custom implicitUsings — Enumerable should not resolve
+        var source = "// @errors: CS0103\nvar items = Enumerable.Range(0, 5);";
+        var result = await _processor.ProcessAsync(source, new TwohashProcessorOptions
+        {
+            ImplicitUsings = ["System"],
+        });
+
+        await Assert.That(result.Errors.Any(e => e.Code == "CS0103")).IsTrue();
     }
 
     [Test]
@@ -723,14 +736,14 @@ public class TwohashProcessorTests
     [Test]
     public async Task Process_ConfigLangVersion_UsedWhenNoMarker()
     {
-        // Collection expressions require C# 12+. Setting langVersion to 7 via config should fail.
-        var source = "// @errors: CS8652\nvar x = [1, 2, 3];";
+        // Top-level statements require C# 9+. Setting langVersion to 7 via config should cause compilation failure.
+        var source = "var x = 42;\nConsole.WriteLine(x);";
         var result = await _processor.ProcessAsync(source, new TwohashProcessorOptions
         {
             LangVersion = "7",
         });
 
-        await Assert.That(result.Errors.Count).IsGreaterThan(0);
+        await Assert.That(result.Meta.CompileSucceeded).IsFalse();
     }
 
     [Test]

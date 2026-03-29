@@ -110,7 +110,9 @@ public class TwohashProcessor
 
         // 3. Build global usings (config replaces defaults when specified)
         var effectiveUsings = options?.ImplicitUsings ?? DefaultGlobalUsings;
-        var globalUsings = string.Join('\n', effectiveUsings.Select(u => $"global using {u};"));
+        var globalUsings = string.Join('\n', effectiveUsings
+            .Where(u => !string.IsNullOrWhiteSpace(u))
+            .Select(u => $"global using {u};"));
 
         // 4. Resolve language version and nullable context (precedence: marker > config > default)
         var resolvedLangVersion = LanguageVersion.Latest;
@@ -264,10 +266,10 @@ public class TwohashProcessor
 
             resolvedFramework = complogResult.TargetFramework;
 
-            // Use complog's parse options for language version if no marker override
-            if (markers.LangVersion == null)
+            // Use complog's parse options only if neither marker nor config override
+            if (markers.LangVersion == null && options.LangVersion == null)
                 resolvedLangVersion = complogResult.ParseOptions.LanguageVersion;
-            if (markers.Nullable == null)
+            if (markers.Nullable == null && options.Nullable == null)
                 resolvedNullable = complogResult.CompilationOptions.NullableContextOptions;
 
             // Re-parse with potentially updated options

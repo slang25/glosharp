@@ -464,8 +464,8 @@ public class MarkerParserTests
         var source = "var a = 1;\n// @above-hidden\nvar b = 2;\n// ---cut---\nvar c = 3;";
         var result = MarkerParser.Parse(source);
 
-        // The second cut marker (---cut---) is the last one found, so it wins
-        // (isCutLine gets overwritten). Everything before line 3 is hidden.
-        await Assert.That(result.ProcessedCode).IsEqualTo("var c = 3;");
+        // The first marker (@above-hidden) wins: it hides everything above it.
+        // The later ---cut--- is still stripped as a marker line but doesn't move the cut point.
+        await Assert.That(result.ProcessedCode).IsEqualTo("var b = 2;\nvar c = 3;");
     }
 }

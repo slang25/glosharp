@@ -189,10 +189,11 @@ public static partial class MarkerParser
                 continue;
             }
 
-            // ---cut---
+            // ---cut--- or @above-hidden (first occurrence wins)
             if (CutMarkerRegex.IsMatch(line))
             {
-                isCutLine = i;
+                if (isCutLine < 0)
+                    isCutLine = i;
                 isMarkerLine[i] = true;
                 continue;
             }
