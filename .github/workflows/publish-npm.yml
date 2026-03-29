@@ -19,6 +19,34 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Bump prerelease versions
+        run: |
+          # Get the next alpha version based on what's already published
+          get_next_version() {
+            local pkg=$1
+            local current=$(npm view "$pkg" dist-tags.alpha 2>/dev/null || echo "")
+            if [ -z "$current" ]; then
+              echo "0.1.0-alpha.1"
+            else
+              # Increment the prerelease number
+              local base=$(echo "$current" | sed 's/\.[0-9]*$//')
+              local num=$(echo "$current" | grep -o '[0-9]*$')
+              echo "${base}.$((num + 1))"
+            fi
+          }
+
+          NEXT=$(get_next_version "@twohash/core")
+          echo "Publishing version: $NEXT"
+
+          # Set the same version on all packages
+          npm pkg set "version=$NEXT" -w @twohash/core
+          npm pkg set "version=$NEXT" -w @twohash/shiki
+          npm pkg set "version=$NEXT" -w @twohash/expressive-code
+
+          # Update cross-package dependency references
+          cd packages/shiki && npm pkg set "dependencies.@twohash/core=$NEXT" && cd ../..
+          cd packages/expressive-code && npm pkg set "dependencies.@twohash/core=$NEXT" && cd ../..
+
       - name: Build packages
         run: |
           npm run build -w @twohash/core
