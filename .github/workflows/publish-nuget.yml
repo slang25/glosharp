@@ -18,8 +18,24 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
+      - name: Get next alpha version
+        id: version
+        run: |
+          # Query NuGet for the latest published version of TwoHash.Core
+          CURRENT=$(dotnet package search TwoHash.Core --source https://api.nuget.org/v3/index.json --prerelease --exact-match --format json \
+            | jq -r '.searchResult[0].packages[0].latestVersion // empty' 2>/dev/null || echo "")
+          if [ -z "$CURRENT" ] || ! echo "$CURRENT" | grep -q 'alpha'; then
+            NEXT="0.1.0-alpha.1"
+          else
+            BASE=$(echo "$CURRENT" | sed 's/\.[0-9]*$//')
+            NUM=$(echo "$CURRENT" | grep -o '[0-9]*$')
+            NEXT="${BASE}.$((NUM + 1))"
+          fi
+          echo "Publishing version: $NEXT"
+          echo "version=$NEXT" >> "$GITHUB_OUTPUT"
+
       - name: Pack
-        run: dotnet pack -c Release
+        run: dotnet pack -c Release -p:Version=${{ steps.version.outputs.version }}
 
       - name: NuGet login
         uses: NuGet/login@v1
