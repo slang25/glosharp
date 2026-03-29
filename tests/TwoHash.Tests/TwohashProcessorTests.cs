@@ -578,6 +578,17 @@ public class TwohashProcessorTests
     }
 
     [Test]
+    public async Task Process_PredefinedTypeVoid_HasHover()
+    {
+        var source = "void M() { }";
+        var result = await _processor.ProcessAsync(source);
+
+        var voidHover = result.Hovers.FirstOrDefault(h => h.TargetText == "void");
+        await Assert.That(voidHover).IsNotNull();
+        await Assert.That(voidHover!.Text).Contains("void");
+    }
+
+    [Test]
     public async Task Process_PredefinedTypeString_HasHover()
     {
         var source = "string s = \"hello\";";
@@ -607,7 +618,8 @@ public class TwohashProcessorTests
         var source = "// @suppressErrors\nConsole.WriteLine(undeclared);";
         var result = await _processor.ProcessAsync(source);
 
-        await Assert.That(result.Errors.Count).IsEqualTo(0);
+        // Error-severity diagnostics are suppressed; warnings/info may still appear
+        await Assert.That(result.Errors.Any(e => e.Severity == "error")).IsFalse();
         await Assert.That(result.Meta.CompileSucceeded).IsTrue();
     }
 
@@ -619,7 +631,8 @@ public class TwohashProcessorTests
 
         // Hovers should still work for resolvable symbols
         await Assert.That(result.Hovers.Any(h => h.TargetText == "x")).IsTrue();
-        await Assert.That(result.Errors.Count).IsEqualTo(0);
+        // Only error-severity diagnostics are suppressed; warnings/info may remain
+        await Assert.That(result.Errors.Any(e => e.Severity == "error")).IsFalse();
     }
 
     [Test]

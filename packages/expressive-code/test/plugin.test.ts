@@ -25,13 +25,9 @@ describe('pluginTwohash', () => {
     expect(plugin.baseStyles).toContain('position-area: top')
   })
 
-  it('has theme-aware styleSettings', () => {
+  it('does not expose styleSettings (styles are in baseStyles)', () => {
     const plugin = pluginTwohash()
-    expect(plugin.styleSettings).toBeDefined()
-    expect(plugin.styleSettings.popupBackground).toHaveProperty('dark')
-    expect(plugin.styleSettings.popupBackground).toHaveProperty('light')
-    expect(plugin.styleSettings.errorUnderline).toHaveProperty('dark')
-    expect(plugin.styleSettings.errorUnderline).toHaveProperty('light')
+    expect((plugin as any).styleSettings).toBeUndefined()
   })
 
   it('baseStyles includes part kind color classes', () => {

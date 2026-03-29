@@ -576,8 +576,12 @@ public class TwohashProcessor
         // GetMeaningfulNode walks up to ancestor declarations (e.g. MethodDeclarationSyntax)
         // which produces misleading hovers showing the containing method.
         // Allow: predefined type keywords (int, string, void) which have PredefinedTypeSyntax,
-        // and contextual keywords like 'var' which resolve via IdentifierNameSyntax.
-        if (token.IsKeyword() && token.Parent is not PredefinedTypeSyntax)
+        // contextual keywords like 'var' which resolve via IdentifierNameSyntax,
+        // and expression keywords like 'this'/'base' which resolve directly to symbols.
+        if (token.IsKeyword()
+            && token.Parent is not PredefinedTypeSyntax
+            && token.Parent is not ThisExpressionSyntax
+            && token.Parent is not BaseExpressionSyntax)
             return null;
 
         var node = GetMeaningfulNode(token);
@@ -697,11 +701,14 @@ public class TwohashProcessor
 
             var code = diagnostic.Id;
 
-            // Block-level error suppression
-            if (markers.SuppressAllErrors)
-                continue;
-            if (markers.SuppressedErrorCodes.Contains(code))
-                continue;
+            // Block-level error suppression (only for actual errors, not warnings/info)
+            if (diagnostic.Severity == DiagnosticSeverity.Error)
+            {
+                if (markers.SuppressAllErrors)
+                    continue;
+                if (markers.SuppressedErrorCodes.Contains(code))
+                    continue;
+            }
 
             var expected = markers.ErrorExpectations.Any(e =>
                 e.OriginalLine == processedLine && e.Codes.Contains(code));
