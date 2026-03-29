@@ -283,7 +283,6 @@ export function pluginTwohash(options: PluginTwohashOptions = {}) {
   return {
     name: 'twohash',
     baseStyles: buildBaseStyles(),
-    styleSettings,
 
     hooks: {
       async preprocessCode({ codeBlock }: { codeBlock: ExpressiveCodeBlock }) {

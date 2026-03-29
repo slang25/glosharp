@@ -342,4 +342,78 @@ public class MarkerParserTests
 
         await Assert.That(compilationCode).IsEqualTo("var x = 42;");
     }
+
+    // === @suppressErrors directive tests ===
+
+    [Test]
+    public async Task Parse_SuppressErrors_SetsAllFlag()
+    {
+        var source = "// @suppressErrors\nvar x = 42;";
+        var result = MarkerParser.Parse(source);
+
+        await Assert.That(result.SuppressAllErrors).IsTrue();
+        await Assert.That(result.SuppressedErrorCodes.Count).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task Parse_SuppressErrors_WithCodes_ExtractsCodes()
+    {
+        var source = "// @suppressErrors: CS0246, CS0103\nvar x = 42;";
+        var result = MarkerParser.Parse(source);
+
+        await Assert.That(result.SuppressAllErrors).IsFalse();
+        await Assert.That(result.SuppressedErrorCodes.Count).IsEqualTo(2);
+        await Assert.That(result.SuppressedErrorCodes).Contains("CS0246");
+        await Assert.That(result.SuppressedErrorCodes).Contains("CS0103");
+    }
+
+    [Test]
+    public async Task Parse_SuppressErrors_WithSingleCode()
+    {
+        var source = "// @suppressErrors: CS0246\nvar x = 42;";
+        var result = MarkerParser.Parse(source);
+
+        await Assert.That(result.SuppressedErrorCodes.Count).IsEqualTo(1);
+        await Assert.That(result.SuppressedErrorCodes).Contains("CS0246");
+    }
+
+    [Test]
+    public async Task Parse_SuppressErrors_StrippedFromOutput()
+    {
+        var source = "// @suppressErrors: CS0246\nvar x = 42;";
+        var result = MarkerParser.Parse(source);
+
+        await Assert.That(result.ProcessedCode).IsEqualTo("var x = 42;");
+    }
+
+    [Test]
+    public async Task Parse_SuppressErrors_PositionOffsetCorrect()
+    {
+        var source = "// @suppressErrors\nvar x = 42;\n//  ^?";
+        var result = MarkerParser.Parse(source);
+
+        await Assert.That(result.HoverQueries.Count).IsEqualTo(1);
+        await Assert.That(result.HoverQueries[0].OriginalLine).IsEqualTo(0);
+        await Assert.That(result.ProcessedCode).IsEqualTo("var x = 42;");
+    }
+
+    [Test]
+    public async Task Parse_SuppressErrors_CoexistsWithPerLineErrors()
+    {
+        var source = "// @suppressErrors: CS0246\n// @errors: CS1002\nvar x = 42";
+        var result = MarkerParser.Parse(source);
+
+        await Assert.That(result.SuppressedErrorCodes).Contains("CS0246");
+        await Assert.That(result.ErrorExpectations.Count).IsEqualTo(1);
+        await Assert.That(result.ErrorExpectations[0].Codes).Contains("CS1002");
+    }
+
+    [Test]
+    public async Task GetCompilationCode_ExcludesSuppressErrors()
+    {
+        var source = "// @suppressErrors: CS0246\nvar x = 42;";
+        var compilationCode = MarkerParser.GetCompilationCode(source);
+
+        await Assert.That(compilationCode).IsEqualTo("var x = 42;");
+    }
 }

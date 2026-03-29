@@ -60,23 +60,23 @@ The `postprocessRenderedBlock` hook SHALL inject hover popup HTML containers wit
 - **THEN** the rendered HTML contains popup `<div>` elements with `position-anchor` CSS and structured display parts content
 
 ### Requirement: Theme-aware styling via styleSettings
-The plugin SHALL define `styleSettings` for popup colors (background, foreground, border), error colors (underline, message background), warning colors (underline, message background), and info colors (underline, message background) that adapt to EC's light/dark theme switching.
+The plugin SHALL define theme-aware styles for popup colors (background, foreground, border), error colors (underline, message background), warning colors (underline, message background), and info colors (underline, message background) that adapt to EC's light/dark theme switching. These styles SHALL be embedded in `baseStyles` using CSS custom properties. The plugin SHALL NOT return a `styleSettings` property on the plugin object, as `baseStyles` is the sole mechanism for theme-aware styling.
 
 #### Scenario: Dark theme popup styling
 - **WHEN** the EC instance uses a dark theme
-- **THEN** popup elements use the dark theme color variables defined in styleSettings
+- **THEN** popup elements use the dark theme color variables defined in baseStyles
 
 #### Scenario: Light theme popup styling
 - **WHEN** the EC instance uses a light theme
 - **THEN** popup elements use the light theme color variables
 
-#### Scenario: Warning colors in dark theme
-- **WHEN** the EC instance uses a dark theme
-- **THEN** warning underlines use dark-theme amber color and warning messages use dark-theme amber background
+#### Scenario: Plugin object has no styleSettings property
+- **WHEN** `pluginTwohash()` is called
+- **THEN** the returned plugin object does not contain a `styleSettings` property
 
-#### Scenario: Info colors in light theme
-- **WHEN** the EC instance uses a light theme
-- **THEN** info underlines use light-theme blue color and info messages use light-theme blue background
+#### Scenario: Plugin works with EC 0.41 without workaround
+- **WHEN** `pluginTwohash()` is added directly to an expressive-code `plugins` array in EC 0.41+
+- **THEN** the plugin registers without errors and no consumer-side property stripping is needed
 
 ### Requirement: CSS anchor positioning for popups
 Popup elements SHALL use CSS anchor positioning and `:hover` for visibility. No runtime JavaScript SHALL be injected.
