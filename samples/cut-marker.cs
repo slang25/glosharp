@@ -1,6 +1,6 @@
 using System.Text;
 var sb = new StringBuilder();
-// ---cut---
+// @above-hidden
 sb.Append("hello");
 //   ^?
 sb.Append(" world");

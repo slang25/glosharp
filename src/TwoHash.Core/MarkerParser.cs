@@ -57,7 +57,7 @@ public static partial class MarkerParser
     [GeneratedRegex(@"^\s*//\s*@suppressErrors(?::\s*(.+))?\s*$")]
     private static partial Regex SuppressErrorsDirectivePattern();
 
-    [GeneratedRegex(@"^\s*//\s*---cut---\s*$")]
+    [GeneratedRegex(@"^\s*//\s*(@above-hidden|---cut---)\s*$")]
     private static partial Regex CutMarkerPattern();
 
     [GeneratedRegex(@"^\s*//\s*@hide\s*$")]

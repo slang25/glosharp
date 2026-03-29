@@ -17,6 +17,9 @@ public class TwohashProcessorOptions
     public string? CacheDir { get; init; }
     public string? ComplogPath { get; init; }
     public string? ComplogProject { get; init; }
+    public string[]? ImplicitUsings { get; init; }
+    public string? LangVersion { get; init; }
+    public string? Nullable { get; init; }
 }
 
 public class TwohashProcessor
@@ -105,14 +108,57 @@ public class TwohashProcessor
         // 2. Get code for compilation (all code, no markers)
         var compilationCode = MarkerParser.GetCompilationCode(source);
 
-        // 3. Build global usings
-        var globalUsings = string.Join('\n', DefaultGlobalUsings.Select(u => $"global using {u};"));
+        // 3. Build global usings (config replaces defaults when specified)
+        var effectiveUsings = options?.ImplicitUsings ?? DefaultGlobalUsings;
+        var globalUsings = string.Join('\n', effectiveUsings.Select(u => $"global using {u};"));
 
-        // 4. Resolve language version and nullable context from markers
+        // 4. Resolve language version and nullable context (precedence: marker > config > default)
         var resolvedLangVersion = LanguageVersion.Latest;
         var resolvedNullable = NullableContextOptions.Enable;
         var validationErrors = new List<TwohashError>();
 
+        // Apply config-level defaults first
+        if (options?.LangVersion != null)
+        {
+            var mapped = CompilationOptionsMapper.MapLangVersion(options.LangVersion);
+            if (mapped == null)
+            {
+                validationErrors.Add(new TwohashError
+                {
+                    Line = 0, Character = 0, Length = 0,
+                    Code = "TH0001",
+                    Message = $"Invalid language version '{options.LangVersion}'. Valid values: {CompilationOptionsMapper.ValidLangVersions}",
+                    Severity = "error",
+                    Expected = false,
+                });
+            }
+            else
+            {
+                resolvedLangVersion = mapped.Value;
+            }
+        }
+
+        if (options?.Nullable != null)
+        {
+            var mapped = CompilationOptionsMapper.MapNullable(options.Nullable);
+            if (mapped == null)
+            {
+                validationErrors.Add(new TwohashError
+                {
+                    Line = 0, Character = 0, Length = 0,
+                    Code = "TH0002",
+                    Message = $"Invalid nullable context '{options.Nullable}'. Valid values: {CompilationOptionsMapper.ValidNullableValues}",
+                    Severity = "error",
+                    Expected = false,
+                });
+            }
+            else
+            {
+                resolvedNullable = mapped.Value;
+            }
+        }
+
+        // Per-block markers override config
         if (markers.LangVersion != null)
         {
             var mapped = CompilationOptionsMapper.MapLangVersion(markers.LangVersion);
