@@ -23,6 +23,15 @@ public class TwohashConfig
     [JsonPropertyName("complogProject")]
     public string? ComplogProject { get; set; }
 
+    [JsonPropertyName("implicitUsings")]
+    public string[]? ImplicitUsings { get; set; }
+
+    [JsonPropertyName("langVersion")]
+    public string? LangVersion { get; set; }
+
+    [JsonPropertyName("nullable")]
+    public string? Nullable { get; set; }
+
     [JsonPropertyName("render")]
     public TwohashRenderConfig? Render { get; set; }
 }

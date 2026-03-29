@@ -675,4 +675,115 @@ public class TwohashProcessorTests
 
         await Assert.That(result.Code).IsEqualTo("var x = 42;");
     }
+
+    // === Config implicit usings tests ===
+
+    [Test]
+    public async Task Process_ImplicitUsings_ReplacesDefaults()
+    {
+        // Use unqualified StringBuilder — only resolves if System.Text is in implicit usings.
+        // Also verify System.Linq (a default) is NOT available since replace semantics removes it.
+        var source = "// @noErrors\nvar sb = new StringBuilder();\nConsole.WriteLine(sb);";
+        var result = await _processor.ProcessAsync(source, new TwohashProcessorOptions
+        {
+            ImplicitUsings = ["System", "System.Text"],
+        });
+
+        await Assert.That(result.Meta.CompileSucceeded).IsTrue();
+    }
+
+    [Test]
+    public async Task Process_ImplicitUsings_ReplacesDefaults_DefaultsUnavailable()
+    {
+        // System.Linq is in defaults but NOT in custom implicitUsings — Enumerable should not resolve
+        var source = "// @errors: CS0103\nvar items = Enumerable.Range(0, 5);";
+        var result = await _processor.ProcessAsync(source, new TwohashProcessorOptions
+        {
+            ImplicitUsings = ["System"],
+        });
+
+        await Assert.That(result.Errors.Any(e => e.Code == "CS0103")).IsTrue();
+    }
+
+    [Test]
+    public async Task Process_ImplicitUsings_EmptyArray_RemovesAllDefaults()
+    {
+        // With empty implicitUsings, Console (from System) should not be available without explicit using
+        var source = "// @errors: CS0103\nConsole.WriteLine(42);";
+        var result = await _processor.ProcessAsync(source, new TwohashProcessorOptions
+        {
+            ImplicitUsings = [],
+        });
+
+        await Assert.That(result.Errors.Any(e => e.Code == "CS0103")).IsTrue();
+    }
+
+    [Test]
+    public async Task Process_ImplicitUsings_Null_KeepsDefaults()
+    {
+        // With null implicitUsings, defaults should still work
+        var source = "// @noErrors\nvar list = new List<int>();\nConsole.WriteLine(list.Count);";
+        var result = await _processor.ProcessAsync(source, new TwohashProcessorOptions
+        {
+            ImplicitUsings = null,
+        });
+
+        await Assert.That(result.Meta.CompileSucceeded).IsTrue();
+    }
+
+    // === Config langVersion/nullable tests ===
+
+    [Test]
+    public async Task Process_ConfigLangVersion_UsedWhenNoMarker()
+    {
+        // Top-level statements require C# 9+. Setting langVersion to 7 via config should cause compilation failure.
+        var source = "var x = 42;\nConsole.WriteLine(x);";
+        var result = await _processor.ProcessAsync(source, new TwohashProcessorOptions
+        {
+            LangVersion = "7",
+        });
+
+        await Assert.That(result.Meta.CompileSucceeded).IsFalse();
+    }
+
+    [Test]
+    public async Task Process_ConfigNullable_UsedWhenNoMarker()
+    {
+        // With nullable disabled at config level, assigning null to string should not warn
+        var source = "string s = null;\nConsole.WriteLine(s);";
+        var result = await _processor.ProcessAsync(source, new TwohashProcessorOptions
+        {
+            Nullable = "disable",
+        });
+
+        var nullableWarnings = result.Errors.Where(e => e.Code == "CS8600").ToList();
+        await Assert.That(nullableWarnings.Count).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task Process_MarkerOverridesConfigLangVersion()
+    {
+        // Config says langVersion 7, but marker says latest — should compile with latest
+        // Top-level statements require C# 9+, so setting config to 7 would fail, but marker overrides
+        var source = "// @langVersion: latest\n// @noErrors\nvar x = (1, 2, 3);\nConsole.WriteLine(x);";
+        var result = await _processor.ProcessAsync(source, new TwohashProcessorOptions
+        {
+            LangVersion = "7",
+        });
+
+        await Assert.That(result.Meta.CompileSucceeded).IsTrue();
+    }
+
+    [Test]
+    public async Task Process_MarkerOverridesConfigNullable()
+    {
+        // Config says nullable disable, but marker says enable — should produce CS8600
+        var source = "// @nullable: enable\n// @errors: CS8600\nstring s = null;\nConsole.WriteLine(s);";
+        var result = await _processor.ProcessAsync(source, new TwohashProcessorOptions
+        {
+            Nullable = "disable",
+        });
+
+        await Assert.That(result.Errors.Any(e => e.Code == "CS8600")).IsTrue();
+    }
 }

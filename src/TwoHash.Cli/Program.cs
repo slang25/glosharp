@@ -151,6 +151,9 @@ static async Task<int> RunProcess(string[] args)
             CacheDir = cacheDir,
             ComplogPath = complog,
             ComplogProject = complogProject,
+            ImplicitUsings = config?.ImplicitUsings,
+            LangVersion = config?.LangVersion,
+            Nullable = config?.Nullable,
         });
 
         Console.Write(JsonOutput.Serialize(result));
@@ -289,6 +292,9 @@ static async Task<int> RunVerify(string[] args)
                 CacheDir = cacheDir,
                 ComplogPath = complog,
                 ComplogProject = complogProject,
+                ImplicitUsings = config?.ImplicitUsings,
+                LangVersion = config?.LangVersion,
+                Nullable = config?.Nullable,
             });
             if (!result.Meta.CompileSucceeded)
             {
@@ -520,6 +526,9 @@ static async Task<int> RunRender(string[] args)
             CacheDir = cacheDir,
             ComplogPath = complog,
             ComplogProject = complogProject,
+            ImplicitUsings = config?.ImplicitUsings,
+            LangVersion = config?.LangVersion,
+            Nullable = config?.Nullable,
         });
 
         // Classify tokens for syntax highlighting

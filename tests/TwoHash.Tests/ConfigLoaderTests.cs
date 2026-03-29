@@ -335,4 +335,85 @@ public class ConfigLoaderTests
         await Assert.That(config!.Complog).IsEqualTo(
             Path.GetFullPath(Path.Combine(_tempDir, "build.complog")));
     }
+
+    // --- ImplicitUsings, LangVersion, Nullable config tests ---
+
+    [Test]
+    public async Task Parse_ImplicitUsings_ParsesArray()
+    {
+        var json = """{"implicitUsings": ["System.Text", "System.Text.Json"]}""";
+        File.WriteAllText(Path.Combine(_tempDir, "twohash.config.json"), json);
+
+        var config = ConfigLoader.Load(null, _tempDir);
+
+        await Assert.That(config).IsNotNull();
+        await Assert.That(config!.ImplicitUsings).IsNotNull();
+        await Assert.That(config.ImplicitUsings!.Length).IsEqualTo(2);
+        await Assert.That(config.ImplicitUsings[0]).IsEqualTo("System.Text");
+        await Assert.That(config.ImplicitUsings[1]).IsEqualTo("System.Text.Json");
+    }
+
+    [Test]
+    public async Task Parse_ImplicitUsings_EmptyArray()
+    {
+        var json = """{"implicitUsings": []}""";
+        File.WriteAllText(Path.Combine(_tempDir, "twohash.config.json"), json);
+
+        var config = ConfigLoader.Load(null, _tempDir);
+
+        await Assert.That(config).IsNotNull();
+        await Assert.That(config!.ImplicitUsings).IsNotNull();
+        await Assert.That(config.ImplicitUsings!.Length).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task Parse_ImplicitUsings_Absent_IsNull()
+    {
+        var json = """{"framework": "net9.0"}""";
+        File.WriteAllText(Path.Combine(_tempDir, "twohash.config.json"), json);
+
+        var config = ConfigLoader.Load(null, _tempDir);
+
+        await Assert.That(config).IsNotNull();
+        await Assert.That(config!.ImplicitUsings).IsNull();
+    }
+
+    [Test]
+    public async Task Parse_LangVersion_ParsesString()
+    {
+        var json = """{"langVersion": "12"}""";
+        File.WriteAllText(Path.Combine(_tempDir, "twohash.config.json"), json);
+
+        var config = ConfigLoader.Load(null, _tempDir);
+
+        await Assert.That(config).IsNotNull();
+        await Assert.That(config!.LangVersion).IsEqualTo("12");
+    }
+
+    [Test]
+    public async Task Parse_Nullable_ParsesString()
+    {
+        var json = """{"nullable": "disable"}""";
+        File.WriteAllText(Path.Combine(_tempDir, "twohash.config.json"), json);
+
+        var config = ConfigLoader.Load(null, _tempDir);
+
+        await Assert.That(config).IsNotNull();
+        await Assert.That(config!.Nullable).IsEqualTo("disable");
+    }
+
+    [Test]
+    public async Task Parse_AllNewProperties_Together()
+    {
+        var json = """{"implicitUsings": ["System.Text"], "langVersion": "13", "nullable": "enable"}""";
+        File.WriteAllText(Path.Combine(_tempDir, "twohash.config.json"), json);
+
+        var config = ConfigLoader.Load(null, _tempDir);
+
+        await Assert.That(config).IsNotNull();
+        await Assert.That(config!.ImplicitUsings!.Length).IsEqualTo(1);
+        await Assert.That(config.ImplicitUsings[0]).IsEqualTo("System.Text");
+        await Assert.That(config.LangVersion).IsEqualTo("13");
+        await Assert.That(config.Nullable).IsEqualTo("enable");
+    }
 }

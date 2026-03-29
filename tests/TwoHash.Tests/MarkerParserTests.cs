@@ -416,4 +416,56 @@ public class MarkerParserTests
 
         await Assert.That(compilationCode).IsEqualTo("var x = 42;");
     }
+
+    // === @above-hidden directive tests ===
+
+    [Test]
+    public async Task Parse_AboveHidden_HidesCodeBefore()
+    {
+        var source = "var setup = 1;\n// @above-hidden\nvar visible = 2;";
+        var result = MarkerParser.Parse(source);
+
+        await Assert.That(result.ProcessedCode).IsEqualTo("var visible = 2;");
+    }
+
+    [Test]
+    public async Task Parse_AboveHidden_Indented_StillRecognized()
+    {
+        var source = "var setup = 1;\n  // @above-hidden\nvar visible = 2;";
+        var result = MarkerParser.Parse(source);
+
+        await Assert.That(result.ProcessedCode).IsEqualTo("var visible = 2;");
+    }
+
+    [Test]
+    public async Task GetCompilationCode_AboveHidden_IncludesHiddenCode()
+    {
+        var source = "var setup = 1;\n// @above-hidden\nvar visible = 2;";
+        var compilationCode = MarkerParser.GetCompilationCode(source);
+
+        await Assert.That(compilationCode).Contains("var setup = 1;");
+        await Assert.That(compilationCode).Contains("var visible = 2;");
+        await Assert.That(compilationCode).DoesNotContain("@above-hidden");
+    }
+
+    [Test]
+    public async Task Parse_CutMarkerStillWorks_AfterAboveHiddenAdded()
+    {
+        // Verify ---cut--- is still recognized
+        var source = "var setup = 1;\n// ---cut---\nvar visible = 2;";
+        var result = MarkerParser.Parse(source);
+
+        await Assert.That(result.ProcessedCode).IsEqualTo("var visible = 2;");
+    }
+
+    [Test]
+    public async Task Parse_FirstMarkerWins_WhenBothPresent()
+    {
+        var source = "var a = 1;\n// @above-hidden\nvar b = 2;\n// ---cut---\nvar c = 3;";
+        var result = MarkerParser.Parse(source);
+
+        // The first marker (@above-hidden) wins: it hides everything above it.
+        // The later ---cut--- is still stripped as a marker line but doesn't move the cut point.
+        await Assert.That(result.ProcessedCode).IsEqualTo("var b = 2;\nvar c = 3;");
+    }
 }
