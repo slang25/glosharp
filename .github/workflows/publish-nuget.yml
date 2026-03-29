@@ -21,10 +21,10 @@ jobs:
       - name: Get next alpha version
         id: version
         run: |
-          # Query NuGet for the latest published version of TwoHash.Core
+          # Query NuGet for the latest published alpha version of TwoHash.Core
           CURRENT=$(dotnet package search TwoHash.Core --source https://api.nuget.org/v3/index.json --prerelease --exact-match --format json \
-            | jq -r '.searchResult[0].packages[0].latestVersion // empty' 2>/dev/null || echo "")
-          if [ -z "$CURRENT" ] || ! echo "$CURRENT" | grep -q 'alpha'; then
+            | jq -r '[.searchResult[0].packages[] | select(.version | test("alpha"))] | sort_by(.version) | last | .version // empty' 2>/dev/null || echo "")
+          if [ -z "$CURRENT" ]; then
             NEXT="0.1.0-alpha.1"
           else
             BASE=$(echo "$CURRENT" | sed 's/\.[0-9]*$//')
