@@ -572,6 +572,18 @@ public class TwohashProcessor
 
     private static TwohashHover? BuildHoverFromToken(SyntaxToken token, SemanticModel model, int line, bool persistent)
     {
+        // Keywords like case, break, switch, return, if, else have no semantic symbol.
+        // GetMeaningfulNode walks up to ancestor declarations (e.g. MethodDeclarationSyntax)
+        // which produces misleading hovers showing the containing method.
+        // Allow: predefined type keywords (int, string, void) which have PredefinedTypeSyntax,
+        // contextual keywords like 'var' which resolve via IdentifierNameSyntax,
+        // and expression keywords like 'this'/'base' which resolve directly to symbols.
+        if (token.IsKeyword()
+            && token.Parent is not PredefinedTypeSyntax
+            && token.Parent is not ThisExpressionSyntax
+            && token.Parent is not BaseExpressionSyntax)
+            return null;
+
         var node = GetMeaningfulNode(token);
         if (node == null) return null;
 
@@ -652,6 +664,21 @@ public class TwohashProcessor
         MarkerParseResult markers,
         string compilationCode)
     {
+        // Conflict detection: @suppressErrors and @noErrors are mutually exclusive
+        if ((markers.SuppressAllErrors || markers.SuppressedErrorCodes.Count > 0) && markers.NoErrors)
+        {
+            return ([new TwohashError
+            {
+                Line = 0,
+                Character = 0,
+                Length = 1,
+                Code = "TH0003",
+                Message = "@suppressErrors and @noErrors cannot be used together",
+                Severity = "error",
+                Expected = false,
+            }], false);
+        }
+
         var errors = new List<TwohashError>();
         var compilationLines = compilationCode.Split('\n');
 
@@ -673,6 +700,16 @@ public class TwohashProcessor
             if (processedLine < 0) continue;
 
             var code = diagnostic.Id;
+
+            // Block-level error suppression (only for actual errors, not warnings/info)
+            if (diagnostic.Severity == DiagnosticSeverity.Error)
+            {
+                if (markers.SuppressAllErrors)
+                    continue;
+                if (markers.SuppressedErrorCodes.Contains(code))
+                    continue;
+            }
+
             var expected = markers.ErrorExpectations.Any(e =>
                 e.OriginalLine == processedLine && e.Codes.Contains(code));
 

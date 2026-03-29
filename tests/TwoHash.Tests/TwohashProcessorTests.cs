@@ -517,4 +517,162 @@ public class TwohashProcessorTests
         // Should have hover for 'visible' (after cut)
         await Assert.That(result.Hovers.Any(h => h.TargetText == "visible")).IsTrue();
     }
+
+    // === Keyword hover filtering tests ===
+
+    [Test]
+    public async Task Process_KeywordCase_NoHover()
+    {
+        var source = "void M() { switch (1) { case 1: break; } }";
+        var result = await _processor.ProcessAsync(source);
+
+        await Assert.That(result.Hovers.Any(h => h.TargetText == "case")).IsFalse();
+    }
+
+    [Test]
+    public async Task Process_KeywordBreak_NoHover()
+    {
+        var source = "void M() { switch (1) { case 1: break; } }";
+        var result = await _processor.ProcessAsync(source);
+
+        await Assert.That(result.Hovers.Any(h => h.TargetText == "break")).IsFalse();
+    }
+
+    [Test]
+    public async Task Process_KeywordSwitch_NoHover()
+    {
+        var source = "void M() { switch (1) { case 1: break; } }";
+        var result = await _processor.ProcessAsync(source);
+
+        await Assert.That(result.Hovers.Any(h => h.TargetText == "switch")).IsFalse();
+    }
+
+    [Test]
+    public async Task Process_KeywordReturn_NoHover()
+    {
+        var source = "int M() { return 42; }";
+        var result = await _processor.ProcessAsync(source);
+
+        await Assert.That(result.Hovers.Any(h => h.TargetText == "return")).IsFalse();
+    }
+
+    [Test]
+    public async Task Process_KeywordIfElse_NoHover()
+    {
+        var source = "void M() { if (true) { } else { } }";
+        var result = await _processor.ProcessAsync(source);
+
+        await Assert.That(result.Hovers.Any(h => h.TargetText == "if")).IsFalse();
+        await Assert.That(result.Hovers.Any(h => h.TargetText == "else")).IsFalse();
+    }
+
+    [Test]
+    public async Task Process_PredefinedTypeInt_HasHover()
+    {
+        var source = "int x = 42;";
+        var result = await _processor.ProcessAsync(source);
+
+        var intHover = result.Hovers.FirstOrDefault(h => h.TargetText == "int");
+        await Assert.That(intHover).IsNotNull();
+        await Assert.That(intHover!.Text).Contains("int");
+    }
+
+    [Test]
+    public async Task Process_PredefinedTypeVoid_HasHover()
+    {
+        var source = "void M() { }";
+        var result = await _processor.ProcessAsync(source);
+
+        var voidHover = result.Hovers.FirstOrDefault(h => h.TargetText == "void");
+        await Assert.That(voidHover).IsNotNull();
+        await Assert.That(voidHover!.Text).Contains("void");
+    }
+
+    [Test]
+    public async Task Process_PredefinedTypeString_HasHover()
+    {
+        var source = "string s = \"hello\";";
+        var result = await _processor.ProcessAsync(source);
+
+        var stringHover = result.Hovers.FirstOrDefault(h => h.TargetText == "string");
+        await Assert.That(stringHover).IsNotNull();
+        await Assert.That(stringHover!.Text).Contains("string");
+    }
+
+    [Test]
+    public async Task Process_VarKeyword_HasHover()
+    {
+        var source = "var x = 42;";
+        var result = await _processor.ProcessAsync(source);
+
+        var varHover = result.Hovers.FirstOrDefault(h => h.TargetText == "var");
+        await Assert.That(varHover).IsNotNull();
+        await Assert.That(varHover!.Text).Contains("int");
+    }
+
+    // === @suppressErrors end-to-end tests ===
+
+    [Test]
+    public async Task Process_SuppressAllErrors_NoErrorsReported()
+    {
+        var source = "// @suppressErrors\nConsole.WriteLine(undeclared);";
+        var result = await _processor.ProcessAsync(source);
+
+        // Error-severity diagnostics are suppressed; warnings/info may still appear
+        await Assert.That(result.Errors.Any(e => e.Severity == "error")).IsFalse();
+        await Assert.That(result.Meta.CompileSucceeded).IsTrue();
+    }
+
+    [Test]
+    public async Task Process_SuppressAllErrors_HoversStillExtracted()
+    {
+        var source = "// @suppressErrors\nvar x = 42;\nConsole.WriteLine(undeclared);";
+        var result = await _processor.ProcessAsync(source);
+
+        // Hovers should still work for resolvable symbols
+        await Assert.That(result.Hovers.Any(h => h.TargetText == "x")).IsTrue();
+        // Only error-severity diagnostics are suppressed; warnings/info may remain
+        await Assert.That(result.Errors.Any(e => e.Severity == "error")).IsFalse();
+    }
+
+    [Test]
+    public async Task Process_SuppressSpecificCodes_OnlySuppressesMatching()
+    {
+        var source = "// @suppressErrors: CS0103\nConsole.WriteLine(undeclared);";
+        var result = await _processor.ProcessAsync(source);
+
+        // CS0103 should be suppressed
+        await Assert.That(result.Errors.Any(e => e.Code == "CS0103")).IsFalse();
+    }
+
+    [Test]
+    public async Task Process_SuppressSpecificCodes_OtherErrorsRemain()
+    {
+        // CS0246 = missing type, CS0103 = missing name — suppress only CS0246
+        var source = "// @suppressErrors: CS0246\nMissingType x = undeclared;";
+        var result = await _processor.ProcessAsync(source);
+
+        // CS0246 should be suppressed, but CS0103 should remain
+        await Assert.That(result.Errors.Any(e => e.Code == "CS0246")).IsFalse();
+        await Assert.That(result.Errors.Any(e => e.Code == "CS0103")).IsTrue();
+    }
+
+    [Test]
+    public async Task Process_SuppressErrors_ConflictWithNoErrors_ProducesError()
+    {
+        var source = "// @suppressErrors\n// @noErrors\nvar x = 42;";
+        var result = await _processor.ProcessAsync(source);
+
+        await Assert.That(result.Errors.Any(e => e.Code == "TH0003")).IsTrue();
+        await Assert.That(result.Meta.CompileSucceeded).IsFalse();
+    }
+
+    [Test]
+    public async Task Process_SuppressErrors_CodeStrippedFromOutput()
+    {
+        var source = "// @suppressErrors\nvar x = 42;";
+        var result = await _processor.ProcessAsync(source);
+
+        await Assert.That(result.Code).IsEqualTo("var x = 42;");
+    }
 }

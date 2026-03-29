@@ -15,6 +15,8 @@ public class MarkerParseResult
     public required List<CompletionQuery> CompletionQueries { get; init; }
     public required List<ErrorExpectation> ErrorExpectations { get; init; }
     public required bool NoErrors { get; init; }
+    public required bool SuppressAllErrors { get; init; }
+    public required List<string> SuppressedErrorCodes { get; init; }
     public required List<HiddenRange> HiddenRanges { get; init; }
     public required List<HighlightDirective> Highlights { get; init; }
     public required int[] LineMap { get; init; } // processedLine -> originalLine
@@ -30,6 +32,7 @@ public static partial class MarkerParser
     private static readonly Regex CompletionMarkerRegex = CompletionMarkerPattern();
     private static readonly Regex ErrorsDirectiveRegex = ErrorsDirectivePattern();
     private static readonly Regex NoErrorsDirectiveRegex = NoErrorsDirectivePattern();
+    private static readonly Regex SuppressErrorsDirectiveRegex = SuppressErrorsDirectivePattern();
     private static readonly Regex CutMarkerRegex = CutMarkerPattern();
     private static readonly Regex HideDirectiveRegex = HideDirectivePattern();
     private static readonly Regex ShowDirectiveRegex = ShowDirectivePattern();
@@ -50,6 +53,9 @@ public static partial class MarkerParser
 
     [GeneratedRegex(@"^\s*//\s*@noErrors\s*$")]
     private static partial Regex NoErrorsDirectivePattern();
+
+    [GeneratedRegex(@"^\s*//\s*@suppressErrors(?::\s*(.+))?\s*$")]
+    private static partial Regex SuppressErrorsDirectivePattern();
 
     [GeneratedRegex(@"^\s*//\s*---cut---\s*$")]
     private static partial Regex CutMarkerPattern();
@@ -84,6 +90,8 @@ public static partial class MarkerParser
         var hiddenRanges = new List<HiddenRange>();
         var highlights = new List<HighlightDirective>();
         var noErrors = false;
+        var suppressAllErrors = false;
+        var suppressedErrorCodes = new List<string>();
         string? langVersion = null;
         string? nullable = null;
 
@@ -157,6 +165,26 @@ public static partial class MarkerParser
             if (NoErrorsDirectiveRegex.IsMatch(line))
             {
                 noErrors = true;
+                isMarkerLine[i] = true;
+                continue;
+            }
+
+            // @suppressErrors or @suppressErrors: CS0246, CS0103
+            var suppressMatch = SuppressErrorsDirectiveRegex.Match(line);
+            if (suppressMatch.Success)
+            {
+                var codesArg = suppressMatch.Groups[1].Value.Trim();
+                if (string.IsNullOrEmpty(codesArg))
+                {
+                    suppressAllErrors = true;
+                }
+                else
+                {
+                    var codes = codesArg
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                        .ToList();
+                    suppressedErrorCodes.AddRange(codes);
+                }
                 isMarkerLine[i] = true;
                 continue;
             }
@@ -359,6 +387,8 @@ public static partial class MarkerParser
             CompletionQueries = remappedCompletions,
             ErrorExpectations = remappedErrors,
             NoErrors = noErrors,
+            SuppressAllErrors = suppressAllErrors,
+            SuppressedErrorCodes = suppressedErrorCodes,
             HiddenRanges = hiddenRanges,
             Highlights = remappedHighlights,
             LineMap = lineMap.ToArray(),
@@ -382,6 +412,7 @@ public static partial class MarkerParser
                 CompletionMarkerRegex.IsMatch(line) ||
                 ErrorsDirectiveRegex.IsMatch(line) ||
                 NoErrorsDirectiveRegex.IsMatch(line) ||
+                SuppressErrorsDirectiveRegex.IsMatch(line) ||
                 CutMarkerRegex.IsMatch(line) ||
                 HideDirectiveRegex.IsMatch(line) ||
                 ShowDirectiveRegex.IsMatch(line) ||
@@ -437,6 +468,7 @@ public static partial class MarkerParser
                 !CompletionMarkerRegex.IsMatch(line) &&
                 !ErrorsDirectiveRegex.IsMatch(line) &&
                 !NoErrorsDirectiveRegex.IsMatch(line) &&
+                !SuppressErrorsDirectiveRegex.IsMatch(line) &&
                 !CutMarkerRegex.IsMatch(line) &&
                 !HideDirectiveRegex.IsMatch(line) &&
                 !ShowDirectiveRegex.IsMatch(line) &&
