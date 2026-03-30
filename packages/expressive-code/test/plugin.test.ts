@@ -23,6 +23,9 @@ describe('pluginTwohash', () => {
     // not in the base stylesheet — verify core layout rules instead
     expect(plugin.baseStyles).toContain('position: fixed')
     expect(plugin.baseStyles).toContain('position-area: top')
+    expect(plugin.baseStyles).toContain('position-try-fallbacks: flip-block')
+    expect(plugin.baseStyles).toContain('max-height: 40vh')
+    expect(plugin.baseStyles).toContain('overflow-y: auto')
   })
 
   it('does not expose styleSettings (styles are in baseStyles)', () => {
