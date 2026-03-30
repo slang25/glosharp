@@ -104,11 +104,11 @@ function spawnCli(executable: string, args: string[], stdin?: string): Promise<T
     child.stdout.on('data', (data: Buffer) => { stdout += data.toString() })
     child.stderr.on('data', (data: Buffer) => { stderr += data.toString() })
 
-    child.on('error', (err) => {
+    child.on('error', (err: Error) => {
       reject(new Error(`Failed to spawn twohash CLI: ${err.message}`))
     })
 
-    child.on('close', (code) => {
+    child.on('close', (code: number | null) => {
       if (code !== 0) {
         reject(new Error(`twohash CLI exited with code ${code}:\n${stderr}`))
         return

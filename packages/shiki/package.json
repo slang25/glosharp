@@ -28,7 +28,7 @@
   "devDependencies": {
     "@types/node": "^25.3.5",
     "shiki": "^4.0.1",
-    "typescript": "^5.9.3",
+    "typescript": "^6.0.0",
     "vitest": "^4.0.18"
   }
 }
