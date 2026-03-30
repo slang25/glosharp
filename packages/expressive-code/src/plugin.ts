@@ -84,9 +84,12 @@ function buildBaseStyles(): string {
   display: none;
   position: fixed;
   position-area: top;
+  position-try-fallbacks: flip-block;
   margin-bottom: 4px;
   z-index: 100;
   max-width: 500px;
+  max-height: 40vh;
+  overflow-y: auto;
   padding: 8px 12px;
   border: 1px solid var(--twohash-popup-border, ${styleSettings.popupBorder.dark});
   border-radius: 4px;

@@ -25,9 +25,12 @@ pre:hover .twohash-hover:not(:hover):not(.twohash-hover-persistent) {
   display: none;
   position: fixed;
   position-area: top;
+  position-try-fallbacks: flip-block;
   margin-bottom: 4px;
   z-index: 100;
   max-width: 500px;
+  max-height: 40vh;
+  overflow-y: auto;
   padding: 8px 12px;
   border: 1px solid #3c3c3c;
   border-radius: 4px;
