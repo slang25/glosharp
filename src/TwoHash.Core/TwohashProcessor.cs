@@ -44,7 +44,7 @@ public class TwohashProcessor
 
     private static readonly SymbolDisplayFormat DisplayFormat = new(
         globalNamespaceStyle: SymbolDisplayGlobalNamespaceStyle.Omitted,
-        typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameOnly,
+        typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypes,
         genericsOptions: SymbolDisplayGenericsOptions.IncludeTypeParameters,
         memberOptions:
             SymbolDisplayMemberOptions.IncludeType |
