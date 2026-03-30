@@ -676,6 +676,47 @@ public class TwohashProcessorTests
         await Assert.That(result.Code).IsEqualTo("var x = 42;");
     }
 
+    // === Type qualification and local function tests ===
+
+    [Test]
+    public async Task Process_NamespacedGenericType_OmitsNamespace()
+    {
+        var source = """
+            using System.Text.Json;
+            IEnumerable<JsonElement> GetElements() => throw new NotImplementedException();
+            var items = GetElements();
+            //    ^?
+            """;
+        var result = await _processor.ProcessAsync(source);
+
+        var persistent = result.Hovers.First(h => h.Persistent);
+        await Assert.That(persistent.Text).Contains("IEnumerable<JsonElement>");
+        await Assert.That(persistent.Text).DoesNotContain("System.Collections.Generic");
+        await Assert.That(persistent.Text).DoesNotContain("System.Text.Json");
+    }
+
+    [Test]
+    public async Task Process_LocalFunctionInsideLambda_ShowsLocalFunctionSignature()
+    {
+        var source = """
+            using System.Text.Json;
+            var items = new[] { 1, 2, 3 }.SelectMany(x =>
+            {
+                IEnumerable<string> GetNames()
+                //                  ^?
+                {
+                    yield return x.ToString();
+                }
+                return GetNames();
+            });
+            """;
+        var result = await _processor.ProcessAsync(source);
+
+        var persistent = result.Hovers.First(h => h.Persistent);
+        await Assert.That(persistent.Text).Contains("GetNames");
+        await Assert.That(persistent.Text).DoesNotContain("SelectMany");
+    }
+
     // === Config implicit usings tests ===
 
     [Test]
