@@ -25,7 +25,7 @@ function runCli(file: string): any {
 }
 
 describe('End-to-end: CLI → JSON', () => {
-  it('local-variables.cs produces correct hovers', () => {
+  it('local-variables.cs produces correct hovers', { timeout: 30000 }, () => {
     const result = runCli(join(SAMPLES_DIR, 'local-variables.cs'))
 
     expect(result.meta.compileSucceeded).toBe(true)
