@@ -5,6 +5,8 @@ import { codeToHtml } from 'shiki'
 
 const CLI_PROJECT = join(__dirname, '../../src/TwoHash.Cli/TwoHash.Cli.csproj')
 const SAMPLES_DIR = join(__dirname, '../../samples')
+const CLI_TIMEOUT = 30000
+const TEST_TIMEOUT = CLI_TIMEOUT + 15000
 
 beforeAll(() => {
   execFileSync('dotnet', ['build', CLI_PROJECT, '-v', 'q'], {
@@ -16,7 +18,7 @@ beforeAll(() => {
 function runCli(file: string): any {
   const stdout = execFileSync('dotnet', ['run', '--no-build', '--project', CLI_PROJECT, '--', 'process', file], {
     encoding: 'utf-8',
-    timeout: 30000,
+    timeout: CLI_TIMEOUT,
   })
   // Extract JSON in case there's any non-JSON output on stdout
   const jsonStart = stdout.indexOf('{')
@@ -25,7 +27,7 @@ function runCli(file: string): any {
 }
 
 describe('End-to-end: CLI → JSON', () => {
-  it('local-variables.cs produces correct hovers', { timeout: 30000 }, () => {
+  it('local-variables.cs produces correct hovers', { timeout: TEST_TIMEOUT }, () => {
     const result = runCli(join(SAMPLES_DIR, 'local-variables.cs'))
 
     expect(result.meta.compileSucceeded).toBe(true)
