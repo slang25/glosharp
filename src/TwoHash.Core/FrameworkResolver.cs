@@ -50,7 +50,7 @@ public static class FrameworkResolver
         return null;
     }
 
-    public static List<MetadataReference> GetFrameworkReferences(string? targetFramework = null)
+    public static List<MetadataReference> GetFrameworkReferences(string? targetFramework = null, IEnumerable<string>? additionalFrameworks = null)
     {
         var refPath = FindFrameworkRefPath(targetFramework);
         if (refPath == null)
@@ -61,6 +61,27 @@ public static class FrameworkResolver
                 (targetFramework != null ? $"Target framework '{targetFramework}' was not found." : ""));
         }
 
+        var refs = LoadReferencesFromPath(refPath);
+
+        if (additionalFrameworks != null)
+        {
+            var dotnetRoot = FindDotnetRoot();
+            if (dotnetRoot != null)
+            {
+                foreach (var fw in additionalFrameworks)
+                {
+                    var fwPath = FindFrameworkPackRefPath(dotnetRoot, fw, targetFramework);
+                    if (fwPath != null)
+                        refs.AddRange(LoadReferencesFromPath(fwPath));
+                }
+            }
+        }
+
+        return refs;
+    }
+
+    private static List<MetadataReference> LoadReferencesFromPath(string refPath)
+    {
         return Directory.GetFiles(refPath, "*.dll")
             .Select(dll =>
             {
@@ -71,6 +92,45 @@ public static class FrameworkResolver
                 return (MetadataReference)MetadataReference.CreateFromFile(dll, documentation: docProvider);
             })
             .ToList();
+    }
+
+    private static string? FindFrameworkPackRefPath(string dotnetRoot, string packName, string? targetFramework)
+    {
+        var packsDir = Path.Combine(dotnetRoot, "packs", packName);
+        if (!Directory.Exists(packsDir)) return null;
+
+        var versions = Directory.GetDirectories(packsDir)
+            .Select(d => new DirectoryInfo(d))
+            .OrderByDescending(d => d.Name)
+            .ToList();
+
+        if (versions.Count == 0) return null;
+
+        if (targetFramework != null)
+        {
+            var tfmVersion = targetFramework.Replace("net", "");
+            var match = versions.FirstOrDefault(v => v.Name.StartsWith(tfmVersion + "."));
+            if (match != null)
+            {
+                var refDir = Path.Combine(match.FullName, "ref", targetFramework);
+                if (Directory.Exists(refDir)) return refDir;
+            }
+        }
+
+        foreach (var version in versions)
+        {
+            var refDirs = Directory.GetDirectories(Path.Combine(version.FullName, "ref"));
+            if (refDirs.Length > 0)
+            {
+                return refDirs
+                    .Select(d => new DirectoryInfo(d))
+                    .OrderByDescending(d => d.Name)
+                    .First()
+                    .FullName;
+            }
+        }
+
+        return null;
     }
 
     private static string? FindDotnetRoot()

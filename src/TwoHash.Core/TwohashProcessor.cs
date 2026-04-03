@@ -42,6 +42,19 @@ public class TwohashProcessor
         "System.Threading.Tasks",
     ];
 
+    private static readonly string[] WebSdkGlobalUsings =
+    [
+        "System.Net.Http.Json",
+        "Microsoft.AspNetCore.Builder",
+        "Microsoft.AspNetCore.Http",
+        "Microsoft.AspNetCore.Hosting",
+        "Microsoft.AspNetCore.Routing",
+        "Microsoft.Extensions.Configuration",
+        "Microsoft.Extensions.DependencyInjection",
+        "Microsoft.Extensions.Hosting",
+        "Microsoft.Extensions.Logging",
+    ];
+
     private static readonly SymbolDisplayFormat DisplayFormat = new(
         globalNamespaceStyle: SymbolDisplayGlobalNamespaceStyle.Omitted,
         typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypes,
@@ -110,6 +123,12 @@ public class TwohashProcessor
 
         // 3. Build global usings (config replaces defaults when specified)
         var effectiveUsings = options?.ImplicitUsings ?? DefaultGlobalUsings;
+
+        // Add Web SDK implicit usings when #:sdk Microsoft.NET.Sdk.Web is specified
+        var sdkDirective = fileDirectives.GetSdk();
+        if (sdkDirective == "Microsoft.NET.Sdk.Web" && options?.ImplicitUsings == null)
+            effectiveUsings = [..effectiveUsings, ..WebSdkGlobalUsings];
+
         var globalUsings = string.Join('\n', effectiveUsings
             .Where(u => !string.IsNullOrWhiteSpace(u))
             .Select(u => $"global using {u};"));
@@ -297,30 +316,73 @@ public class TwohashProcessor
             projectAssets = ProjectAssetsResolver.Resolve(assetsFilePath, targetFramework);
             resolvedFramework = targetFramework ?? projectAssets.TargetFramework;
         }
-        else if (fileDirectives.HasDirectives && options?.SourceFilePath != null)
+        else if (fileDirectives.HasDirectives)
         {
-            // File-based app mode: use SDK to resolve packages
-            projectAssets = FileBasedAppResolver.ResolveReferences(
-                options.SourceFilePath,
-                targetFramework,
-                options.NoRestore);
-            resolvedFramework = targetFramework ?? projectAssets.TargetFramework;
+            // File-based app mode: use SDK to resolve packages.
+            // If no source file path (stdin mode), write to a temp file so
+            // dotnet build can resolve #:sdk / #:package directives.
+            // Requires .NET 10+ which supports file-based apps.
+            var resolveFilePath = options?.SourceFilePath;
+            string? tempFile = null;
+            if (resolveFilePath == null)
+            {
+                var sdkVersion = FileBasedAppResolver.GetDotnetSdkVersion();
+                if (sdkVersion != null && sdkVersion.Major >= 10)
+                {
+                    tempFile = Path.Combine(Path.GetTempPath(), $"twohash-{Guid.NewGuid():N}.cs");
+                    File.WriteAllText(tempFile, originalSourceWithDirectives);
+                    resolveFilePath = tempFile;
+                }
+            }
 
-            // Override framework from #:property TargetFramework if present
-            var tfmProperty = fileDirectives.GetProperty("TargetFramework");
-            if (tfmProperty != null)
-                resolvedFramework = targetFramework ?? tfmProperty;
+            if (resolveFilePath != null)
+            {
+                try
+                {
+                    projectAssets = FileBasedAppResolver.ResolveReferences(
+                        resolveFilePath,
+                        targetFramework,
+                        options?.NoRestore ?? false);
+                    resolvedFramework = targetFramework ?? projectAssets.TargetFramework;
+
+                    // Override framework from #:property TargetFramework if present
+                    var tfmProperty = fileDirectives.GetProperty("TargetFramework");
+                    if (tfmProperty != null)
+                        resolvedFramework = targetFramework ?? tfmProperty;
+                }
+                catch
+                {
+                    // Build may fail (e.g. unresolvable packages) — fall through
+                    // to framework-only resolution rather than failing entirely
+                }
+                finally
+                {
+                    if (tempFile != null)
+                    {
+                        try { File.Delete(tempFile); } catch { /* best effort */ }
+                    }
+                }
+            }
         }
 
+        // Determine additional framework packs based on SDK directive
+        var sdk = fileDirectives.GetSdk();
+
         // Use compilation context cache for reference resolution
+        // Include SDK in key so web/non-web contexts aren't mixed
         var contextKey = CompilationContextCache.ComputeKey(
             resolvedFramework,
             projectAssets?.Packages,
-            assetsFilePath);
+            assetsFilePath ?? sdk);
+        var additionalFrameworks = sdk switch
+        {
+            "Microsoft.NET.Sdk.Web" => new[] { "Microsoft.AspNetCore.App.Ref" },
+            _ => null
+        };
 
         var references = _contextCache.GetOrAdd(contextKey, () =>
         {
-            var refs = FrameworkResolver.GetFrameworkReferences(resolvedFramework);
+            var refs = FrameworkResolver.GetFrameworkReferences(resolvedFramework, additionalFrameworks);
             if (projectAssets != null)
             {
                 refs.AddRange(projectAssets.References);
@@ -583,6 +645,7 @@ public class TwohashProcessor
                 token.IsKind(SyntaxKind.CommaToken) ||
                 token.IsKind(SyntaxKind.DotToken) ||
                 token.IsKind(SyntaxKind.EqualsToken) ||
+                token.IsKind(SyntaxKind.EqualsGreaterThanToken) ||
                 token.IsKind(SyntaxKind.EndOfFileToken) ||
                 token.IsKind(SyntaxKind.StringLiteralToken) ||
                 token.IsKind(SyntaxKind.Utf8StringLiteralToken) ||
@@ -648,6 +711,18 @@ public class TwohashProcessor
         }
 
         if (symbol == null) return null;
+
+        // Filter out the synthetic top-level-statements entry point method —
+        // it's an implementation detail, not meaningful type info.
+        // Roslyn names this "<Main>$" internally but displays it as "<top-level-statements-entry-point>"
+        if (symbol is IMethodSymbol { Name: "<Main>$" })
+            return null;
+
+        // Filter out symbols with error types — when types can't be resolved
+        // (e.g. missing SDK references), showing a dashed underline with no
+        // useful info is misleading
+        if (HasErrorType(symbol))
+            return null;
 
         var parts = symbol.ToDisplayParts(DisplayFormat);
         var prefix = GetSymbolPrefix(symbol);
@@ -903,6 +978,18 @@ public class TwohashProcessor
 
         return token.Parent;
     }
+
+    private static bool HasErrorType(ISymbol symbol) => symbol switch
+    {
+        ILocalSymbol { Type.TypeKind: TypeKind.Error } => true,
+        IParameterSymbol { Type.TypeKind: TypeKind.Error } => true,
+        IFieldSymbol { Type.TypeKind: TypeKind.Error } => true,
+        IPropertySymbol { Type.TypeKind: TypeKind.Error } => true,
+        IMethodSymbol { ReturnType.TypeKind: TypeKind.Error } => true,
+        IMethodSymbol { ContainingType.TypeKind: TypeKind.Error } => true,
+        ITypeSymbol { TypeKind: TypeKind.Error } => true,
+        _ => false,
+    };
 
     private static string? GetSymbolPrefix(ISymbol symbol) => symbol switch
     {
