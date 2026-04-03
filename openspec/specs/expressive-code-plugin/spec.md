@@ -37,11 +37,11 @@ The `annotateCode` hook SHALL create `TwohashErrorAnnotation` instances for erro
 - **THEN** underline annotations are created for lines 2, 3, and 4, and the error message annotation is placed on line 4
 
 ### Requirement: Inject popup HTML in postprocessRenderedBlock
-The `postprocessRenderedBlock` hook SHALL inject hover popup HTML containers with CSS anchor positioning into the rendered output. Popup content SHALL include structured doc sections when available: summary text, a parameter list, return description, remarks, examples, and exception list. Each section SHALL be rendered in a distinct styled container.
+The `postprocessRenderedBlock` hook SHALL inject hover popup HTML containers into the rendered output. Popup content SHALL include structured doc sections when available: summary text, a parameter list, return description, remarks, examples, and exception list. Each section SHALL be rendered in a distinct styled container.
 
 #### Scenario: Popup with summary only
 - **WHEN** a hover has `docs` with only `summary` populated
-- **THEN** the popup renders the summary in a `.twohash-popup-docs` div, visually identical to the current behavior
+- **THEN** the popup renders the summary in a `.twohash-popup-docs` div
 
 #### Scenario: Popup with params and returns
 - **WHEN** a hover has `docs` with `summary`, `params`, and `returns`
@@ -57,18 +57,40 @@ The `postprocessRenderedBlock` hook SHALL inject hover popup HTML containers wit
 
 #### Scenario: Popup container injected
 - **WHEN** rendering completes for a code block with hover annotations
-- **THEN** the rendered HTML contains popup `<div>` elements with `position-anchor` CSS and structured display parts content
+- **THEN** the rendered HTML contains popup `<div>` elements with absolute positioning and structured display parts content
 
-### Requirement: Theme-aware styling via styleSettings
-The plugin SHALL define theme-aware styles for popup colors (background, foreground, border), error colors (underline, message background), warning colors (underline, message background), and info colors (underline, message background) that adapt to EC's light/dark theme switching. These styles SHALL be embedded in `baseStyles` using CSS custom properties. The plugin SHALL NOT return a `styleSettings` property on the plugin object, as `baseStyles` is the sole mechanism for theme-aware styling.
+### Requirement: JavaScript-driven popup visibility
+The plugin SHALL inject a JavaScript module via `jsModules` to manage hover popup visibility. The JS module SHALL handle showing/hiding popups on mouseenter/mouseleave, reparenting popup containers to the EC root element for correct absolute positioning, and re-triggering fade-in animations. The module SHALL support Astro view transitions by re-initializing on `astro:after-swap` events and use MutationObserver to handle dynamically loaded content.
+
+#### Scenario: Popup visibility on hover
+- **WHEN** a user hovers over a token with hover data
+- **THEN** the JS module shows the popup container and positions it relative to the EC root
+
+#### Scenario: Popup hidden on mouse leave
+- **WHEN** the mouse leaves the hover token
+- **THEN** the JS module hides the popup container
+
+#### Scenario: Astro view transition support
+- **WHEN** Astro performs a view transition (page swap)
+- **THEN** the JS module re-initializes popup event listeners on the new DOM
+
+### Requirement: SVG sprite sheet for symbol icons
+The plugin SHALL build an SVG sprite sheet containing `<symbol>` elements for each symbol kind icon (Method, Property, Field, Local, Class, Struct, Interface, Enum, Namespace, Event, Delegate, Type, Constant, EnumMember, Keyword, Operator). The sprite sheet SHALL be injected into the page DOM once via the JS module. Individual icon references SHALL use `<svg><use href="#twohash-icon-{kind}"></svg>` elements to avoid repeating SVG path data.
+
+#### Scenario: Sprite sheet injected once
+- **WHEN** multiple code blocks with hover icons are rendered on a page
+- **THEN** the sprite sheet `<svg>` with `<symbol>` definitions is injected into `document.body` exactly once (guarded by `#twohash-sprites` ID check)
+
+#### Scenario: Symbol icon uses sprite reference
+- **WHEN** a hover popup displays a symbol kind icon (e.g., Method)
+- **THEN** the icon renders as `<use href="#twohash-icon-Method">` referencing the sprite sheet
+
+### Requirement: Theme-aware styling via baseStyles
+The plugin SHALL define theme-aware styles for popup colors (background, foreground, border), error colors (underline, message background), warning colors (underline, message background), info colors (underline, message background), highlight, focus, and diff colors. These styles SHALL be embedded in `baseStyles` using CSS custom properties with dark theme defaults as fallback values. Light theme colors SHALL be applied via `[data-theme="light"]` selectors where supported. The plugin SHALL NOT return a `styleSettings` property on the plugin object.
 
 #### Scenario: Dark theme popup styling
 - **WHEN** the EC instance uses a dark theme
-- **THEN** popup elements use the dark theme color variables defined in baseStyles
-
-#### Scenario: Light theme popup styling
-- **WHEN** the EC instance uses a light theme
-- **THEN** popup elements use the light theme color variables
+- **THEN** popup elements use the dark theme color defaults defined in CSS custom property fallbacks
 
 #### Scenario: Plugin object has no styleSettings property
 - **WHEN** `pluginTwohash()` is called
@@ -78,12 +100,31 @@ The plugin SHALL define theme-aware styles for popup colors (background, foregro
 - **WHEN** `pluginTwohash()` is added directly to an expressive-code `plugins` array in EC 0.41+
 - **THEN** the plugin registers without errors and no consumer-side property stripping is needed
 
-### Requirement: CSS anchor positioning for popups
-Popup elements SHALL use CSS anchor positioning and `:hover` for visibility. No runtime JavaScript SHALL be injected.
+### Requirement: Hover token interaction styles
+Hoverable tokens SHALL have a transparent dashed bottom border by default. When the EC container (`.expressive-code`) is hovered, all hoverable tokens within SHALL show a subtle dashed underline via `color-mix(in srgb, currentColor 40%, transparent)`. When a specific token is directly hovered, it SHALL display a solid underline, a subtle purple background (`rgba(139, 92, 246, 0.08)`), and `border-radius: 2px`. The border-radius SHALL only apply on direct hover, not in the resting state.
 
-#### Scenario: Zero JS output
-- **WHEN** a page with twohash-enhanced code blocks is rendered
-- **THEN** no `<script>` tags are added by the plugin and popups work via CSS only
+#### Scenario: Token resting state
+- **WHEN** a code block is rendered with auto-hover data
+- **THEN** hoverable tokens appear as normal code with no visible decoration
+
+#### Scenario: Container hover reveals underlines
+- **WHEN** the user hovers anywhere over the code block
+- **THEN** all hoverable tokens show a subtle dashed underline
+
+#### Scenario: Direct token hover highlights
+- **WHEN** the user hovers directly over a specific token
+- **THEN** that token shows a solid underline, purple background tint, and rounded corners
+
+### Requirement: Popup fade-in animation
+Popups SHALL use a CSS `@keyframes` animation (`twohashPopupFadeIn`) that fades in from `opacity: 0` with a slight upward translation (`translateY(-4px)`). The animation SHALL be re-triggered by the JS module each time a popup is shown. A `prefers-reduced-motion: reduce` media query SHALL disable transitions on hover elements.
+
+#### Scenario: Popup animation on show
+- **WHEN** a hover popup becomes visible
+- **THEN** it fades in with a subtle upward slide over 0.12s
+
+#### Scenario: Reduced motion preference
+- **WHEN** the user has `prefers-reduced-motion: reduce` enabled
+- **THEN** hover transitions are disabled
 
 ### Requirement: Process all C# code blocks
 The plugin SHALL invoke twohash processing on ALL C# code blocks, regardless of whether they contain `^?`, `@errors`, or other twohash markers. Non-C# code blocks SHALL continue to be skipped.
@@ -97,7 +138,7 @@ The plugin SHALL invoke twohash processing on ALL C# code blocks, regardless of 
 - **THEN** the plugin does not invoke twohash processing
 
 ### Requirement: Render default hovers as mouse-over popups
-For hovers with `persistent: false`, the plugin SHALL render a `<span class="twohash-hover">` wrapper around the token. The popup SHALL only be visible on `:hover` interaction. The token SHALL NOT have any visible underline or decoration in its default state — it should appear as normal code until hovered.
+For hovers with `persistent: false`, the plugin SHALL render a `<span class="twohash-hover">` wrapper around the token. The popup SHALL only be visible on hover interaction (controlled by JS). The token SHALL NOT have any visible underline or decoration in its default state — it should appear as normal code until hovered.
 
 #### Scenario: Default hover invisible until interaction
 - **WHEN** a code block is rendered with auto-hover data for token `x`
@@ -105,22 +146,18 @@ For hovers with `persistent: false`, the plugin SHALL render a `<span class="two
 
 #### Scenario: Default hover popup content
 - **WHEN** a user hovers over a token with auto-hover data
-- **THEN** the popup displays the same structured content as today (type signature, display parts, docs)
+- **THEN** the popup displays the same structured content (type signature, display parts, docs)
 
-### Requirement: Render persistent hovers as always-visible popups
-For hovers with `persistent: true` (from `^?` markers), the plugin SHALL render a `<span class="twohash-hover twohash-hover-persistent">` wrapper. The popup SHALL be always visible without requiring mouse interaction. The token SHALL have a visible underline decoration to indicate the pinned annotation.
+### Requirement: Render persistent hovers as always-visible static annotations
+For hovers with `persistent: true` (from `^?` markers), the plugin SHALL use a separate annotation class (`TwohashStaticAnnotation`) that renders as a `<div class="twohash-noline">` wrapping the line, with a `<div class="twohash-static">` child containing a `<div class="twohash-static-container">`. The popup SHALL be always visible without requiring mouse interaction. No arrow caret SHALL be displayed on static containers.
 
 #### Scenario: Persistent hover always visible
 - **WHEN** a code block contains a `^?` marker targeting token `x`
-- **THEN** the hover popup for `x` is rendered in an always-visible state (no `:hover` gate)
+- **THEN** the hover popup for `x` is rendered in an always-visible state below the code line
 
-#### Scenario: Persistent hover token styling
-- **WHEN** a code block renders a persistent hover
-- **THEN** the targeted token has a visible underline decoration distinguishing it from default-hover tokens
-
-#### Scenario: Persistent hover CSS class
+#### Scenario: Persistent hover DOM structure
 - **WHEN** a persistent hover annotation renders
-- **THEN** the wrapper element has both `twohash-hover` and `twohash-hover-persistent` CSS classes
+- **THEN** the line is wrapped in `<div class="twohash-noline">` containing `<div class="twohash-static">` with `<div class="twohash-static-container">`
 
 ### Requirement: Pass-through for non-twohash code blocks
 The plugin SHALL not modify code blocks that are not C# language blocks. C# code blocks SHALL always be processed for auto-hover extraction regardless of marker presence.
@@ -133,8 +170,8 @@ The plugin SHALL not modify code blocks that are not C# language blocks. C# code
 - **WHEN** a C# code block without `^?`, `@errors`, or other twohash markers enters the pipeline
 - **THEN** the plugin invokes twohash processing and adds auto-hover annotations for all semantically meaningful tokens
 
-### Requirement: Pass project option to bridge
-The `pluginTwohash()` factory SHALL accept a `project` option and pass it through to the twohash bridge when processing code blocks.
+### Requirement: Pass project and region options to bridge
+The `pluginTwohash()` factory SHALL accept `project` and `region` options and pass them through to the twohash bridge when processing code blocks.
 
 #### Scenario: Plugin with project context
 - **WHEN** `pluginTwohash({ project: './MyProject.csproj' })` is configured
@@ -143,6 +180,10 @@ The `pluginTwohash()` factory SHALL accept a `project` option and pass it throug
 #### Scenario: Plugin without project
 - **WHEN** `pluginTwohash()` is configured without a `project` option
 - **THEN** CLI invocations use standalone mode (framework refs only)
+
+#### Scenario: Plugin with region
+- **WHEN** `pluginTwohash({ region: 'example' })` is configured
+- **THEN** all twohash CLI invocations include the `--region` argument
 
 ### Requirement: Add completion annotations in annotateCode hook
 The `annotateCode` hook SHALL create `TwohashCompletionAnnotation` instances for each completion result, rendering a completion list dropdown below the queried line.
@@ -161,13 +202,6 @@ The marker detection logic SHALL recognize `^|` markers in addition to `^?` mark
 #### Scenario: Block with only completion markers
 - **WHEN** a C# code block contains `^|` markers but no `^?` markers
 - **THEN** the plugin invokes twohash processing on the block
-
-### Requirement: Theme-aware completion list styling
-The completion list SHALL use `styleSettings` for colors that adapt to the EC theme, consistent with the existing popup styling.
-
-#### Scenario: Completion list in dark theme
-- **WHEN** the EC instance uses a dark theme
-- **THEN** the completion list uses dark theme background and foreground colors from styleSettings
 
 ### Requirement: Theme-aware styling for doc sections
 The plugin SHALL define CSS classes for each doc section (`.twohash-popup-params`, `.twohash-popup-returns`, `.twohash-popup-remarks`, `.twohash-popup-example`, `.twohash-popup-exceptions`) with styles consistent with the existing popup design. Parameter names SHALL be visually distinct (e.g., monospace or bold).
@@ -225,15 +259,11 @@ The `annotateCode` hook SHALL create `TwohashDiffAnnotation` instances for diff 
 - **THEN** line 4 is rendered with a red-tinted background color
 
 ### Requirement: Theme-aware styling for highlight, focus, and diff
-The plugin SHALL define `styleSettings` for highlight background, focus dimmed opacity, diff add background, and diff remove background colors that adapt to EC's light/dark theme switching.
+The plugin SHALL define CSS custom properties for highlight background, focus dimmed opacity, diff add background, and diff remove background colors with dark theme defaults as fallback values.
 
 #### Scenario: Highlight in dark theme
 - **WHEN** the EC instance uses a dark theme
 - **THEN** highlighted lines use a dark-appropriate background color
-
-#### Scenario: Diff colors in light theme
-- **WHEN** the EC instance uses a light theme
-- **THEN** diff add lines use a light green background and diff remove lines use a light red background
 
 ### Requirement: Render clickable error codes in error messages
 The `postprocessRenderedBlock` hook SHALL render error codes matching `CS\d+` as `<a>` elements linking to `https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/{code}`. Links SHALL open in a new tab with `rel="noopener"`. Non-CS codes SHALL remain plain text.
