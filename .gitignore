@@ -37,5 +37,11 @@ examples/standalone/output.html
 tests/e2e/smoke-test.html
 TestResults/
 
+# Astro
+.astro/
+
+# Playwright
+.playwright-cli/
+
 # Context
 .context/

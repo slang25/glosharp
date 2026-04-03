@@ -8,6 +8,7 @@
     "examples/docusaurus-docs",
     "examples/expressive-code",
     "examples/standalone",
-    "tests/e2e"
+    "tests/e2e",
+    "website"
   ]
 }
