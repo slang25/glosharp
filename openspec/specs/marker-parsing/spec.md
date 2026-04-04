@@ -62,6 +62,10 @@ The system SHALL remove all marker lines (`^?` comments, `^|` comments, `@errors
 - **WHEN** source contains `// @langVersion: 12` and `// @nullable: disable` alongside code
 - **THEN** both marker lines are removed from the processed output code
 
+#### Scenario: LangVersion and nullable values normalized
+- **WHEN** source contains `// @langVersion: Preview` or `// @nullable: Disable`
+- **THEN** the parsed values are lowercased to `"preview"` and `"disable"` respectively
+
 ### Requirement: Build position offset map
 The system SHALL maintain a mapping from processed-code line numbers to original-code line numbers after removing marker lines. All output positions (hovers, errors) SHALL reference the processed code.
 

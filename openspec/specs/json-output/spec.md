@@ -16,7 +16,7 @@ The system SHALL output JSON with the following top-level fields: `code` (proces
 - **THEN** the `completions` array is `[]`
 
 ### Requirement: Hover objects in JSON
-Each hover entry SHALL contain: `line` (number), `character` (number), `length` (number), `text` (string), `parts` (array of `{kind, text}`), `docs` (structured `GloSharpDocComment` object or null), `symbolKind` (string), and `targetText` (string). The `docs` object, when present, SHALL contain: `summary` (string or null), `params` (array of `{name, text}`), `returns` (string or null), `remarks` (string or null), `examples` (array of strings), and `exceptions` (array of `{type, text}`). Empty arrays and null fields within `docs` SHALL be omitted from JSON output.
+Each hover entry SHALL contain: `line` (number), `character` (number), `length` (number), `text` (string), `parts` (array of `{kind, text}`), `docs` (structured `GloSharpDocComment` object or null), `symbolKind` (string), and `targetText` (string). The `persistent` field SHALL be omitted from JSON output when `false` (via `JsonIgnore WhenWritingDefault`). The `docs` object, when present, SHALL contain: `summary` (string or null), `params` (array of `{name, text}`), `returns` (string or null), `remarks` (string or null), `examples` (array of strings), and `exceptions` (array of `{type, text}`). Empty arrays within `docs` (e.g., `params`, `examples`, `exceptions`) MAY be present in JSON output as `[]`.
 
 #### Scenario: Hover JSON with full docs
 - **WHEN** a hover query resolves to a method with summary, params, and returns documentation

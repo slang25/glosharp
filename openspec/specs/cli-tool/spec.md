@@ -32,16 +32,16 @@ The CLI SHALL write only valid JSON to stdout. Diagnostic messages, progress, an
 - **WHEN** the CLI processes a file successfully
 - **THEN** stdout contains only the JSON output, and any warnings go to stderr
 
-### Requirement: Exit code reflects compilation status
-The CLI SHALL exit with code 0 when processing succeeds (all errors are expected or `@noErrors` passes). The CLI SHALL exit with non-zero code when unexpected compilation errors occur.
+### Requirement: Exit code reflects processing status
+The CLI SHALL exit with code 0 when processing completes and JSON output is produced successfully. Compilation success or failure is communicated via the `meta.compileSucceeded` field in the JSON output, not via the exit code. The CLI SHALL exit with non-zero code only when processing fails entirely (e.g., file not found, invalid arguments, restore failure).
 
 #### Scenario: Exit 0 on success
 - **WHEN** source compiles cleanly or all errors are declared via `// @errors:`
 - **THEN** the CLI exits with code 0
 
-#### Scenario: Non-zero exit on unexpected error
+#### Scenario: Exit 0 with unexpected compilation errors
 - **WHEN** source has compilation errors not declared via `// @errors:`
-- **THEN** the CLI exits with non-zero code and writes error details to stderr
+- **THEN** the CLI exits with code 0 and `meta.compileSucceeded` is `false` in the JSON output
 
 ### Requirement: Installable as dotnet tool
 The CLI SHALL be packable and installable as a .NET global or local tool via `dotnet tool install`.
@@ -250,15 +250,15 @@ The CLI SHALL accept an `--output` option on the `render` command specifying a f
 - **THEN** the HTML is written to stdout
 
 ### Requirement: Render command exit codes
-The `render` command SHALL follow the same exit code conventions as `process`: exit 0 on success, non-zero on unexpected compilation errors.
+The `render` command SHALL follow the same exit code conventions as `process`: exit 0 when rendering completes and HTML output is produced, regardless of compilation status.
 
 #### Scenario: Successful render exits 0
 - **WHEN** source compiles cleanly
 - **THEN** the CLI exits with code 0
 
-#### Scenario: Compilation error exits non-zero
+#### Scenario: Render with compilation errors exits 0
 - **WHEN** source has unexpected compilation errors
-- **THEN** the CLI exits with non-zero code (HTML with error annotations is still written to stdout)
+- **THEN** the CLI exits with code 0 (HTML with error annotations is still written to stdout)
 
 ### Requirement: Render command diagnostic output to stderr
 The `render` command SHALL write only HTML to stdout. Progress messages, warnings, and errors SHALL go to stderr.

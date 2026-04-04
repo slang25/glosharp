@@ -69,8 +69,19 @@ Project paths (`project`, `cacheDir`) in the config file SHALL be resolved relat
 - **WHEN** config contains `{"project": "/absolute/path/Project.csproj"}`
 - **THEN** the path is used as-is
 
+### Requirement: Tolerant JSON parsing
+The config file parser SHALL allow JSON comments (`// ...`) and trailing commas in `twohash.config.json`. Property names SHALL be matched case-insensitively.
+
+#### Scenario: Config with comments
+- **WHEN** `twohash.config.json` contains `{ /* framework */ "framework": "net9.0" }`
+- **THEN** the comment is ignored and `framework` is parsed correctly
+
+#### Scenario: Config with trailing comma
+- **WHEN** `twohash.config.json` contains `{ "framework": "net9.0", }`
+- **THEN** the trailing comma is tolerated and `framework` is parsed correctly
+
 ### Requirement: Invalid config file produces error
-The system SHALL exit with non-zero code and write an error to stderr when a config file exists but contains invalid JSON.
+The system SHALL exit with non-zero code and write an error to stderr when a config file exists but contains invalid JSON (beyond tolerated comments and trailing commas).
 
 #### Scenario: Malformed JSON
 - **WHEN** `glosharp.config.json` contains `{invalid json`
