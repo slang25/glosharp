@@ -10,8 +10,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <PackAsTool>true</PackAsTool>
-    <ToolCommandName>glosharp</ToolCommandName>
-    <PackageId>glosharp</PackageId>
+    <ToolCommandName>glosharp-cli</ToolCommandName>
+    <PackageId>GloSharp.Cli</PackageId>
     <Version>0.1.0</Version>
     <Description>C# twoslash — compiler-driven type information for documentation</Description>
   </PropertyGroup>

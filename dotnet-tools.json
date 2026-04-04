@@ -2,10 +2,10 @@
   "version": 1,
   "isRoot": true,
   "tools": {
-    "glosharp": {
+    "glosharp.cli": {
       "version": "0.1.0",
       "commands": [
-        "glosharp"
+        "glosharp-cli"
       ],
       "rollForward": false
     }
