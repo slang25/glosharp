@@ -1,6 +1,6 @@
 # How twoslash works
 
-Twoslash is a markup system that bridges the TypeScript compiler's type information with syntax-highlighted code rendering. It's the model twohash aims to replicate for C#.
+Twoslash is a markup system that bridges the TypeScript compiler's type information with syntax-highlighted code rendering. It's the model glosharp aims to replicate for C#.
 
 ## Core concept
 
@@ -353,7 +353,7 @@ Hover result: { line: 0, character: 6, text: "const x: 42" }
 // line 0 refers to the *cleaned* code
 ```
 
-## Lessons for twohash
+## Lessons for glosharp
 
 1. **The marker syntax works** — `^?` and `^|` are intuitive and familiar. Reuse them.
 2. **Position mapping is critical** — must track how removed lines shift positions.

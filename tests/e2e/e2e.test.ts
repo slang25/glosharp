@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process'
 import { join } from 'node:path'
 import { codeToHtml } from 'shiki'
 
-const CLI_PROJECT = join(__dirname, '../../src/TwoHash.Cli/TwoHash.Cli.csproj')
+const CLI_PROJECT = join(__dirname, '../../src/GloSharp.Cli/GloSharp.Cli.csproj')
 const SAMPLES_DIR = join(__dirname, '../../samples')
 const CLI_TIMEOUT = 30000
 const TEST_TIMEOUT = CLI_TIMEOUT + 15000
@@ -82,7 +82,7 @@ describe('End-to-end: CLI → JSON → Shiki → HTML', () => {
       lang: 'csharp',
       theme: 'github-dark',
       transformers: [{
-        name: 'twohash-inject',
+        name: 'glosharp-inject',
         root(hast: any) {
           // Manually inject the popups to verify the pipeline
           const lines = findLines(hast)
@@ -97,9 +97,9 @@ describe('End-to-end: CLI → JSON → Shiki → HTML', () => {
       }],
     })
 
-    expect(html).toContain('twohash-hover')
-    expect(html).toContain('twohash-popup')
-    expect(html).toContain('twohash-keyword')
+    expect(html).toContain('glosharp-hover')
+    expect(html).toContain('glosharp-popup')
+    expect(html).toContain('glosharp-keyword')
     expect(html).toContain('anchor-name')
   })
 })
@@ -123,19 +123,19 @@ function injectPopup(line: any, hover: any, anchor: string) {
     if (text.includes(hover.targetText)) {
       const partNodes = hover.parts.map((p: any) => ({
         type: 'element', tagName: 'span',
-        properties: { class: `twohash-${p.kind}` },
+        properties: { class: `glosharp-${p.kind}` },
         children: [{ type: 'text', value: p.text }],
       }))
       line.children.splice(i, 1,
         {
           type: 'element', tagName: 'span',
-          properties: { class: 'twohash-hover', style: `anchor-name: ${anchor}` },
+          properties: { class: 'glosharp-hover', style: `anchor-name: ${anchor}` },
           children: [line.children[i]],
         },
         {
           type: 'element', tagName: 'div',
-          properties: { class: 'twohash-popup', style: `position-anchor: ${anchor}` },
-          children: [{ type: 'element', tagName: 'code', properties: { class: 'twohash-popup-code' }, children: partNodes }],
+          properties: { class: 'glosharp-popup', style: `position-anchor: ${anchor}` },
+          children: [{ type: 'element', tagName: 'code', properties: { class: 'glosharp-popup-code' }, children: partNodes }],
         },
       )
       return

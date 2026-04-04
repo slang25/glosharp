@@ -4,7 +4,7 @@
 The system SHALL cache resolved `MetadataReference[]` arrays in memory, keyed by compilation context (target framework, sorted package list, project assets path). Subsequent calls with the same compilation context within the same process SHALL reuse the cached references.
 
 #### Scenario: Second file reuses references in verify
-- **WHEN** `twohash verify samples/` processes file A then file B, both using the same `--project` and `--framework`
+- **WHEN** `glosharp verify samples/` processes file A then file B, both using the same `--project` and `--framework`
 - **THEN** reference resolution (FrameworkResolver, ProjectAssetsResolver) runs only for file A; file B reuses the cached MetadataReference array
 
 #### Scenario: Different frameworks get separate caches
@@ -12,10 +12,10 @@ The system SHALL cache resolved `MetadataReference[]` arrays in memory, keyed by
 - **THEN** each framework resolves independently and both are cached separately
 
 ### Requirement: Compilation context cache is always active
-The in-process compilation context cache SHALL be active whenever `TwohashProcessor` is used. No flag is required to enable it.
+The in-process compilation context cache SHALL be active whenever `GloSharpProcessor` is used. No flag is required to enable it.
 
 #### Scenario: Single process call benefits from cache
-- **WHEN** `TwohashProcessor` is instantiated and used to process multiple snippets
+- **WHEN** `GloSharpProcessor` is instantiated and used to process multiple snippets
 - **THEN** the compilation context cache is available without any explicit configuration
 
 ### Requirement: Compilation context key includes project assets content

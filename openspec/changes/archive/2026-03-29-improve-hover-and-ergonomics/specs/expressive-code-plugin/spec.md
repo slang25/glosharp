@@ -12,9 +12,9 @@ The plugin SHALL define theme-aware styles for popup colors (background, foregro
 - **THEN** popup elements use the light theme color variables
 
 #### Scenario: Plugin object has no styleSettings property
-- **WHEN** `pluginTwohash()` is called
+- **WHEN** `pluginGloSharp()` is called
 - **THEN** the returned plugin object does not contain a `styleSettings` property
 
 #### Scenario: Plugin works with EC 0.41 without workaround
-- **WHEN** `pluginTwohash()` is added directly to an expressive-code `plugins` array in EC 0.41+
+- **WHEN** `pluginGloSharp()` is added directly to an expressive-code `plugins` array in EC 0.41+
 - **THEN** the plugin registers without errors and no consumer-side property stripping is needed

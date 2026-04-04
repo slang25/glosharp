@@ -1,6 +1,6 @@
 # Roslyn APIs for symbol metadata extraction
 
-This is the core technical research for twohash. Roslyn is the C# compiler platform, and it provides the APIs we need to extract type information, hover text, and diagnostics from C# code.
+This is the core technical research for glosharp. Roslyn is the C# compiler platform, and it provides the APIs we need to extract type information, hover text, and diagnostics from C# code.
 
 ## Required NuGet packages
 
@@ -14,7 +14,7 @@ This is the core technical research for twohash. Roslyn is the C# compiler platf
 
 ## The compilation pipeline
 
-Roslyn's architecture mirrors what twohash needs:
+Roslyn's architecture mirrors what glosharp needs:
 
 ```
 Source text
@@ -81,7 +81,7 @@ foreach (var dll in Directory.GetFiles(frameworkRefDir, "*.dll"))
 
 // Create the compilation
 var compilation = CSharpCompilation.Create(
-    assemblyName: "TwohashAnalysis",
+    assemblyName: "GloSharpAnalysis",
     syntaxTrees: new[] { tree },
     references: references,
     options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
@@ -109,7 +109,7 @@ The `SemanticModel` is the workhorse. It answers:
 
 ## Step 4: Extract symbol information at a position
 
-This is the core of twohash — given a position in the code, get the hover text.
+This is the core of glosharp — given a position in the code, get the hover text.
 
 ### Finding the syntax node at a position
 
@@ -294,7 +294,7 @@ using Microsoft.CodeAnalysis.Completion;
 
 // Create a workspace and document (required for completion service)
 var workspace = new AdhocWorkspace();
-var project = workspace.AddProject("TwohashProject", LanguageNames.CSharp);
+var project = workspace.AddProject("GloSharpProject", LanguageNames.CSharp);
 project = project.AddMetadataReferences(references);
 var document = project.AddDocument("snippet.cs", sourceCode);
 
@@ -314,7 +314,7 @@ if (completionService != null)
 
 ## Complete example: extracting hover info
 
-Putting it all together — this is essentially what twohash's core does:
+Putting it all together — this is essentially what glosharp's core does:
 
 ```csharp
 using Microsoft.CodeAnalysis;
@@ -430,7 +430,7 @@ var quickInfo = await quickInfoService.GetQuickInfoAsync(document, position);
 //   - Usage (for keywords, shows usage patterns)
 ```
 
-The `QuickInfoService` is in `Microsoft.CodeAnalysis.Features` which is a heavier dependency. For twohash, we can likely get equivalent results from `ToDisplayParts()` + `GetDocumentationCommentXml()` with less overhead.
+The `QuickInfoService` is in `Microsoft.CodeAnalysis.Features` which is a heavier dependency. For glosharp, we can likely get equivalent results from `ToDisplayParts()` + `GetDocumentationCommentXml()` with less overhead.
 
 ## Symbol comparison
 
@@ -465,7 +465,7 @@ if (symbol is IMethodSymbol method)
 }
 ```
 
-## Key architectural notes for twohash
+## Key architectural notes for glosharp
 
 1. **Compilation is expensive** — cache it when processing multiple snippets from the same project
 2. **SemanticModel is per-tree** — one model per syntax tree, tied to a specific compilation

@@ -6,10 +6,10 @@ Key architectural and design decisions. Each entry captures context, options, an
 
 ## 001: CLI-based bridge between C# core and JS integrations
 
-**Context**: Twohash's core runs on .NET (Roslyn requires it). Shiki/EC integrations run in Node.js. We need a bridge.
+**Context**: GloSharp's core runs on .NET (Roslyn requires it). Shiki/EC integrations run in Node.js. We need a bridge.
 
 **Options considered**:
-- **(a) CLI tool** — twohash CLI outputs JSON, Node.js calls it via child_process
+- **(a) CLI tool** — glosharp CLI outputs JSON, Node.js calls it via child_process
 - **(b) WASM** — compile Roslyn to WASM, run in-process in Node.js
 - **(c) Native Node addon** — use node-api or similar to load .NET in-process
 
@@ -41,8 +41,8 @@ Rationale: Reusing `^?` for hover queries and `// @errors` for expected errors g
 **Context**: Roslyn needs assembly references to produce accurate type information. NuGet packages must be resolved to DLLs.
 
 **Options considered**:
-- **(a) Require .csproj** — user maintains a real project, twohash reads project.assets.json
-- **(b) Standalone .cs files** — twohash resolves packages from custom inline markers
+- **(a) Require .csproj** — user maintains a real project, glosharp reads project.assets.json
+- **(b) Standalone .cs files** — glosharp resolves packages from custom inline markers
 - **(c) File-based apps (.NET 10)** — use `#:package` directives, SDK handles resolution
 - **(d) complog** — portable compilation artifact from CI, no SDK needed on docs machine
 - **(e) Tiered** — support multiple approaches based on complexity
@@ -89,4 +89,4 @@ However, the core data format should be designed to work with all three from day
 
 **Recommendation: (a) CSS anchor positioning**
 
-Rationale: The user specified targeting modern browsers. CSS anchor positioning is supported in Chrome 125+, Edge 125+, and Firefox 131+ (2024). By the time twohash ships and is adopted, support will be widespread. The markup is cleaner and there's no JS dependency. We can provide a simple CSS fallback for older browsers if needed.
+Rationale: The user specified targeting modern browsers. CSS anchor positioning is supported in Chrome 125+, Edge 125+, and Firefox 131+ (2024). By the time glosharp ships and is adopted, support will be widespread. The markup is cleaner and there's no JS dependency. We can provide a simple CSS fallback for older browsers if needed.

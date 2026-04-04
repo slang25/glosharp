@@ -94,15 +94,15 @@ Extract code blocks from documentation and execute them as tests. Python's `doct
 
 **C# equivalent**: `dotnet try` (now archived) attempted this — extract code from markdown, compile and run it. The concept was right but the tool didn't get ongoing investment.
 
-## How twohash changes the equation
+## How glosharp changes the equation
 
-Twohash sits in a unique position: it **requires** compilable code by design (Roslyn needs it). This means:
+GloSharp sits in a unique position: it **requires** compilable code by design (Roslyn needs it). This means:
 
-1. **Code must be valid** — if it doesn't compile, twohash fails, CI fails
+1. **Code must be valid** — if it doesn't compile, glosharp fails, CI fails
 2. **Metadata is real** — hover info comes from the compiler, not manual annotation
 3. **The sample project pattern is natural** — you need a .csproj for NuGet resolution anyway
 
-### Recommended pattern for twohash
+### Recommended pattern for glosharp
 
 ```
 docs/
@@ -115,13 +115,13 @@ samples/
 
 The doc build:
 1. `dotnet build samples/` — verify everything compiles
-2. `twohash process samples/GettingStarted/Program.cs#region_name` — extract metadata
+2. `glosharp process samples/GettingStarted/Program.cs#region_name` — extract metadata
 3. Shiki/EC transformer consumes metadata → rendered HTML
 
 This gives you: compilation verification, real type information, and beautiful rendering — all from a single source of truth.
 
 ## Open questions
 
-- Should twohash support inline code blocks (without a .csproj) for simple snippets? Perhaps with default framework references?
+- Should glosharp support inline code blocks (without a .csproj) for simple snippets? Perhaps with default framework references?
 - Should we support a special comment syntax to specify NuGet packages inline, like `// @nuget: Newtonsoft.Json@13.0.3`?
 - How do we handle snippets that intentionally don't compile (e.g., showing an error)?

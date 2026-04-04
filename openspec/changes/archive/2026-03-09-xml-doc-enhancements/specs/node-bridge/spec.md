@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: TypeScript types include structured doc comment
-The package SHALL export `TwohashDocComment`, `TwohashDocParam`, and `TwohashDocException` interfaces. `TwohashHover.docs` SHALL be typed as `TwohashDocComment | null` instead of `string | null`.
+The package SHALL export `GloSharpDocComment`, `GloSharpDocParam`, and `GloSharpDocException` interfaces. `GloSharpHover.docs` SHALL be typed as `GloSharpDocComment | null` instead of `string | null`.
 
 #### Scenario: Type-safe docs access
 - **WHEN** a consumer accesses `result.hovers[0].docs?.summary`

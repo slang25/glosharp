@@ -4,56 +4,56 @@
 The CLI SHALL accept a `render` command with the same file/stdin input and options as `process` (`--framework`, `--project`, `--region`, `--no-restore`, `--cache-dir`), plus additional rendering options. The `render` command SHALL process the source through the core, classify tokens, and write HTML to stdout.
 
 #### Scenario: Render a file to stdout
-- **WHEN** `twohash render src/Example.cs` is run
+- **WHEN** `glosharp render src/Example.cs` is run
 - **THEN** the CLI processes the file, classifies tokens, and writes self-contained HTML to stdout
 
 #### Scenario: Render from stdin
-- **WHEN** `echo "var x = 42;" | twohash render --stdin` is run
+- **WHEN** `echo "var x = 42;" | glosharp render --stdin` is run
 - **THEN** the CLI reads from stdin, processes, classifies, and writes HTML to stdout
 
 #### Scenario: Render with project context
-- **WHEN** `twohash render snippet.cs --project ./MyProject.csproj` is run
+- **WHEN** `glosharp render snippet.cs --project ./MyProject.csproj` is run
 - **THEN** the CLI resolves NuGet packages from the project and includes accurate type information in hovers
 
 #### Scenario: Render with region extraction
-- **WHEN** `twohash render src/Example.cs --region getting-started` is run
+- **WHEN** `glosharp render src/Example.cs --region getting-started` is run
 - **THEN** the CLI extracts the named region and renders only that region's code
 
 ### Requirement: Theme option for render command
 The CLI SHALL accept a `--theme` option on the `render` command specifying the color theme. Valid values SHALL be `github-dark` and `github-light`. The default SHALL be `github-dark`.
 
 #### Scenario: Render with explicit theme
-- **WHEN** `twohash render file.cs --theme github-light` is run
+- **WHEN** `glosharp render file.cs --theme github-light` is run
 - **THEN** the HTML uses github-light color scheme
 
 #### Scenario: Render with default theme
-- **WHEN** `twohash render file.cs` is run without `--theme`
+- **WHEN** `glosharp render file.cs` is run without `--theme`
 - **THEN** the HTML uses github-dark color scheme
 
 #### Scenario: Invalid theme name
-- **WHEN** `twohash render file.cs --theme nonexistent` is run
+- **WHEN** `glosharp render file.cs --theme nonexistent` is run
 - **THEN** the CLI exits with non-zero code and writes an error to stderr listing valid theme names
 
 ### Requirement: Standalone option for render command
 The CLI SHALL accept a `--standalone` flag on the `render` command. When specified, the output SHALL be a complete HTML page instead of an embeddable fragment.
 
 #### Scenario: Standalone HTML page
-- **WHEN** `twohash render file.cs --standalone` is run
+- **WHEN** `glosharp render file.cs --standalone` is run
 - **THEN** the output is a complete HTML page with `<!DOCTYPE html>`, `<head>`, and `<body>`
 
 #### Scenario: Fragment output (default)
-- **WHEN** `twohash render file.cs` is run without `--standalone`
+- **WHEN** `glosharp render file.cs` is run without `--standalone`
 - **THEN** the output is an embeddable `<div>` fragment
 
 ### Requirement: Output option for render command
 The CLI SHALL accept an `--output` option on the `render` command specifying a file path to write the HTML to instead of stdout.
 
 #### Scenario: Write to file
-- **WHEN** `twohash render file.cs --output rendered.html` is run
+- **WHEN** `glosharp render file.cs --output rendered.html` is run
 - **THEN** the HTML is written to `rendered.html` instead of stdout
 
 #### Scenario: Write to stdout (default)
-- **WHEN** `twohash render file.cs` is run without `--output`
+- **WHEN** `glosharp render file.cs` is run without `--output`
 - **THEN** the HTML is written to stdout
 
 ### Requirement: Render command exit codes

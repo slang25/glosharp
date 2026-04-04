@@ -6,16 +6,16 @@
     "node": ">=22.12.0"
   },
   "scripts": {
-    "predev": "npm run build -w @twohash/core -w @twohash/expressive-code",
+    "predev": "npm run build -w @glosharp/core -w @glosharp/expressive-code",
     "dev": "astro dev",
-    "prebuild": "npm run build -w @twohash/core -w @twohash/expressive-code",
+    "prebuild": "npm run build -w @glosharp/core -w @glosharp/expressive-code",
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro"
   },
   "dependencies": {
-    "@twohash/core": "*",
-    "@twohash/expressive-code": "*",
+    "@glosharp/core": "*",
+    "@glosharp/expressive-code": "*",
     "astro": "^6.1.2",
     "astro-expressive-code": "^0.41.0"
   }

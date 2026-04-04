@@ -1,25 +1,25 @@
-import { createTwohash, type TwohashOptions, type TwohashResult, type TwohashDisplayPart } from '@twohash/core'
+import { createGloSharp, type GloSharpOptions, type GloSharpResult, type GloSharpDisplayPart } from '@glosharp/core'
 import { createHash } from 'node:crypto'
 import type { ShikiTransformer } from 'shiki'
 
-export interface TransformerTwohashOptions extends TwohashOptions {
+export interface TransformerGloSharpOptions extends GloSharpOptions {
   project?: string
   region?: string
 }
 
-export interface TwohashCodeBlock {
+export interface GloSharpCodeBlock {
   code: string
   project?: string
   region?: string
 }
 
-export type TwohashResultMap = Map<string, TwohashResult>
+export type GloSharpResultMap = Map<string, GloSharpResult>
 
 // Pre-processed transformer that takes an already-computed result.
 // This is the recommended approach since Shiki's preprocess hook is synchronous.
-export function transformerTwohashWithResult(result: TwohashResult): ShikiTransformer {
+export function transformerGloSharpWithResult(result: GloSharpResult): ShikiTransformer {
   return {
-    name: 'twohash',
+    name: 'glosharp',
 
     preprocess() {
       return result.code
@@ -34,12 +34,12 @@ export function transformerTwohashWithResult(result: TwohashResult): ShikiTransf
 }
 
 // Map-based transformer: looks up pre-computed results by hashing incoming code.
-// Use with processTwohashBlocks() for the recommended two-step pattern.
-export function transformerTwohashFromMap(resultMap: TwohashResultMap): ShikiTransformer {
-  let currentResult: TwohashResult | undefined
+// Use with processGloSharpBlocks() for the recommended two-step pattern.
+export function transformerGloSharpFromMap(resultMap: GloSharpResultMap): ShikiTransformer {
+  let currentResult: GloSharpResult | undefined
 
   return {
-    name: 'twohash',
+    name: 'glosharp',
 
     preprocess(code) {
       const hash = createHash('sha256').update(code).digest('hex')
@@ -59,12 +59,12 @@ export function transformerTwohashFromMap(resultMap: TwohashResultMap): ShikiTra
 }
 
 // Batch-process multiple code blocks concurrently, returning a result map keyed by code hash.
-export async function processTwohashBlocks(
-  blocks: Array<string | TwohashCodeBlock>,
-  options: TransformerTwohashOptions = {},
-): Promise<TwohashResultMap> {
-  const twohash = createTwohash(options)
-  const resultMap: TwohashResultMap = new Map()
+export async function processGloSharpBlocks(
+  blocks: Array<string | GloSharpCodeBlock>,
+  options: TransformerGloSharpOptions = {},
+): Promise<GloSharpResultMap> {
+  const glosharp = createGloSharp(options)
+  const resultMap: GloSharpResultMap = new Map()
 
   const tasks = blocks
     .map(block => {
@@ -75,7 +75,7 @@ export async function processTwohashBlocks(
     })
   const results = await Promise.all(
     tasks.map(({ code, project, region }) =>
-      twohash.process({ code, project, region }).then(result => ({
+      glosharp.process({ code, project, region }).then(result => ({
         hash: createHash('sha256').update(code).digest('hex'),
         result,
       }))
@@ -90,12 +90,12 @@ export async function processTwohashBlocks(
 }
 
 // Helper to pre-process code blocks before running Shiki
-export async function processTwohashCode(
+export async function processGloSharpCode(
   code: string,
-  options: TransformerTwohashOptions = {},
-): Promise<TwohashResult | null> {
-  const twohash = createTwohash(options)
-  return twohash.process({ code, project: options.project, region: options.region })
+  options: TransformerGloSharpOptions = {},
+): Promise<GloSharpResult | null> {
+  const glosharp = createGloSharp(options)
+  return glosharp.process({ code, project: options.project, region: options.region })
 }
 
 // Global counter ensures unique CSS anchor names across multiple code blocks on a page.
@@ -121,12 +121,12 @@ function hText(value: string): HastElement {
   return { type: 'text', value }
 }
 
-function injectHovers(root: HastElement, result: TwohashResult): void {
+function injectHovers(root: HastElement, result: GloSharpResult): void {
   const lines = findCodeLines(root)
 
   // Group hovers by line, then process each line's hovers right-to-left
   // so that injected popup nodes don't shift column positions of earlier hovers.
-  const hoversByLine = new Map<number, Array<{ hover: TwohashResult['hovers'][0]; index: number }>>()
+  const hoversByLine = new Map<number, Array<{ hover: GloSharpResult['hovers'][0]; index: number }>>()
   for (let i = 0; i < result.hovers.length; i++) {
     const hover = result.hovers[i]
     let group = hoversByLine.get(hover.line)
@@ -147,17 +147,17 @@ function injectHovers(root: HastElement, result: TwohashResult): void {
     for (const { hover } of group) {
       const anchorName = `--th-${anchorCounter++}`
 
-      const partNodes: HastNode[] = hover.parts.map((part: TwohashDisplayPart) =>
-        h('span', { class: `twohash-${part.kind}` }, [hText(part.text)])
+      const partNodes: HastNode[] = hover.parts.map((part: GloSharpDisplayPart) =>
+        h('span', { class: `glosharp-${part.kind}` }, [hText(part.text)])
       )
 
       const popupChildren: HastNode[] = [
-        h('code', { class: 'twohash-popup-code' }, partNodes),
+        h('code', { class: 'glosharp-popup-code' }, partNodes),
       ]
 
       if (hover.docs?.summary) {
         popupChildren.push(
-          h('div', { class: 'twohash-popup-docs' }, [hText(hover.docs.summary)])
+          h('div', { class: 'glosharp-popup-docs' }, [hText(hover.docs.summary)])
         )
       }
 
@@ -171,22 +171,22 @@ const CS_CODE_REGEX = /^CS\d+$/
 function buildErrorCodeNode(code: string): HastElement {
   if (CS_CODE_REGEX.test(code)) {
     return h('a', {
-      class: 'twohash-error-code',
+      class: 'glosharp-error-code',
       href: `https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/${code.toLowerCase()}`,
       target: '_blank',
       rel: 'noopener',
     }, [hText(code)])
   }
-  return h('span', { class: 'twohash-error-code' }, [hText(code)])
+  return h('span', { class: 'glosharp-error-code' }, [hText(code)])
 }
 
-function injectErrors(root: HastElement, result: TwohashResult): void {
+function injectErrors(root: HastElement, result: GloSharpResult): void {
   const lines = findCodeLines(root)
 
   for (const error of result.errors) {
-    const severityClass = `twohash-severity-${error.severity}`
+    const severityClass = `glosharp-severity-${error.severity}`
 
-    const errorMessage = h('div', { class: `twohash-error-message ${severityClass}` }, [
+    const errorMessage = h('div', { class: `glosharp-error-message ${severityClass}` }, [
       buildErrorCodeNode(error.code),
       hText(': '),
       hText(error.message),
@@ -209,7 +209,7 @@ function injectErrors(root: HastElement, result: TwohashResult): void {
   }
 }
 
-function injectCompletions(root: HastElement, result: TwohashResult): void {
+function injectCompletions(root: HastElement, result: GloSharpResult): void {
   if (!result.completions || result.completions.length === 0) return
 
   const lines = findCodeLines(root)
@@ -219,14 +219,14 @@ function injectCompletions(root: HastElement, result: TwohashResult): void {
     if (!line) continue
 
     const items = completion.items.map(item =>
-      h('li', { class: `twohash-completion-item twohash-completion-kind-${item.kind}` }, [
-        h('span', { class: 'twohash-completion-kind' }, [hText(item.kind)]),
-        h('span', { class: 'twohash-completion-label' }, [hText(item.label)]),
-        ...(item.detail ? [h('span', { class: 'twohash-completion-detail' }, [hText(item.detail)])] : []),
+      h('li', { class: `glosharp-completion-item glosharp-completion-kind-${item.kind}` }, [
+        h('span', { class: 'glosharp-completion-kind' }, [hText(item.kind)]),
+        h('span', { class: 'glosharp-completion-label' }, [hText(item.label)]),
+        ...(item.detail ? [h('span', { class: 'glosharp-completion-detail' }, [hText(item.detail)])] : []),
       ])
     )
 
-    const completionList = h('ul', { class: 'twohash-completion-list' }, items)
+    const completionList = h('ul', { class: 'glosharp-completion-list' }, items)
 
     if (line.children) {
       line.children.push(completionList)
@@ -263,7 +263,7 @@ function wrapTokenAtPosition(
   popupChildren: HastNode[],
   persistent?: boolean,
 ): void {
-  const hoverClass = persistent ? 'twohash-hover twohash-hover-persistent' : 'twohash-hover'
+  const hoverClass = persistent ? 'glosharp-hover glosharp-hover-persistent' : 'glosharp-hover'
   if (!line.children) return
 
   let col = 0
@@ -288,7 +288,7 @@ function wrapTokenAtPosition(
         }, [child])
 
         const popup = h('div', {
-          class: 'twohash-popup',
+          class: 'glosharp-popup',
           style: `position-anchor: ${anchorName}`,
         }, popupChildren)
 
@@ -306,13 +306,13 @@ function wrapTokenAtPosition(
 
       const hoverSpan = h('span', { ...props }, [hText(tokenText.slice(offsetInToken, offsetInToken + length))])
       const wrapper = h('span', {
-        class: 'twohash-hover',
+        class: 'glosharp-hover',
         style: `anchor-name: ${anchorName}`,
       }, [hoverSpan])
       parts.push(wrapper)
 
       const popup = h('div', {
-        class: 'twohash-popup',
+        class: 'glosharp-popup',
         style: `position-anchor: ${anchorName}`,
       }, popupChildren)
       parts.push(popup)

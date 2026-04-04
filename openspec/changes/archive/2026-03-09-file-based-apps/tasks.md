@@ -15,13 +15,13 @@
 - [x] 2.5 Write tests for SDK version validation (mock scenarios for .NET 10+ and older SDKs)
 - [x] 2.6 Write integration test with a real `#:package` directive resolving a NuGet package (requires .NET 10 SDK)
 
-## 3. TwohashProcessor Integration
+## 3. GloSharpProcessor Integration
 
 - [x] 3.1 Integrate `FileDirectiveParser` into the processing pipeline — run before `MarkerParser`, feed cleaned source forward
 - [x] 3.2 Add resolution path selection logic: if `#:` directives present and no project path → use `FileBasedAppResolver`
 - [x] 3.3 Wire `FileDirectiveResult` into line mapping so hover/error positions account for stripped `#:` lines
 - [x] 3.4 Populate `meta.packages` from parsed `#:package` directives
-- [x] 3.5 Add `meta.sdk` field to `TwohashMeta` model, populated from `#:sdk` directive
+- [x] 3.5 Add `meta.sdk` field to `GloSharpMeta` model, populated from `#:sdk` directive
 - [x] 3.6 Write end-to-end test: source with `#:package` + hover query produces correct hover info from the NuGet package's types
 
 ## 4. CLI Changes
@@ -34,6 +34,6 @@
 
 ## 5. JSON Output Updates
 
-- [x] 5.1 Add `sdk` field to `TwohashMeta` model and JSON serialization
-- [x] 5.2 Update Node bridge TypeScript types to include `sdk?: string` on `TwohashMeta`
+- [x] 5.1 Add `sdk` field to `GloSharpMeta` model and JSON serialization
+- [x] 5.2 Update Node bridge TypeScript types to include `sdk?: string` on `GloSharpMeta`
 - [x] 5.3 Write tests verifying `meta.packages` and `meta.sdk` in JSON output for file-based app scenarios

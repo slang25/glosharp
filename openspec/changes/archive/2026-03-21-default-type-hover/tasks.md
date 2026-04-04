@@ -1,10 +1,10 @@
 ## 1. Core Model Changes
 
-- [x] 1.1 Add `Persistent` boolean property to `TwohashHover` in `Models.cs` (default `false`)
+- [x] 1.1 Add `Persistent` boolean property to `GloSharpHover` in `Models.cs` (default `false`)
 
 ## 2. Roslyn Extraction — Auto-Hover
 
-- [x] 2.1 Extract shared symbol-to-hover helper from `ExtractHovers()` in `TwohashProcessor.cs`
+- [x] 2.1 Extract shared symbol-to-hover helper from `ExtractHovers()` in `GloSharpProcessor.cs`
 - [x] 2.2 Implement `ExtractAllHovers()` that walks `root.DescendantTokens()`, filters to tokens with resolved symbols, and produces hovers with `persistent: false`
 - [x] 2.3 Map auto-hover positions from compilation-code to processed-code using existing `LineMap`
 - [x] 2.4 Exclude tokens in hidden sections (before `---cut---` or within `@hide`/`@show`) from auto-hovers
@@ -16,15 +16,15 @@
 
 ## 4. Merge and Output
 
-- [x] 4.1 Merge auto-hovers and persistent hovers into the `Hovers` list in `TwohashResult`
+- [x] 4.1 Merge auto-hovers and persistent hovers into the `Hovers` list in `GloSharpResult`
 - [x] 4.2 Verify JSON serialization includes `persistent` field (camelCase: `persistent`)
 
 ## 5. Expressive Code Plugin — Rendering
 
 - [x] 5.1 Update hover annotation to read `persistent` flag from hover data
-- [x] 5.2 Render default hovers (`persistent: false`): `twohash-hover` class, popup visible only on `:hover`, no token underline
-- [x] 5.3 Render persistent hovers (`persistent: true`): `twohash-hover twohash-hover-persistent` classes, popup always visible, token underline decoration
-- [x] 5.4 Add CSS for `.twohash-hover-persistent` (always-visible popup, underline on token)
+- [x] 5.2 Render default hovers (`persistent: false`): `glosharp-hover` class, popup visible only on `:hover`, no token underline
+- [x] 5.3 Render persistent hovers (`persistent: true`): `glosharp-hover glosharp-hover-persistent` classes, popup always visible, token underline decoration
+- [x] 5.4 Add CSS for `.glosharp-hover-persistent` (always-visible popup, underline on token)
 - [x] 5.5 Ensure default hover tokens have no visual decoration in resting state
 
 ## 6. Plugin — Processing Gate

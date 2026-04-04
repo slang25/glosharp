@@ -4,18 +4,18 @@
 The CLI SHALL accept a `--project` option on the `process` command specifying a .csproj file or directory. When provided, the CLI resolves NuGet package references from the project's `project.assets.json`.
 
 #### Scenario: Process with project context
-- **WHEN** `twohash process snippet.cs --project ./MyProject.csproj` is run
+- **WHEN** `glosharp process snippet.cs --project ./MyProject.csproj` is run
 - **THEN** the CLI resolves NuGet packages from `MyProject`'s `obj/project.assets.json` and compiles with those references
 
 #### Scenario: Process with project directory
-- **WHEN** `twohash process snippet.cs --project ./MyProject/` is run
+- **WHEN** `glosharp process snippet.cs --project ./MyProject/` is run
 - **THEN** the CLI locates the .csproj in that directory and resolves packages
 
 ### Requirement: Project option for verify command
 The CLI SHALL accept a `--project` option on the `verify` command, applying the same project context to all files being verified.
 
 #### Scenario: Verify with project context
-- **WHEN** `twohash verify samples/ --project ./Samples.csproj` is run
+- **WHEN** `glosharp verify samples/ --project ./Samples.csproj` is run
 - **THEN** all `.cs` files are compiled with NuGet packages from the project
 
 ### Requirement: Auto-restore when assets missing

@@ -1,18 +1,18 @@
 ## ADDED Requirements
 
 ### Requirement: Process all C# code blocks
-The plugin SHALL invoke twohash processing on ALL C# code blocks, regardless of whether they contain `^?`, `@errors`, or other twohash markers. Non-C# code blocks SHALL continue to be skipped.
+The plugin SHALL invoke glosharp processing on ALL C# code blocks, regardless of whether they contain `^?`, `@errors`, or other glosharp markers. Non-C# code blocks SHALL continue to be skipped.
 
 #### Scenario: C# block without markers is processed
-- **WHEN** a C# code block contains `var x = 42;` with no twohash markers
-- **THEN** the plugin invokes twohash processing and produces auto-hover annotations
+- **WHEN** a C# code block contains `var x = 42;` with no glosharp markers
+- **THEN** the plugin invokes glosharp processing and produces auto-hover annotations
 
 #### Scenario: Non-C# block still skipped
 - **WHEN** a JavaScript code block enters the EC pipeline
-- **THEN** the plugin does not invoke twohash processing
+- **THEN** the plugin does not invoke glosharp processing
 
 ### Requirement: Render default hovers as mouse-over popups
-For hovers with `persistent: false`, the plugin SHALL render a `<span class="twohash-hover">` wrapper around the token. The popup SHALL only be visible on `:hover` interaction. The token SHALL NOT have any visible underline or decoration in its default state — it should appear as normal code until hovered.
+For hovers with `persistent: false`, the plugin SHALL render a `<span class="glosharp-hover">` wrapper around the token. The popup SHALL only be visible on `:hover` interaction. The token SHALL NOT have any visible underline or decoration in its default state — it should appear as normal code until hovered.
 
 #### Scenario: Default hover invisible until interaction
 - **WHEN** a code block is rendered with auto-hover data for token `x`
@@ -23,7 +23,7 @@ For hovers with `persistent: false`, the plugin SHALL render a `<span class="two
 - **THEN** the popup displays the same structured content as today (type signature, display parts, docs)
 
 ### Requirement: Render persistent hovers as always-visible popups
-For hovers with `persistent: true` (from `^?` markers), the plugin SHALL render a `<span class="twohash-hover twohash-hover-persistent">` wrapper. The popup SHALL be always visible without requiring mouse interaction. The token SHALL have a visible underline decoration to indicate the pinned annotation.
+For hovers with `persistent: true` (from `^?` markers), the plugin SHALL render a `<span class="glosharp-hover glosharp-hover-persistent">` wrapper. The popup SHALL be always visible without requiring mouse interaction. The token SHALL have a visible underline decoration to indicate the pinned annotation.
 
 #### Scenario: Persistent hover always visible
 - **WHEN** a code block contains a `^?` marker targeting token `x`
@@ -35,11 +35,11 @@ For hovers with `persistent: true` (from `^?` markers), the plugin SHALL render 
 
 #### Scenario: Persistent hover CSS class
 - **WHEN** a persistent hover annotation renders
-- **THEN** the wrapper element has both `twohash-hover` and `twohash-hover-persistent` CSS classes
+- **THEN** the wrapper element has both `glosharp-hover` and `glosharp-hover-persistent` CSS classes
 
 ## MODIFIED Requirements
 
-### Requirement: Pass-through for non-twohash code blocks
+### Requirement: Pass-through for non-glosharp code blocks
 The plugin SHALL not modify code blocks that are not C# language blocks. C# code blocks SHALL always be processed for auto-hover extraction regardless of marker presence.
 
 #### Scenario: Non-C# code block
@@ -47,5 +47,5 @@ The plugin SHALL not modify code blocks that are not C# language blocks. C# code
 - **THEN** the plugin does not invoke the CLI or add any annotations
 
 #### Scenario: C# without markers still processed
-- **WHEN** a C# code block without `^?`, `@errors`, or other twohash markers enters the pipeline
-- **THEN** the plugin invokes twohash processing and adds auto-hover annotations for all semantically meaningful tokens
+- **WHEN** a C# code block without `^?`, `@errors`, or other glosharp markers enters the pipeline
+- **THEN** the plugin invokes glosharp processing and adds auto-hover annotations for all semantically meaningful tokens

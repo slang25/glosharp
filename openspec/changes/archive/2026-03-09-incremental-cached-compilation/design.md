@@ -1,6 +1,6 @@
 ## Context
 
-Twohash processes C# documentation snippets through Roslyn to extract hover info, errors, completions, and highlights. The current architecture is stateless: each `TwohashProcessor.ProcessAsync()` call resolves references from scratch and creates a fresh `CSharpCompilation`. The CLI spawns a new process per invocation from the Node bridge.
+GloSharp processes C# documentation snippets through Roslyn to extract hover info, errors, completions, and highlights. The current architecture is stateless: each `GloSharpProcessor.ProcessAsync()` call resolves references from scratch and creates a fresh `CSharpCompilation`. The CLI spawns a new process per invocation from the Node bridge.
 
 For a documentation site with 50+ snippets from the same project, this means:
 - 50× framework reference assembly discovery (FrameworkResolver)
@@ -37,9 +37,9 @@ The `verify` command already processes multiple files in one process but still r
 
 ### 2. Cache key composition for disk cache
 
-**Decision**: The disk cache key is a SHA256 hash of: `twohash_version + "\0" + target_framework + "\0" + sorted_packages_json + "\0" + project_path + "\0" + source_code`.
+**Decision**: The disk cache key is a SHA256 hash of: `glosharp_version + "\0" + target_framework + "\0" + sorted_packages_json + "\0" + project_path + "\0" + source_code`.
 
-**Rationale**: This captures every input that affects the output. The version component ensures cache invalidation on twohash upgrades. Sorting packages makes the key deterministic regardless of declaration order. The null byte separator prevents ambiguous concatenation.
+**Rationale**: This captures every input that affects the output. The version component ensures cache invalidation on glosharp upgrades. Sorting packages makes the key deterministic regardless of declaration order. The null byte separator prevents ambiguous concatenation.
 
 **Alternative considered**: Using file modification timestamps. Rejected because timestamps don't reflect content changes (e.g., `touch` without edit) and don't work for stdin input.
 
@@ -61,9 +61,9 @@ The `verify` command already processes multiple files in one process but still r
 
 **Decision**: No caching without an explicit `--cache-dir` flag. No default cache location.
 
-**Rationale**: Caching introduces a correctness risk (stale results). Making it opt-in means users consciously choose the trade-off. CI environments can set it explicitly. A default cache location (e.g., `~/.cache/twohash`) would add surprise behavior.
+**Rationale**: Caching introduces a correctness risk (stale results). Making it opt-in means users consciously choose the trade-off. CI environments can set it explicitly. A default cache location (e.g., `~/.cache/glosharp`) would add surprise behavior.
 
-**Alternative considered**: Default to `~/.cache/twohash` with `--no-cache` to disable. Rejected because silent caching in a build tool can mask real compilation errors when dependencies change.
+**Alternative considered**: Default to `~/.cache/glosharp` with `--no-cache` to disable. Rejected because silent caching in a build tool can mask real compilation errors when dependencies change.
 
 ### 6. CompilationContext cache is always on for verify
 
@@ -73,7 +73,7 @@ The `verify` command already processes multiple files in one process but still r
 
 ## Risks / Trade-offs
 
-**[Stale cache results]** → The cache key includes twohash version and all compilation inputs. Users who change NuGet packages must rebuild the cache. Documentation should note that `--cache-dir` contents can be safely deleted at any time.
+**[Stale cache results]** → The cache key includes glosharp version and all compilation inputs. Users who change NuGet packages must rebuild the cache. Documentation should note that `--cache-dir` contents can be safely deleted at any time.
 
 **[Disk space growth]** → Each cached result is a JSON file (typically 1-10 KB). A site with 500 snippets uses ~5 MB. No automatic cleanup — users delete the directory. This is acceptable for build-time tooling.
 

@@ -1,8 +1,8 @@
-import { pluginTwohash } from '@twohash/expressive-code'
+import { pluginGloSharp } from '@glosharp/expressive-code'
 
 /** @type {import('astro-expressive-code').AstroExpressiveCodeOptions} */
 export default {
-  plugins: [pluginTwohash()],
+  plugins: [pluginGloSharp()],
   themes: ['github-dark'],
   styleOverrides: {
     codeFontFamily: "'JetBrains Mono', monospace",

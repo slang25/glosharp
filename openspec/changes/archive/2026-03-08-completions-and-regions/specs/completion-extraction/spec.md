@@ -27,7 +27,7 @@ Each completion item SHALL include `label` (the display text), `kind` (symbol ki
 - **THEN** the item has `label: "Length"`, `kind: "Property"`, and `detail` showing the return type
 
 ### Requirement: Process method is async
-The `TwohashProcessor.Process()` method SHALL be async (returning `Task<TwohashResult>`) to support the async `CompletionService.GetCompletionsAsync()` API.
+The `GloSharpProcessor.Process()` method SHALL be async (returning `Task<GloSharpResult>`) to support the async `CompletionService.GetCompletionsAsync()` API.
 
 #### Scenario: Async processing with completions
 - **WHEN** source contains `^|` markers

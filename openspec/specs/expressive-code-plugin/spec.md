@@ -1,39 +1,39 @@
 ## ADDED Requirements
 
 ### Requirement: Export plugin factory function
-The package SHALL export a `pluginTwohash()` function that returns an Expressive Code plugin object with `preprocessCode`, `annotateCode`, and `postprocessRenderedBlock` hooks.
+The package SHALL export a `pluginGloSharp()` function that returns an Expressive Code plugin object with `preprocessCode`, `annotateCode`, and `postprocessRenderedBlock` hooks.
 
 #### Scenario: Register plugin with Starlight
-- **WHEN** `pluginTwohash()` is added to Starlight's `expressiveCode.plugins` array
+- **WHEN** `pluginGloSharp()` is added to Starlight's `expressiveCode.plugins` array
 - **THEN** the plugin hooks are called during EC's rendering pipeline
 
 ### Requirement: Process code in preprocessCode hook
-The `preprocessCode` hook SHALL detect C# code blocks with twohash markers, invoke the CLI via the bridge, store the result, and modify the code to remove marker lines before tokenization.
+The `preprocessCode` hook SHALL detect C# code blocks with glosharp markers, invoke the CLI via the bridge, store the result, and modify the code to remove marker lines before tokenization.
 
 #### Scenario: Marker removal before tokenization
 - **WHEN** a C# code block with `^?` markers enters the EC pipeline
 - **THEN** the preprocessCode hook strips markers and the code is tokenized as clean C#
 
 ### Requirement: Add hover annotations in annotateCode hook
-The `annotateCode` hook SHALL create `TwohashHoverAnnotation` instances for each hover in the twohash result, targeting the correct token via `inlineRange`.
+The `annotateCode` hook SHALL create `GloSharpHoverAnnotation` instances for each hover in the glosharp result, targeting the correct token via `inlineRange`.
 
 #### Scenario: Hover annotation created
-- **WHEN** the twohash result contains a hover at line 0, character 4, length 8
+- **WHEN** the glosharp result contains a hover at line 0, character 4, length 8
 - **THEN** an annotation is added targeting line 0 with `inlineRange` from column 4 to 12
 
 ### Requirement: Add error annotations in annotateCode hook
-The `annotateCode` hook SHALL create `TwohashErrorAnnotation` instances for error underlines and error message display. Annotations SHALL carry the diagnostic severity and apply severity-specific styling: error (red), warning (yellow/amber), info (blue). When a diagnostic spans multiple lines, underline annotations SHALL be created for each affected line.
+The `annotateCode` hook SHALL create `GloSharpErrorAnnotation` instances for error underlines and error message display. Annotations SHALL carry the diagnostic severity and apply severity-specific styling: error (red), warning (yellow/amber), info (blue). When a diagnostic spans multiple lines, underline annotations SHALL be created for each affected line.
 
 #### Scenario: Error annotation created
-- **WHEN** the twohash result contains an error at line 3
+- **WHEN** the glosharp result contains an error at line 3
 - **THEN** an inline error underline annotation and a block error message annotation are added for that line
 
 #### Scenario: Warning annotation uses amber styling
-- **WHEN** the twohash result contains a warning diagnostic at line 5
+- **WHEN** the glosharp result contains a warning diagnostic at line 5
 - **THEN** the underline annotation uses amber/yellow decoration color and the message annotation uses amber styling
 
 #### Scenario: Multi-line error annotation
-- **WHEN** the twohash result contains a diagnostic spanning lines 2-4
+- **WHEN** the glosharp result contains a diagnostic spanning lines 2-4
 - **THEN** underline annotations are created for lines 2, 3, and 4, and the error message annotation is placed on line 4
 
 ### Requirement: Inject popup HTML in postprocessRenderedBlock
@@ -41,7 +41,7 @@ The `postprocessRenderedBlock` hook SHALL inject hover popup HTML containers int
 
 #### Scenario: Popup with summary only
 - **WHEN** a hover has `docs` with only `summary` populated
-- **THEN** the popup renders the summary in a `.twohash-popup-docs` div
+- **THEN** the popup renders the summary in a `.glosharp-popup-docs` div
 
 #### Scenario: Popup with params and returns
 - **WHEN** a hover has `docs` with `summary`, `params`, and `returns`
@@ -75,15 +75,15 @@ The plugin SHALL inject a JavaScript module via `jsModules` to manage hover popu
 - **THEN** the JS module re-initializes popup event listeners on the new DOM
 
 ### Requirement: SVG sprite sheet for symbol icons
-The plugin SHALL build an SVG sprite sheet containing `<symbol>` elements for each symbol kind icon (Method, Property, Field, Local, Class, Struct, Interface, Enum, Namespace, Event, Delegate, Type, Constant, EnumMember, Keyword, Operator). The sprite sheet SHALL be injected into the page DOM once via the JS module. Individual icon references SHALL use `<svg><use href="#twohash-icon-{kind}"></svg>` elements to avoid repeating SVG path data.
+The plugin SHALL build an SVG sprite sheet containing `<symbol>` elements for each symbol kind icon (Method, Property, Field, Local, Class, Struct, Interface, Enum, Namespace, Event, Delegate, Type, Constant, EnumMember, Keyword, Operator). The sprite sheet SHALL be injected into the page DOM once via the JS module. Individual icon references SHALL use `<svg><use href="#glosharp-icon-{kind}"></svg>` elements to avoid repeating SVG path data.
 
 #### Scenario: Sprite sheet injected once
 - **WHEN** multiple code blocks with hover icons are rendered on a page
-- **THEN** the sprite sheet `<svg>` with `<symbol>` definitions is injected into `document.body` exactly once (guarded by `#twohash-sprites` ID check)
+- **THEN** the sprite sheet `<svg>` with `<symbol>` definitions is injected into `document.body` exactly once (guarded by `#glosharp-sprites` ID check)
 
 #### Scenario: Symbol icon uses sprite reference
 - **WHEN** a hover popup displays a symbol kind icon (e.g., Method)
-- **THEN** the icon renders as `<use href="#twohash-icon-Method">` referencing the sprite sheet
+- **THEN** the icon renders as `<use href="#glosharp-icon-Method">` referencing the sprite sheet
 
 ### Requirement: Theme-aware styling via baseStyles
 The plugin SHALL define theme-aware styles for popup colors (background, foreground, border), error colors (underline, message background), warning colors (underline, message background), info colors (underline, message background), highlight, focus, and diff colors. These styles SHALL be embedded in `baseStyles` using CSS custom properties with dark theme defaults as fallback values. Light theme colors SHALL be applied via `[data-theme="light"]` selectors where supported. The plugin SHALL NOT return a `styleSettings` property on the plugin object.
@@ -93,11 +93,11 @@ The plugin SHALL define theme-aware styles for popup colors (background, foregro
 - **THEN** popup elements use the dark theme color defaults defined in CSS custom property fallbacks
 
 #### Scenario: Plugin object has no styleSettings property
-- **WHEN** `pluginTwohash()` is called
+- **WHEN** `pluginGloSharp()` is called
 - **THEN** the returned plugin object does not contain a `styleSettings` property
 
 #### Scenario: Plugin works with EC 0.41 without workaround
-- **WHEN** `pluginTwohash()` is added directly to an expressive-code `plugins` array in EC 0.41+
+- **WHEN** `pluginGloSharp()` is added directly to an expressive-code `plugins` array in EC 0.41+
 - **THEN** the plugin registers without errors and no consumer-side property stripping is needed
 
 ### Requirement: Hover token interaction styles
@@ -116,7 +116,7 @@ Hoverable tokens SHALL have a transparent dashed bottom border by default. When 
 - **THEN** that token shows a solid underline, purple background tint, and rounded corners
 
 ### Requirement: Popup fade-in animation
-Popups SHALL use a CSS `@keyframes` animation (`twohashPopupFadeIn`) that fades in from `opacity: 0` with a slight upward translation (`translateY(-4px)`). The animation SHALL be re-triggered by the JS module each time a popup is shown. A `prefers-reduced-motion: reduce` media query SHALL disable transitions on hover elements.
+Popups SHALL use a CSS `@keyframes` animation (`glosharpPopupFadeIn`) that fades in from `opacity: 0` with a slight upward translation (`translateY(-4px)`). The animation SHALL be re-triggered by the JS module each time a popup is shown. A `prefers-reduced-motion: reduce` media query SHALL disable transitions on hover elements.
 
 #### Scenario: Popup animation on show
 - **WHEN** a hover popup becomes visible
@@ -127,18 +127,18 @@ Popups SHALL use a CSS `@keyframes` animation (`twohashPopupFadeIn`) that fades 
 - **THEN** hover transitions are disabled
 
 ### Requirement: Process all C# code blocks
-The plugin SHALL invoke twohash processing on ALL C# code blocks, regardless of whether they contain `^?`, `@errors`, or other twohash markers. Non-C# code blocks SHALL continue to be skipped.
+The plugin SHALL invoke glosharp processing on ALL C# code blocks, regardless of whether they contain `^?`, `@errors`, or other glosharp markers. Non-C# code blocks SHALL continue to be skipped.
 
 #### Scenario: C# block without markers is processed
-- **WHEN** a C# code block contains `var x = 42;` with no twohash markers
-- **THEN** the plugin invokes twohash processing and produces auto-hover annotations
+- **WHEN** a C# code block contains `var x = 42;` with no glosharp markers
+- **THEN** the plugin invokes glosharp processing and produces auto-hover annotations
 
 #### Scenario: Non-C# block still skipped
 - **WHEN** a JavaScript code block enters the EC pipeline
-- **THEN** the plugin does not invoke twohash processing
+- **THEN** the plugin does not invoke glosharp processing
 
 ### Requirement: Render default hovers as mouse-over popups
-For hovers with `persistent: false`, the plugin SHALL render a `<span class="twohash-hover">` wrapper around the token. The popup SHALL only be visible on hover interaction (controlled by JS). The token SHALL NOT have any visible underline or decoration in its default state — it should appear as normal code until hovered.
+For hovers with `persistent: false`, the plugin SHALL render a `<span class="glosharp-hover">` wrapper around the token. The popup SHALL only be visible on hover interaction (controlled by JS). The token SHALL NOT have any visible underline or decoration in its default state — it should appear as normal code until hovered.
 
 #### Scenario: Default hover invisible until interaction
 - **WHEN** a code block is rendered with auto-hover data for token `x`
@@ -149,7 +149,7 @@ For hovers with `persistent: false`, the plugin SHALL render a `<span class="two
 - **THEN** the popup displays the same structured content (type signature, display parts, docs)
 
 ### Requirement: Render persistent hovers as always-visible static annotations
-For hovers with `persistent: true` (from `^?` markers), the plugin SHALL use a separate annotation class (`TwohashStaticAnnotation`) that renders as a `<div class="twohash-noline">` wrapping the line, with a `<div class="twohash-static">` child containing a `<div class="twohash-static-container">`. The popup SHALL be always visible without requiring mouse interaction. No arrow caret SHALL be displayed on static containers.
+For hovers with `persistent: true` (from `^?` markers), the plugin SHALL use a separate annotation class (`GloSharpStaticAnnotation`) that renders as a `<div class="glosharp-noline">` wrapping the line, with a `<div class="glosharp-static">` child containing a `<div class="glosharp-static-container">`. The popup SHALL be always visible without requiring mouse interaction. No arrow caret SHALL be displayed on static containers.
 
 #### Scenario: Persistent hover always visible
 - **WHEN** a code block contains a `^?` marker targeting token `x`
@@ -157,9 +157,9 @@ For hovers with `persistent: true` (from `^?` markers), the plugin SHALL use a s
 
 #### Scenario: Persistent hover DOM structure
 - **WHEN** a persistent hover annotation renders
-- **THEN** the line is wrapped in `<div class="twohash-noline">` containing `<div class="twohash-static">` with `<div class="twohash-static-container">`
+- **THEN** the line is wrapped in `<div class="glosharp-noline">` containing `<div class="glosharp-static">` with `<div class="glosharp-static-container">`
 
-### Requirement: Pass-through for non-twohash code blocks
+### Requirement: Pass-through for non-glosharp code blocks
 The plugin SHALL not modify code blocks that are not C# language blocks. C# code blocks SHALL always be processed for auto-hover extraction regardless of marker presence.
 
 #### Scenario: Non-C# code block
@@ -167,44 +167,44 @@ The plugin SHALL not modify code blocks that are not C# language blocks. C# code
 - **THEN** the plugin does not invoke the CLI or add any annotations
 
 #### Scenario: C# without markers still processed
-- **WHEN** a C# code block without `^?`, `@errors`, or other twohash markers enters the pipeline
-- **THEN** the plugin invokes twohash processing and adds auto-hover annotations for all semantically meaningful tokens
+- **WHEN** a C# code block without `^?`, `@errors`, or other glosharp markers enters the pipeline
+- **THEN** the plugin invokes glosharp processing and adds auto-hover annotations for all semantically meaningful tokens
 
 ### Requirement: Pass project and region options to bridge
-The `pluginTwohash()` factory SHALL accept `project` and `region` options and pass them through to the twohash bridge when processing code blocks.
+The `pluginGloSharp()` factory SHALL accept `project` and `region` options and pass them through to the glosharp bridge when processing code blocks.
 
 #### Scenario: Plugin with project context
-- **WHEN** `pluginTwohash({ project: './MyProject.csproj' })` is configured
-- **THEN** all twohash CLI invocations include the `--project` argument
+- **WHEN** `pluginGloSharp({ project: './MyProject.csproj' })` is configured
+- **THEN** all glosharp CLI invocations include the `--project` argument
 
 #### Scenario: Plugin without project
-- **WHEN** `pluginTwohash()` is configured without a `project` option
+- **WHEN** `pluginGloSharp()` is configured without a `project` option
 - **THEN** CLI invocations use standalone mode (framework refs only)
 
 #### Scenario: Plugin with region
-- **WHEN** `pluginTwohash({ region: 'example' })` is configured
-- **THEN** all twohash CLI invocations include the `--region` argument
+- **WHEN** `pluginGloSharp({ region: 'example' })` is configured
+- **THEN** all glosharp CLI invocations include the `--region` argument
 
 ### Requirement: Add completion annotations in annotateCode hook
-The `annotateCode` hook SHALL create `TwohashCompletionAnnotation` instances for each completion result, rendering a completion list dropdown below the queried line.
+The `annotateCode` hook SHALL create `GloSharpCompletionAnnotation` instances for each completion result, rendering a completion list dropdown below the queried line.
 
 #### Scenario: Completion annotation created
-- **WHEN** the twohash result contains completions at line 2, character 8
-- **THEN** a `TwohashCompletionAnnotation` is added to line 2 with the completion items
+- **WHEN** the glosharp result contains completions at line 2, character 8
+- **THEN** a `GloSharpCompletionAnnotation` is added to line 2 with the completion items
 
 #### Scenario: Completion list rendering
 - **WHEN** the annotation renders in the EC pipeline
 - **THEN** a styled completion list appears below the code line, showing item labels with kind indicators
 
 ### Requirement: Detect completion markers for processing
-The marker detection logic SHALL recognize `^|` markers in addition to `^?` markers when deciding whether to invoke twohash processing on a code block.
+The marker detection logic SHALL recognize `^|` markers in addition to `^?` markers when deciding whether to invoke glosharp processing on a code block.
 
 #### Scenario: Block with only completion markers
 - **WHEN** a C# code block contains `^|` markers but no `^?` markers
-- **THEN** the plugin invokes twohash processing on the block
+- **THEN** the plugin invokes glosharp processing on the block
 
 ### Requirement: Theme-aware styling for doc sections
-The plugin SHALL define CSS classes for each doc section (`.twohash-popup-params`, `.twohash-popup-returns`, `.twohash-popup-remarks`, `.twohash-popup-example`, `.twohash-popup-exceptions`) with styles consistent with the existing popup design. Parameter names SHALL be visually distinct (e.g., monospace or bold).
+The plugin SHALL define CSS classes for each doc section (`.glosharp-popup-params`, `.glosharp-popup-returns`, `.glosharp-popup-remarks`, `.glosharp-popup-example`, `.glosharp-popup-exceptions`) with styles consistent with the existing popup design. Parameter names SHALL be visually distinct (e.g., monospace or bold).
 
 #### Scenario: Param list styling
 - **WHEN** a popup with params is rendered
@@ -212,24 +212,24 @@ The plugin SHALL define CSS classes for each doc section (`.twohash-popup-params
 
 #### Scenario: Section separators
 - **WHEN** a popup has multiple doc sections
-- **THEN** each section is visually separated (consistent with the existing `.twohash-popup-docs` border-top pattern)
+- **THEN** each section is visually separated (consistent with the existing `.glosharp-popup-docs` border-top pattern)
 
 ### Requirement: Detect directive markers for processing
-The marker detection logic SHALL recognize `@highlight`, `@focus`, and `@diff` markers in addition to existing markers when deciding whether to invoke twohash processing on a code block.
+The marker detection logic SHALL recognize `@highlight`, `@focus`, and `@diff` markers in addition to existing markers when deciding whether to invoke glosharp processing on a code block.
 
 #### Scenario: Block with only highlight markers
 - **WHEN** a C# code block contains `// @highlight` but no `^?` or `@errors` markers
-- **THEN** the plugin invokes twohash processing on the block
+- **THEN** the plugin invokes glosharp processing on the block
 
 #### Scenario: Block with only diff markers
-- **WHEN** a C# code block contains `// @diff: +` but no other twohash markers
-- **THEN** the plugin invokes twohash processing on the block
+- **WHEN** a C# code block contains `// @diff: +` but no other glosharp markers
+- **THEN** the plugin invokes glosharp processing on the block
 
 ### Requirement: Add highlight annotations in annotateCode hook
-The `annotateCode` hook SHALL create `TwohashHighlightAnnotation` instances for each highlight entry with `kind: "highlight"`, applying a background color to the entire line.
+The `annotateCode` hook SHALL create `GloSharpHighlightAnnotation` instances for each highlight entry with `kind: "highlight"`, applying a background color to the entire line.
 
 #### Scenario: Highlight annotation created
-- **WHEN** the twohash result contains a highlight with `kind: "highlight"` at line 2
+- **WHEN** the glosharp result contains a highlight with `kind: "highlight"` at line 2
 - **THEN** a line-level annotation is added to line 2 that renders a highlight background
 
 #### Scenario: Highlight annotation rendering
@@ -237,25 +237,25 @@ The `annotateCode` hook SHALL create `TwohashHighlightAnnotation` instances for 
 - **THEN** the line has a visible background color distinguishing it from non-highlighted lines
 
 ### Requirement: Add focus annotations in annotateCode hook
-The `annotateCode` hook SHALL create `TwohashFocusAnnotation` instances for focus presentation. Lines with `kind: "focus"` SHALL remain at full opacity. All other lines in the code block SHALL be dimmed when any focus entries exist.
+The `annotateCode` hook SHALL create `GloSharpFocusAnnotation` instances for focus presentation. Lines with `kind: "focus"` SHALL remain at full opacity. All other lines in the code block SHALL be dimmed when any focus entries exist.
 
 #### Scenario: Focus annotation dims non-focused lines
-- **WHEN** the twohash result contains focus entries for lines 2 and 3 in a 5-line block
+- **WHEN** the glosharp result contains focus entries for lines 2 and 3 in a 5-line block
 - **THEN** lines 0, 1, and 4 are rendered with reduced opacity, while lines 2 and 3 remain at full opacity
 
 #### Scenario: No focus entries means no dimming
-- **WHEN** the twohash result contains no focus entries
+- **WHEN** the glosharp result contains no focus entries
 - **THEN** all lines render at full opacity (no dimming applied)
 
 ### Requirement: Add diff annotations in annotateCode hook
-The `annotateCode` hook SHALL create `TwohashDiffAnnotation` instances for diff presentation. Lines with `kind: "add"` SHALL have a green-tinted background. Lines with `kind: "remove"` SHALL have a red-tinted background.
+The `annotateCode` hook SHALL create `GloSharpDiffAnnotation` instances for diff presentation. Lines with `kind: "add"` SHALL have a green-tinted background. Lines with `kind: "remove"` SHALL have a red-tinted background.
 
 #### Scenario: Diff add annotation rendering
-- **WHEN** the twohash result contains a highlight with `kind: "add"` at line 3
+- **WHEN** the glosharp result contains a highlight with `kind: "add"` at line 3
 - **THEN** line 3 is rendered with a green-tinted background color
 
 #### Scenario: Diff remove annotation rendering
-- **WHEN** the twohash result contains a highlight with `kind: "remove"` at line 4
+- **WHEN** the glosharp result contains a highlight with `kind: "remove"` at line 4
 - **THEN** line 4 is rendered with a red-tinted background color
 
 ### Requirement: Theme-aware styling for highlight, focus, and diff

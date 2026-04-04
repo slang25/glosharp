@@ -20,12 +20,12 @@ All renderers SHALL use distinct colors for each diagnostic severity level: erro
 - **THEN** no visual annotation is rendered for that diagnostic
 
 ### Requirement: Severity CSS class on error elements
-Error-related HTML elements SHALL include a CSS class indicating severity: `twohash-severity-error`, `twohash-severity-warning`, or `twohash-severity-info`. This enables custom CSS overrides by consumers.
+Error-related HTML elements SHALL include a CSS class indicating severity: `glosharp-severity-error`, `glosharp-severity-warning`, or `glosharp-severity-info`. This enables custom CSS overrides by consumers.
 
 #### Scenario: Warning underline has severity class
 - **WHEN** a warning diagnostic underline is rendered
-- **THEN** the underline element has class `twohash-severity-warning` in addition to `twohash-error-underline`
+- **THEN** the underline element has class `glosharp-severity-warning` in addition to `glosharp-error-underline`
 
 #### Scenario: Error message div has severity class
 - **WHEN** an error message div is rendered for a warning
-- **THEN** the message div has class `twohash-severity-warning` in addition to `twohash-error-message`
+- **THEN** the message div has class `glosharp-severity-warning` in addition to `glosharp-error-message`

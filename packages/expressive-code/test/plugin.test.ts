@@ -1,14 +1,14 @@
 import { describe, it, expect } from 'vitest'
-import { pluginTwohash, type PluginTwohashOptions } from '../src/plugin.js'
+import { pluginGloSharp, type PluginGloSharpOptions } from '../src/plugin.js'
 
-describe('pluginTwohash', () => {
+describe('pluginGloSharp', () => {
   it('returns a plugin with correct name', () => {
-    const plugin = pluginTwohash()
-    expect(plugin.name).toBe('twohash')
+    const plugin = pluginGloSharp()
+    expect(plugin.name).toBe('glosharp')
   })
 
   it('has all required hooks', () => {
-    const plugin = pluginTwohash()
+    const plugin = pluginGloSharp()
     expect(plugin.hooks).toBeDefined()
     expect(plugin.hooks.preprocessCode).toBeDefined()
     expect(plugin.hooks.annotateCode).toBeDefined()
@@ -16,9 +16,9 @@ describe('pluginTwohash', () => {
   })
 
   it('has baseStyles with CSS', () => {
-    const plugin = pluginTwohash()
-    expect(plugin.baseStyles).toContain('.twohash-hover')
-    expect(plugin.baseStyles).toContain('.twohash-popup')
+    const plugin = pluginGloSharp()
+    expect(plugin.baseStyles).toContain('.glosharp-hover')
+    expect(plugin.baseStyles).toContain('.glosharp-popup')
     // anchor-name and position-anchor are set as inline styles on individual elements,
     // not in the base stylesheet — verify core layout rules instead
     expect(plugin.baseStyles).toContain('position: fixed')
@@ -29,20 +29,20 @@ describe('pluginTwohash', () => {
   })
 
   it('does not expose styleSettings (styles are in baseStyles)', () => {
-    const plugin = pluginTwohash()
+    const plugin = pluginGloSharp()
     expect((plugin as any).styleSettings).toBeUndefined()
   })
 
   it('baseStyles includes part kind color classes', () => {
-    const plugin = pluginTwohash()
-    expect(plugin.baseStyles).toContain('.twohash-keyword')
-    expect(plugin.baseStyles).toContain('.twohash-className')
-    expect(plugin.baseStyles).toContain('.twohash-localName')
-    expect(plugin.baseStyles).toContain('.twohash-methodName')
+    const plugin = pluginGloSharp()
+    expect(plugin.baseStyles).toContain('.glosharp-keyword')
+    expect(plugin.baseStyles).toContain('.glosharp-className')
+    expect(plugin.baseStyles).toContain('.glosharp-localName')
+    expect(plugin.baseStyles).toContain('.glosharp-methodName')
   })
 
   it('preprocessCode skips non-csharp blocks', async () => {
-    const plugin = pluginTwohash()
+    const plugin = pluginGloSharp()
     const codeBlock = { code: 'const x = 42;\n//  ^?', language: 'javascript', meta: '' } as any
     // Should not throw or modify
     await plugin.hooks.preprocessCode({ codeBlock })
@@ -50,7 +50,7 @@ describe('pluginTwohash', () => {
   })
 
   it('preprocessCode processes csharp blocks without markers', async () => {
-    const plugin = pluginTwohash()
+    const plugin = pluginGloSharp()
     const lines = ['var x = 42;']
     const codeBlock = {
       get code() { return lines.join('\n') },
@@ -71,28 +71,28 @@ describe('pluginTwohash', () => {
   })
 
   it('accepts project option', () => {
-    const options: PluginTwohashOptions = {
+    const options: PluginGloSharpOptions = {
       project: './MyProject.csproj',
     }
-    const plugin = pluginTwohash(options)
-    expect(plugin.name).toBe('twohash')
+    const plugin = pluginGloSharp(options)
+    expect(plugin.name).toBe('glosharp')
   })
 
   it('accepts region option', () => {
-    const options: PluginTwohashOptions = {
+    const options: PluginGloSharpOptions = {
       project: './MyProject.csproj',
       region: 'getting-started',
     }
-    const plugin = pluginTwohash(options)
-    expect(plugin.name).toBe('twohash')
+    const plugin = pluginGloSharp(options)
+    expect(plugin.name).toBe('glosharp')
   })
 
   it('baseStyles includes completion list styles', () => {
-    const plugin = pluginTwohash()
-    expect(plugin.baseStyles).toContain('.twohash-completion-list')
-    expect(plugin.baseStyles).toContain('.twohash-completion-item')
-    expect(plugin.baseStyles).toContain('.twohash-completion-kind')
-    expect(plugin.baseStyles).toContain('.twohash-completion-label')
-    expect(plugin.baseStyles).toContain('.twohash-completion-detail')
+    const plugin = pluginGloSharp()
+    expect(plugin.baseStyles).toContain('.glosharp-completion-list')
+    expect(plugin.baseStyles).toContain('.glosharp-completion-item')
+    expect(plugin.baseStyles).toContain('.glosharp-completion-kind')
+    expect(plugin.baseStyles).toContain('.glosharp-completion-label')
+    expect(plugin.baseStyles).toContain('.glosharp-completion-detail')
   })
 })

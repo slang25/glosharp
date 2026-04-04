@@ -1,6 +1,6 @@
 ## Why
 
-.NET 10 introduces file-based apps with `#:` directives (`#:package`, `#:sdk`, `#:property`) that let a single `.cs` file declare its own dependencies without a `.csproj`. This is exactly twohash's lightweight use case — a documentation snippet that's simultaneously compilable and renderable. Supporting these directives eliminates the friction of maintaining a separate project file for simple snippets with NuGet dependencies, and aligns twohash with the SDK's native approach rather than inventing custom marker syntax.
+.NET 10 introduces file-based apps with `#:` directives (`#:package`, `#:sdk`, `#:property`) that let a single `.cs` file declare its own dependencies without a `.csproj`. This is exactly glosharp's lightweight use case — a documentation snippet that's simultaneously compilable and renderable. Supporting these directives eliminates the friction of maintaining a separate project file for simple snippets with NuGet dependencies, and aligns glosharp with the SDK's native approach rather than inventing custom marker syntax.
 
 ## What Changes
 
@@ -23,7 +23,7 @@
 
 ## Impact
 
-- **Core**: New `FileBasedAppResolver` alongside existing `ProjectAssetsResolver` and `FrameworkResolver`; `TwohashProcessor` gains a third resolution path
+- **Core**: New `FileBasedAppResolver` alongside existing `ProjectAssetsResolver` and `FrameworkResolver`; `GloSharpProcessor` gains a third resolution path
 - **MarkerParser**: Extended to recognize `#:` lines as directive markers for stripping
 - **CLI**: New auto-detection logic in the process command; no new flags required (detection is automatic)
 - **JSON output**: Additive change to `meta` — new optional `sdk` field

@@ -35,7 +35,7 @@ The system SHALL locate framework reference assemblies from the installed .NET S
 - **THEN** the target framework is inferred from the project's assets file
 
 ### Requirement: Extract hover information at queried positions
-The system SHALL resolve the syntax node at each hover query position, obtain symbol info via `SemanticModel.GetSymbolInfo()` or `SemanticModel.GetDeclaredSymbol()`, and produce structured hover data including display parts, documentation, and symbol kind. The `Docs` field SHALL contain a structured `TwohashDocComment` object (or null) instead of a plain summary string. Hovers extracted from `^?` markers SHALL have `persistent` set to `true`.
+The system SHALL resolve the syntax node at each hover query position, obtain symbol info via `SemanticModel.GetSymbolInfo()` or `SemanticModel.GetDeclaredSymbol()`, and produce structured hover data including display parts, documentation, and symbol kind. The `Docs` field SHALL contain a structured `GloSharpDocComment` object (or null) instead of a plain summary string. Hovers extracted from `^?` markers SHALL have `persistent` set to `true`.
 
 #### Scenario: Local variable hover
 - **WHEN** a `^?` hover query targets a local variable `x` of type `int`

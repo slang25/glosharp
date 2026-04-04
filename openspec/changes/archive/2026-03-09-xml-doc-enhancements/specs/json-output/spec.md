@@ -1,7 +1,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: Hover objects in JSON
-Each hover entry SHALL contain: `line` (number), `character` (number), `length` (number), `text` (string), `parts` (array of `{kind, text}`), `docs` (structured `TwohashDocComment` object or null), `symbolKind` (string), and `targetText` (string). The `docs` object, when present, SHALL contain: `summary` (string or null), `params` (array of `{name, text}`), `returns` (string or null), `remarks` (string or null), `examples` (array of strings), and `exceptions` (array of `{type, text}`). Empty arrays and null fields within `docs` SHALL be omitted from JSON output.
+Each hover entry SHALL contain: `line` (number), `character` (number), `length` (number), `text` (string), `parts` (array of `{kind, text}`), `docs` (structured `GloSharpDocComment` object or null), `symbolKind` (string), and `targetText` (string). The `docs` object, when present, SHALL contain: `summary` (string or null), `params` (array of `{name, text}`), `returns` (string or null), `remarks` (string or null), `examples` (array of strings), and `exceptions` (array of `{type, text}`). Empty arrays and null fields within `docs` SHALL be omitted from JSON output.
 
 #### Scenario: Hover JSON with full docs
 - **WHEN** a hover query resolves to a method with summary, params, and returns documentation

@@ -1,5 +1,5 @@
 {
-  "name": "twohash-standalone-example",
+  "name": "glosharp-standalone-example",
   "type": "module",
   "version": "0.0.1",
   "private": true,
@@ -7,8 +7,8 @@
     "render": "node render.mjs"
   },
   "dependencies": {
-    "@twohash/core": "*",
-    "@twohash/shiki": "*",
+    "@glosharp/core": "*",
+    "@glosharp/shiki": "*",
     "shiki": "^4.0.0"
   }
 }

@@ -42,7 +42,7 @@ The system SHALL select the appropriate target framework from the `targets` sect
 - **THEN** the system uses the first target framework listed in the assets file
 
 ### Requirement: Extract package metadata
-The system SHALL extract package names and versions from the resolved dependencies and return them as structured metadata for populating `TwohashMeta.Packages`.
+The system SHALL extract package names and versions from the resolved dependencies and return them as structured metadata for populating `GloSharpMeta.Packages`.
 
 #### Scenario: Package metadata extraction
 - **WHEN** resolved packages include `Newtonsoft.Json/13.0.3` and `System.Text.Json/8.0.0`

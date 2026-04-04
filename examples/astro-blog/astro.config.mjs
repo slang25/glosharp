@@ -1,15 +1,15 @@
 import { defineConfig } from 'astro/config'
-import { remarkTwohash, twohashTransformer } from './src/remark-twohash.mjs'
+import { remarkGloSharp, glosharpTransformer } from './src/remark-glosharp.mjs'
 
 export default defineConfig({
   markdown: {
-    remarkPlugins: [remarkTwohash],
+    remarkPlugins: [remarkGloSharp],
     shikiConfig: {
       themes: {
         light: 'github-light',
         dark: 'github-dark',
       },
-      transformers: [twohashTransformer()],
+      transformers: [glosharpTransformer()],
     },
   },
 })

@@ -1,7 +1,7 @@
 {
-  "name": "@twohash/shiki",
+  "name": "@glosharp/shiki",
   "version": "0.1.0-alpha.1",
-  "description": "Shiki transformer for twohash C# type information",
+  "description": "Shiki transformer for glosharp C# type information",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -17,7 +17,7 @@
     "build": "tsc"
   },
   "dependencies": {
-    "@twohash/core": "0.1.0-alpha.1"
+    "@glosharp/core": "0.1.0-alpha.1"
   },
   "peerDependencies": {
     "shiki": "^3.0.0 || ^4.0.0"

@@ -3,7 +3,7 @@ import { writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { codeToHtml } from 'shiki'
 
-const CLI_PROJECT = join(import.meta.dirname!, '../../src/TwoHash.Cli/TwoHash.Cli.csproj')
+const CLI_PROJECT = join(import.meta.dirname!, '../../src/GloSharp.Cli/GloSharp.Cli.csproj')
 const SAMPLES_DIR = join(import.meta.dirname!, '../../samples')
 const CSS = `
 <style>
@@ -13,12 +13,12 @@ h2 { color: #a78bfa; margin-top: 32px; }
 .sample { margin: 16px 0; position: relative; }
 pre { border-radius: 8px; overflow-x: auto; padding-bottom: 4px !important; }
 
-.twohash-hover {
+.glosharp-hover {
   position: relative;
   border-bottom: 1px dotted #a78bfa;
   cursor: pointer;
 }
-.twohash-popup {
+.glosharp-popup {
   display: none;
   position: fixed;
   position-area: top;
@@ -35,19 +35,19 @@ pre { border-radius: 8px; overflow-x: auto; padding-bottom: 4px !important; }
   white-space: pre-wrap;
   box-shadow: 0 2px 8px rgba(0,0,0,0.4);
 }
-.twohash-hover:hover + .twohash-popup,
-.twohash-popup:hover { display: block; }
-.twohash-popup-code { font-family: 'SF Mono', 'Cascadia Code', monospace; }
-.twohash-popup-docs { margin-top: 6px; padding-top: 6px; border-top: 1px solid #3c3c3c; font-style: italic; color: #9cdcfe; }
-.twohash-error-message { display: block; padding: 2px 8px; margin-top: 2px; background: rgba(244,71,71,0.1); border-left: 3px solid #f44747; color: #f44747; font-size: 0.85em; }
-.twohash-error-code { font-weight: bold; }
-.twohash-keyword { color: #569cd6; }
-.twohash-className, .twohash-structName { color: #4ec9b0; }
-.twohash-interfaceName, .twohash-enumName { color: #b8d7a3; }
-.twohash-methodName { color: #dcdcaa; }
-.twohash-propertyName, .twohash-fieldName, .twohash-localName, .twohash-parameterName { color: #9cdcfe; }
-.twohash-punctuation, .twohash-operator { color: #d4d4d4; }
-.twohash-text { color: #d4d4d4; }
+.glosharp-hover:hover + .glosharp-popup,
+.glosharp-popup:hover { display: block; }
+.glosharp-popup-code { font-family: 'SF Mono', 'Cascadia Code', monospace; }
+.glosharp-popup-docs { margin-top: 6px; padding-top: 6px; border-top: 1px solid #3c3c3c; font-style: italic; color: #9cdcfe; }
+.glosharp-error-message { display: block; padding: 2px 8px; margin-top: 2px; background: rgba(244,71,71,0.1); border-left: 3px solid #f44747; color: #f44747; font-size: 0.85em; }
+.glosharp-error-code { font-weight: bold; }
+.glosharp-keyword { color: #569cd6; }
+.glosharp-className, .glosharp-structName { color: #4ec9b0; }
+.glosharp-interfaceName, .glosharp-enumName { color: #b8d7a3; }
+.glosharp-methodName { color: #dcdcaa; }
+.glosharp-propertyName, .glosharp-fieldName, .glosharp-localName, .glosharp-parameterName { color: #9cdcfe; }
+.glosharp-punctuation, .glosharp-operator { color: #d4d4d4; }
+.glosharp-text { color: #d4d4d4; }
 </style>
 `
 
@@ -86,7 +86,7 @@ async function renderSample(name: string): Promise<string> {
     lang: 'csharp',
     theme: 'github-dark',
     transformers: [{
-      name: 'twohash-inject',
+      name: 'glosharp-inject',
       root(hast: any) {
         const lines = findLines(hast)
         let idx = 0
@@ -96,13 +96,13 @@ async function renderSample(name: string): Promise<string> {
           const anchor = `--th-${name.replace('.cs','')}-${idx++}`
           const parts = hover.parts.map((p: any) => ({
             type: 'element', tagName: 'span',
-            properties: { class: `twohash-${p.kind}` },
+            properties: { class: `glosharp-${p.kind}` },
             children: [{ type: 'text', value: p.text }],
           }))
           const popup = {
-            type: 'element', tagName: 'div', properties: { class: 'twohash-popup', style: `position-anchor: ${anchor}` },
-            children: [{ type: 'element', tagName: 'code', properties: { class: 'twohash-popup-code' }, children: parts },
-              ...(hover.docs ? [{ type: 'element', tagName: 'div', properties: { class: 'twohash-popup-docs' }, children: [{ type: 'text', value: hover.docs }] }] : []),
+            type: 'element', tagName: 'div', properties: { class: 'glosharp-popup', style: `position-anchor: ${anchor}` },
+            children: [{ type: 'element', tagName: 'code', properties: { class: 'glosharp-popup-code' }, children: parts },
+              ...(hover.docs ? [{ type: 'element', tagName: 'div', properties: { class: 'glosharp-popup-docs' }, children: [{ type: 'text', value: hover.docs }] }] : []),
             ],
           }
           for (let i = 0; i < line.children.length; i++) {
@@ -123,7 +123,7 @@ async function renderSample(name: string): Promise<string> {
             const newNodes: any[] = []
             if (before) newNodes.push(cloneWithText(original, before))
             newNodes.push(
-              { type: 'element', tagName: 'span', properties: { class: 'twohash-hover', style: `anchor-name: ${anchor}` },
+              { type: 'element', tagName: 'span', properties: { class: 'glosharp-hover', style: `anchor-name: ${anchor}` },
                 children: [cloneWithText(original, hover.targetText)] },
               popup,
             )
@@ -138,9 +138,9 @@ async function renderSample(name: string): Promise<string> {
           const line = lines[error.line]
           if (!line?.children) continue
           line.children.push({
-            type: 'element', tagName: 'div', properties: { class: 'twohash-error-message' },
+            type: 'element', tagName: 'div', properties: { class: 'glosharp-error-message' },
             children: [
-              { type: 'element', tagName: 'span', properties: { class: 'twohash-error-code' }, children: [{ type: 'text', value: error.code }] },
+              { type: 'element', tagName: 'span', properties: { class: 'glosharp-error-code' }, children: [{ type: 'text', value: error.code }] },
               { type: 'text', value: `: ${error.message}` },
             ],
           })
@@ -161,11 +161,11 @@ async function main() {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Twohash Visual Smoke Test</title>
+<title>GloSharp Visual Smoke Test</title>
 ${CSS}
 </head>
 <body>
-<h1>Twohash Visual Smoke Test</h1>
+<h1>GloSharp Visual Smoke Test</h1>
 <p>Hover over dotted-underlined tokens to see type information popups.</p>
 ${blocks.join('\n')}
 </body>

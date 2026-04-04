@@ -1,37 +1,37 @@
-# Twohash Examples
+# GloSharp Examples
 
-Sample projects showing how to use twohash in different contexts.
+Sample projects showing how to use glosharp in different contexts.
 
 ## Prerequisites
 
-All examples require the twohash CLI and the npm packages.
+All examples require the glosharp CLI and the npm packages.
 
 **From the repo root** (uses local packages — no publishing needed):
 
 ```bash
 # Pack and install the CLI as a local dotnet tool
-dotnet pack src/TwoHash.Cli/ -o .nupkg/
-dotnet tool restore  # or: dotnet tool install twohash --local --add-source .nupkg/
+dotnet pack src/GloSharp.Cli/ -o .nupkg/
+dotnet tool restore  # or: dotnet tool install glosharp --local --add-source .nupkg/
 
-# Install npm dependencies (workspaces resolve twohash packages locally)
+# Install npm dependencies (workspaces resolve glosharp packages locally)
 npm install
 
 # Build the TypeScript packages
-npm run build --workspace=packages/twohash
+npm run build --workspace=packages/glosharp
 npm run build --workspace=packages/shiki
 ```
 
 Or if the packages are published, just install the CLI globally:
 
 ```bash
-dotnet tool install -g twohash
+dotnet tool install -g glosharp
 ```
 
 ## Examples
 
 ### [`astro-blog/`](./astro-blog/)
 
-An Astro site that uses `@twohash/shiki` to render C# code blocks with hover
+An Astro site that uses `@glosharp/shiki` to render C# code blocks with hover
 type information in Markdown blog posts.
 
 ```bash
@@ -41,12 +41,12 @@ npm run dev
 ```
 
 The key integration point is `astro.config.mjs`, which adds a custom Shiki
-transformer that calls twohash during Markdown processing.
+transformer that calls glosharp during Markdown processing.
 
 ### [`expressive-code/`](./expressive-code/)
 
-An Astro site that uses `astro-expressive-code` with the `@twohash/expressive-code`
-plugin. This is the simplest framework integration — just add `pluginTwohash()` to
+An Astro site that uses `astro-expressive-code` with the `@glosharp/expressive-code`
+plugin. This is the simplest framework integration — just add `pluginGloSharp()` to
 your Expressive Code config and all C# code blocks get type hovers automatically.
 
 ```bash
@@ -55,13 +55,13 @@ npm install
 npm run dev
 ```
 
-The key integration point is `astro.config.mjs`, which passes the twohash plugin
+The key integration point is `astro.config.mjs`, which passes the glosharp plugin
 to `astro-expressive-code`.
 
 ### [`docusaurus-docs/`](./docusaurus-docs/)
 
 A Docusaurus documentation site with a custom remark plugin that processes C#
-code blocks through twohash before rendering.
+code blocks through glosharp before rendering.
 
 ```bash
 cd docusaurus-docs
@@ -69,7 +69,7 @@ npm install
 npm start
 ```
 
-See `src/plugins/twohash-plugin.ts` for the remark plugin that hooks into
+See `src/plugins/glosharp-plugin.ts` for the remark plugin that hooks into
 Docusaurus's Markdown pipeline.
 
 ### [`standalone/`](./standalone/)
@@ -84,12 +84,12 @@ npm run render
 open output.html
 ```
 
-This is the simplest way to try twohash — just write C# with markers and
+This is the simplest way to try glosharp — just write C# with markers and
 generate an HTML file.
 
 ## Marker Syntax
 
-All examples use the same twohash marker syntax in C# code:
+All examples use the same glosharp marker syntax in C# code:
 
 | Marker | Purpose |
 |---|---|

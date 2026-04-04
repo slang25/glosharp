@@ -1,7 +1,7 @@
-import { createTwohash, type TwohashOptions, type TwohashResult, type TwohashHover, type TwohashError, type TwohashDisplayPart, type TwohashCompletion, type TwohashDocComment, type TwohashDocParam, type TwohashDocException, type TwohashHighlight } from '@twohash/core'
+import { createGloSharp, type GloSharpOptions, type GloSharpResult, type GloSharpHover, type GloSharpError, type GloSharpDisplayPart, type GloSharpCompletion, type GloSharpDocComment, type GloSharpDocParam, type GloSharpDocException, type GloSharpHighlight } from '@glosharp/core'
 import type { ExpressiveCodeBlock } from '@expressive-code/core'
 
-export interface PluginTwohashOptions extends TwohashOptions {
+export interface PluginGloSharpOptions extends GloSharpOptions {
   project?: string
   region?: string
 }
@@ -49,8 +49,8 @@ const partColors: Record<string, { dark: string; light: string }> = {
 function buildBaseStyles(): string {
   const partColorRules = Object.entries(partColors)
     .map(([kind, colors]) =>
-      `.twohash-${kind} { color: var(--twohash-${kind}-dark, ${colors.dark}); }
-[data-theme="light"] .twohash-${kind} { color: var(--twohash-${kind}-light, ${colors.light}); }`
+      `.glosharp-${kind} { color: var(--glosharp-${kind}-dark, ${colors.dark}); }
+[data-theme="light"] .glosharp-${kind} { color: var(--glosharp-${kind}-light, ${colors.light}); }`
     )
     .join('\n')
 
@@ -61,7 +61,7 @@ function buildBaseStyles(): string {
 }
 
 /* Hoverable tokens */
-.twohash-hover {
+.glosharp-hover {
   position: relative;
   border-bottom: 1px dashed transparent;
   transition-timing-function: ease;
@@ -69,54 +69,54 @@ function buildBaseStyles(): string {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .twohash-hover, .twohash-noline { transition: none !important; }
+  .glosharp-hover, .glosharp-noline { transition: none !important; }
 }
 
 /* Container hover: subtle underline on all hoverable tokens */
-.expressive-code:hover .twohash-hover:not(.twohash-hover:hover) {
+.expressive-code:hover .glosharp-hover:not(.glosharp-hover:hover) {
   border-color: color-mix(in srgb, currentColor 40%, transparent);
 }
 
 /* Stronger underline + subtle background on direct token hover */
-.expressive-code:hover .twohash-hover:hover {
+.expressive-code:hover .glosharp-hover:hover {
   border-bottom-color: currentColor;
   background: rgba(139, 92, 246, 0.08);
   border-radius: 2px;
 }
 
-@keyframes twohashPopupFadeIn {
+@keyframes glosharpPopupFadeIn {
   from { opacity: 0; transform: translateY(-4px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 /* Popup container (shared by hover popups and static queries) */
-.twohash-popup-container {
+.glosharp-popup-container {
   position: absolute;
   z-index: 999 !important;
-  border: 1px solid var(--twohash-popup-border, ${styleSettings.popupBorder.dark});
+  border: 1px solid var(--glosharp-popup-border, ${styleSettings.popupBorder.dark});
   border-radius: 4px;
-  background: var(--twohash-popup-bg, ${styleSettings.popupBackground.dark});
-  color: var(--twohash-popup-fg, ${styleSettings.popupForeground.dark});
+  background: var(--glosharp-popup-bg, ${styleSettings.popupBackground.dark});
+  color: var(--glosharp-popup-fg, ${styleSettings.popupForeground.dark});
   font-size: 90%;
   white-space: nowrap !important;
   word-break: normal !important;
   overflow-wrap: normal !important;
   width: max-content !important;
   margin-top: 0.5rem;
-  animation: twohashPopupFadeIn 0.12s ease-out;
+  animation: glosharpPopupFadeIn 0.12s ease-out;
 }
 
 /* Arrow caret on hover popup */
-.twohash-popup-container::before {
+.glosharp-popup-container::before {
   content: '';
   position: absolute;
   top: -5px;
   left: 3px;
   width: 8px;
   height: 8px;
-  background: var(--twohash-popup-bg, ${styleSettings.popupBackground.dark});
-  border-top: 1px solid var(--twohash-popup-border, ${styleSettings.popupBorder.dark});
-  border-right: 1px solid var(--twohash-popup-border, ${styleSettings.popupBorder.dark});
+  background: var(--glosharp-popup-bg, ${styleSettings.popupBackground.dark});
+  border-top: 1px solid var(--glosharp-popup-border, ${styleSettings.popupBorder.dark});
+  border-right: 1px solid var(--glosharp-popup-border, ${styleSettings.popupBorder.dark});
   transform: rotate(-45deg);
   pointer-events: none;
   display: inline-block;
@@ -124,31 +124,31 @@ function buildBaseStyles(): string {
 
 /* Hover popup: hidden by default, JS controls visibility */
 /* !important needed to override EC's all:revert reset */
-.twohash-hover > .twohash-popup-container {
+.glosharp-hover > .glosharp-popup-container {
   display: none !important;
   left: 0;
   top: calc(100% + 8px);
 }
 
 /* Static query container (persistent ^? results between lines) */
-.twohash-noline {
+.glosharp-noline {
   position: relative;
   display: block;
 }
 
-.twohash-static {
+.glosharp-static {
   display: block !important;
   position: relative;
   padding-left: var(--ec-codePadInl, 1.35rem);
 }
 
-.twohash-static-container {
+.glosharp-static-container {
   display: block !important;
   z-index: 10;
-  border: 1px solid var(--twohash-popup-border, ${styleSettings.popupBorder.dark});
+  border: 1px solid var(--glosharp-popup-border, ${styleSettings.popupBorder.dark});
   border-radius: 4px;
-  background: var(--twohash-popup-bg, ${styleSettings.popupBackground.dark});
-  color: var(--twohash-popup-fg, ${styleSettings.popupForeground.dark});
+  background: var(--glosharp-popup-bg, ${styleSettings.popupBackground.dark});
+  color: var(--glosharp-popup-fg, ${styleSettings.popupForeground.dark});
   font-size: 90%;
   white-space: nowrap !important;
   word-break: normal !important;
@@ -157,11 +157,11 @@ function buildBaseStyles(): string {
 }
 
 /* No arrow caret on static container — persistent query results render inline */
-.twohash-static-container::before {
+.glosharp-static-container::before {
   display: none !important;
 }
 
-.twohash-popup-code {
+.glosharp-popup-code {
   display: block;
   width: 100%;
   max-width: 600px !important;
@@ -172,46 +172,46 @@ function buildBaseStyles(): string {
   overflow: auto;
 }
 
-.twohash-popup-code,
-.twohash-popup-code span {
+.glosharp-popup-code,
+.glosharp-popup-code span {
   white-space: preserve !important;
 }
 
-.twohash-symbol-icon {
+.glosharp-symbol-icon {
   display: inline-flex;
   align-items: center;
   margin-right: 5px;
   vertical-align: middle;
   cursor: default;
 }
-.twohash-symbol-icon svg {
+.glosharp-symbol-icon svg {
   display: block;
 }
 
-.twohash-popup-docs {
+.glosharp-popup-docs {
   max-width: 600px;
   padding: 6px 12px;
-  border-top: 1px solid var(--twohash-popup-border, ${styleSettings.popupBorder.dark});
+  border-top: 1px solid var(--glosharp-popup-border, ${styleSettings.popupBorder.dark});
   max-height: 200px;
   overflow: auto;
   text-wrap: balance;
 }
 
-.twohash-popup-summary {
+.glosharp-popup-summary {
   font-style: italic;
 }
 
-.twohash-popup-params,
-.twohash-popup-returns,
-.twohash-popup-remarks,
-.twohash-popup-example,
-.twohash-popup-exceptions {
+.glosharp-popup-params,
+.glosharp-popup-returns,
+.glosharp-popup-remarks,
+.glosharp-popup-example,
+.glosharp-popup-exceptions {
   margin-top: 4px;
   padding-top: 4px;
-  border-top: 1px solid var(--twohash-popup-border, ${styleSettings.popupBorder.dark});
+  border-top: 1px solid var(--glosharp-popup-border, ${styleSettings.popupBorder.dark});
 }
 
-.twohash-popup-section-label {
+.glosharp-popup-section-label {
   font-size: 0.8em;
   opacity: 0.7;
   text-transform: uppercase;
@@ -219,31 +219,31 @@ function buildBaseStyles(): string {
   margin-bottom: 2px;
 }
 
-.twohash-popup-param {
+.glosharp-popup-param {
   display: flex;
   gap: 6px;
   margin: 1px 0;
 }
 
-.twohash-popup-param-name {
+.glosharp-popup-param-name {
   font-family: inherit;
   font-weight: bold;
   white-space: nowrap;
 }
 
-.twohash-popup-exception {
+.glosharp-popup-exception {
   display: flex;
   gap: 6px;
   margin: 1px 0;
 }
 
-.twohash-popup-exception-type {
+.glosharp-popup-exception-type {
   font-family: inherit;
   font-weight: bold;
   white-space: nowrap;
 }
 
-.twohash-popup-example pre {
+.glosharp-popup-example pre {
   margin: 2px 0;
   padding: 4px 6px;
   background: rgba(128, 128, 128, 0.1);
@@ -252,124 +252,124 @@ function buildBaseStyles(): string {
 }
 
 /* Static query: always visible, rendered below the line */
-.twohash-static {
+.glosharp-static {
   position: relative;
   display: block;
 }
 
-.twohash-static > .twohash-popup-container {
+.glosharp-static > .glosharp-popup-container {
   position: relative;
   display: block;
   margin-top: 4px;
 }
 
-.twohash-static > .twohash-popup-container::before {
+.glosharp-static > .glosharp-popup-container::before {
   top: -5px;
   left: 6px;
 }
 
 /* Error underlines */
-.twohash-error-underline {
-  border-bottom: 2px wavy var(--twohash-error-underline, ${styleSettings.errorUnderline.dark});
+.glosharp-error-underline {
+  border-bottom: 2px wavy var(--glosharp-error-underline, ${styleSettings.errorUnderline.dark});
 }
 
-.twohash-error-underline.twohash-severity-warning {
-  border-bottom-color: var(--twohash-warning-underline, ${styleSettings.warningUnderline.dark});
+.glosharp-error-underline.glosharp-severity-warning {
+  border-bottom-color: var(--glosharp-warning-underline, ${styleSettings.warningUnderline.dark});
 }
 
-.twohash-error-underline.twohash-severity-info {
-  border-bottom-color: var(--twohash-info-underline, ${styleSettings.infoUnderline.dark});
+.glosharp-error-underline.glosharp-severity-info {
+  border-bottom-color: var(--glosharp-info-underline, ${styleSettings.infoUnderline.dark});
 }
 
-.twohash-error-message {
+.glosharp-error-message {
   display: block;
   padding: 2px 8px;
   margin-top: 2px;
-  background: var(--twohash-error-bg, ${styleSettings.errorBackground.dark});
-  border-left: 3px solid var(--twohash-error-underline, ${styleSettings.errorUnderline.dark});
-  color: var(--twohash-error-underline, ${styleSettings.errorUnderline.dark});
+  background: var(--glosharp-error-bg, ${styleSettings.errorBackground.dark});
+  border-left: 3px solid var(--glosharp-error-underline, ${styleSettings.errorUnderline.dark});
+  color: var(--glosharp-error-underline, ${styleSettings.errorUnderline.dark});
   font-size: 0.85em;
 }
 
-.twohash-error-message.twohash-severity-warning {
-  background: var(--twohash-warning-bg, ${styleSettings.warningBackground.dark});
-  border-left-color: var(--twohash-warning-underline, ${styleSettings.warningUnderline.dark});
-  color: var(--twohash-warning-underline, ${styleSettings.warningUnderline.dark});
+.glosharp-error-message.glosharp-severity-warning {
+  background: var(--glosharp-warning-bg, ${styleSettings.warningBackground.dark});
+  border-left-color: var(--glosharp-warning-underline, ${styleSettings.warningUnderline.dark});
+  color: var(--glosharp-warning-underline, ${styleSettings.warningUnderline.dark});
 }
 
-.twohash-error-message.twohash-severity-info {
-  background: var(--twohash-info-bg, ${styleSettings.infoBackground.dark});
-  border-left-color: var(--twohash-info-underline, ${styleSettings.infoUnderline.dark});
-  color: var(--twohash-info-underline, ${styleSettings.infoUnderline.dark});
+.glosharp-error-message.glosharp-severity-info {
+  background: var(--glosharp-info-bg, ${styleSettings.infoBackground.dark});
+  border-left-color: var(--glosharp-info-underline, ${styleSettings.infoUnderline.dark});
+  color: var(--glosharp-info-underline, ${styleSettings.infoUnderline.dark});
 }
 
-.twohash-error-code {
+.glosharp-error-code {
   font-weight: bold;
 }
 
-a.twohash-error-code {
+a.glosharp-error-code {
   color: inherit;
   text-decoration: none;
 }
 
-a.twohash-error-code:hover {
+a.glosharp-error-code:hover {
   text-decoration: underline;
 }
 
 /* Completion list */
-.twohash-completion-list {
+.glosharp-completion-list {
   list-style: none;
   margin: 4px 0 0 0;
   padding: 4px 0;
-  border: 1px solid var(--twohash-popup-border, ${styleSettings.popupBorder.dark});
+  border: 1px solid var(--glosharp-popup-border, ${styleSettings.popupBorder.dark});
   border-radius: 4px;
-  background: var(--twohash-popup-bg, ${styleSettings.popupBackground.dark});
+  background: var(--glosharp-popup-bg, ${styleSettings.popupBackground.dark});
   font-size: 0.875em;
   max-height: 200px;
   overflow-y: auto;
 }
 
-.twohash-completion-item {
+.glosharp-completion-item {
   display: flex;
   gap: 8px;
   padding: 2px 8px;
   align-items: center;
 }
 
-.twohash-completion-kind {
+.glosharp-completion-kind {
   font-size: 0.75em;
   opacity: 0.7;
   min-width: 60px;
 }
 
-.twohash-completion-label {
-  color: var(--twohash-popup-fg, ${styleSettings.popupForeground.dark});
+.glosharp-completion-label {
+  color: var(--glosharp-popup-fg, ${styleSettings.popupForeground.dark});
 }
 
-.twohash-completion-detail {
+.glosharp-completion-detail {
   opacity: 0.6;
   font-size: 0.85em;
   margin-left: auto;
 }
 
 /* Visual annotations */
-.twohash-highlight {
-  background: var(--twohash-highlight-bg, ${styleSettings.highlightBackground.dark});
+.glosharp-highlight {
+  background: var(--glosharp-highlight-bg, ${styleSettings.highlightBackground.dark});
 }
 
-.twohash-focus-dim {
-  opacity: var(--twohash-focus-dim-opacity, ${styleSettings.focusDimOpacity.dark});
+.glosharp-focus-dim {
+  opacity: var(--glosharp-focus-dim-opacity, ${styleSettings.focusDimOpacity.dark});
   transition: opacity 0.2s;
 }
 
-.twohash-diff-add {
-  background: var(--twohash-diff-add-bg, ${styleSettings.diffAddBackground.dark});
-  border-left: 3px solid var(--twohash-diff-add-border, ${styleSettings.diffAddBorder.dark});
+.glosharp-diff-add {
+  background: var(--glosharp-diff-add-bg, ${styleSettings.diffAddBackground.dark});
+  border-left: 3px solid var(--glosharp-diff-add-border, ${styleSettings.diffAddBorder.dark});
 }
 
-.twohash-diff-remove {
-  background: var(--twohash-diff-remove-bg, ${styleSettings.diffRemoveBackground.dark});
-  border-left: 3px solid var(--twohash-diff-remove-border, ${styleSettings.diffRemoveBorder.dark});
+.glosharp-diff-remove {
+  background: var(--glosharp-diff-remove-bg, ${styleSettings.diffRemoveBackground.dark});
+  border-left: 3px solid var(--glosharp-diff-remove-border, ${styleSettings.diffRemoveBorder.dark});
 }
 
 ${partColorRules}
@@ -444,7 +444,7 @@ const symbolIcons: Record<string, { paths: string[], color: string, fillRule?: s
 function buildSpriteSheetHtml(): string {
   const symbols = Object.entries(symbolIcons).map(([kind, icon]) => {
     const paths = icon.paths.map(d => `<path d="${d}" fill="${icon.color}"/>`).join('')
-    return `<symbol id="twohash-icon-${kind}" viewBox="0 0 16 16">${paths}</symbol>`
+    return `<symbol id="glosharp-icon-${kind}" viewBox="0 0 16 16">${paths}</symbol>`
   }).join('')
   return `<svg xmlns="http://www.w3.org/2000/svg" style="display:none">${symbols}</svg>`
 }
@@ -453,14 +453,14 @@ function buildSpriteSheetHtml(): string {
 function buildPopupJsModule(): string {
   const spriteHtml = buildSpriteSheetHtml().replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/`/g, '\\`')
   return `
-(function initTwohashPopups() {
+(function initGloSharpPopups() {
   const TIMEOUT_MS = 100;
   let activePopup = null;
   let activeHover = null;
   let hideTimeout = null;
 
   function showTooltip(hoverEl) {
-    const popup = hoverEl.querySelector('.twohash-popup-container');
+    const popup = hoverEl.querySelector('.glosharp-popup-container');
     if (!popup) return;
 
     // Find the .expressive-code ancestor to reparent into
@@ -498,7 +498,7 @@ function buildPopupJsModule(): string {
 
     activePopup = popup;
     activeHover = hoverEl;
-    popup._twohashOrigParent = hoverEl;
+    popup._glosharpOrigParent = hoverEl;
   }
 
   function hideTooltip() {
@@ -506,8 +506,8 @@ function buildPopupJsModule(): string {
     if (activePopup) {
       activePopup.style.setProperty('display', 'none', 'important');
       // Reparent back
-      if (activePopup._twohashOrigParent) {
-        activePopup._twohashOrigParent.appendChild(activePopup);
+      if (activePopup._glosharpOrigParent) {
+        activePopup._glosharpOrigParent.appendChild(activePopup);
       }
       activePopup = null;
       activeHover = null;
@@ -522,18 +522,18 @@ function buildPopupJsModule(): string {
   }
 
   function injectSpriteSheet() {
-    if (document.getElementById('twohash-sprites')) return;
+    if (document.getElementById('glosharp-sprites')) return;
     const div = document.createElement('div');
-    div.id = 'twohash-sprites';
+    div.id = 'glosharp-sprites';
     div.innerHTML = '${spriteHtml}';
     document.body.prepend(div);
   }
 
   function setup() {
     injectSpriteSheet();
-    document.querySelectorAll('.twohash-hover').forEach(hoverEl => {
-      if (hoverEl._twohashBound) return;
-      hoverEl._twohashBound = true;
+    document.querySelectorAll('.glosharp-hover').forEach(hoverEl => {
+      if (hoverEl._glosharpBound) return;
+      hoverEl._glosharpBound = true;
 
       hoverEl.addEventListener('mouseenter', () => showTooltip(hoverEl));
       hoverEl.addEventListener('mouseleave', () => scheduleHide());
@@ -541,13 +541,13 @@ function buildPopupJsModule(): string {
 
     // Allow mouse to enter popups without them disappearing
     document.addEventListener('mouseenter', (e) => {
-      if (e.target && e.target.closest && e.target.closest('.twohash-popup-container') === activePopup) {
+      if (e.target && e.target.closest && e.target.closest('.glosharp-popup-container') === activePopup) {
         if (hideTimeout) { clearTimeout(hideTimeout); hideTimeout = null; }
       }
     }, true);
 
     document.addEventListener('mouseleave', (e) => {
-      if (e.target && e.target.closest && e.target.closest('.twohash-popup-container') === activePopup) {
+      if (e.target && e.target.closest && e.target.closest('.glosharp-popup-container') === activePopup) {
         scheduleHide();
       }
     }, true);
@@ -567,7 +567,7 @@ function buildPopupJsModule(): string {
   new MutationObserver((mutations) => {
     for (const m of mutations) {
       for (const node of m.addedNodes) {
-        if (node.nodeType === 1 && node.querySelector && node.querySelector('.twohash-hover')) {
+        if (node.nodeType === 1 && node.querySelector && node.querySelector('.glosharp-hover')) {
           setup();
           return;
         }
@@ -578,12 +578,12 @@ function buildPopupJsModule(): string {
 `
 }
 
-export function pluginTwohash(options: PluginTwohashOptions = {}) {
-  const twohash = createTwohash(options)
-  const resultCache = new WeakMap<ExpressiveCodeBlock, TwohashResult>()
+export function pluginGloSharp(options: PluginGloSharpOptions = {}) {
+  const glosharp = createGloSharp(options)
+  const resultCache = new WeakMap<ExpressiveCodeBlock, GloSharpResult>()
 
   return {
-    name: 'twohash',
+    name: 'glosharp',
     baseStyles: buildBaseStyles(),
     jsModules: [buildPopupJsModule()],
 
@@ -593,7 +593,7 @@ export function pluginTwohash(options: PluginTwohashOptions = {}) {
         if (lang !== 'csharp' && lang !== 'cs' && lang !== 'c#') return
 
         try {
-          const result = await twohash.process({ code: codeBlock.code, project: options.project, region: options.region })
+          const result = await glosharp.process({ code: codeBlock.code, project: options.project, region: options.region })
           resultCache.set(codeBlock, result)
           // Replace code with cleaned version (markers removed)
           const cleaned = result.code.replace(/\n$/, '')
@@ -623,10 +623,10 @@ export function pluginTwohash(options: PluginTwohashOptions = {}) {
           if (!line) continue
           if (hover.persistent) {
             // Persistent ^? query: render as static inline block
-            line.addAnnotation(new TwohashStaticAnnotation(hover))
+            line.addAnnotation(new GloSharpStaticAnnotation(hover))
           } else {
             // Regular hover: JS-powered popup
-            line.addAnnotation(new TwohashHoverAnnotation(hover))
+            line.addAnnotation(new GloSharpHoverAnnotation(hover))
           }
         }
 
@@ -640,20 +640,20 @@ export function pluginTwohash(options: PluginTwohashOptions = {}) {
               if (!line) continue
               const lineError = { ...error }
               if (lineIdx === error.line) {
-                line.addAnnotation(new TwohashErrorAnnotation(lineError))
+                line.addAnnotation(new GloSharpErrorAnnotation(lineError))
               } else {
                 const contError = { ...error, character: 0, length: 1000 }
-                line.addAnnotation(new TwohashErrorAnnotation(contError))
+                line.addAnnotation(new GloSharpErrorAnnotation(contError))
               }
             }
             const lastLine = lines[error.endLine]
             if (lastLine) {
-              lastLine.addAnnotation(new TwohashErrorAnnotation(error, { messageOnly: true }))
+              lastLine.addAnnotation(new GloSharpErrorAnnotation(error, { messageOnly: true }))
             }
           } else {
             const line = lines[error.line]
             if (!line) continue
-            line.addAnnotation(new TwohashErrorAnnotation(error))
+            line.addAnnotation(new GloSharpErrorAnnotation(error))
           }
         }
 
@@ -661,7 +661,7 @@ export function pluginTwohash(options: PluginTwohashOptions = {}) {
         for (const completion of result.completions) {
           const line = lines[completion.line]
           if (!line) continue
-          line.addAnnotation(new TwohashCompletionAnnotation(completion))
+          line.addAnnotation(new GloSharpCompletionAnnotation(completion))
         }
 
         // Add highlight and diff annotations
@@ -674,11 +674,11 @@ export function pluginTwohash(options: PluginTwohashOptions = {}) {
 
           switch (highlight.kind) {
             case 'highlight':
-              line.addAnnotation(new TwohashHighlightAnnotation())
+              line.addAnnotation(new GloSharpHighlightAnnotation())
               break
             case 'add':
             case 'remove':
-              line.addAnnotation(new TwohashDiffAnnotation(highlight.kind))
+              line.addAnnotation(new GloSharpDiffAnnotation(highlight.kind))
               break
           }
         }
@@ -686,7 +686,7 @@ export function pluginTwohash(options: PluginTwohashOptions = {}) {
         if (hasFocus) {
           for (let i = 0; i < lines.length; i++) {
             if (!focusedLines.has(i)) {
-              lines[i].addAnnotation(new TwohashFocusDimAnnotation())
+              lines[i].addAnnotation(new GloSharpFocusDimAnnotation())
             }
           }
         }
@@ -705,7 +705,7 @@ function buildSymbolIcon(kind: string, prefix: string): HastNode {
     type: 'element',
     tagName: 'span',
     properties: {
-      class: 'twohash-symbol-icon',
+      class: 'glosharp-symbol-icon',
       title: prefix,
     },
     children: [{
@@ -721,7 +721,7 @@ function buildSymbolIcon(kind: string, prefix: string): HastNode {
       children: [{
         type: 'element',
         tagName: 'use',
-        properties: { href: `#twohash-icon-${kind in symbolIcons ? kind : 'Type'}` },
+        properties: { href: `#glosharp-icon-${kind in symbolIcons ? kind : 'Type'}` },
         children: [],
       }],
     }],
@@ -729,7 +729,7 @@ function buildSymbolIcon(kind: string, prefix: string): HastNode {
 }
 
 // Build popup content nodes (shared by hover and static annotations)
-function buildPopupContent(hover: TwohashHover): HastNode[] {
+function buildPopupContent(hover: GloSharpHover): HastNode[] {
   const parts = hover.parts
   let iconNode: HastNode | null = null
   let startIdx = 0
@@ -745,10 +745,10 @@ function buildPopupContent(hover: TwohashHover): HastNode[] {
     startIdx = 4
   }
 
-  const partNodes: HastNode[] = parts.slice(startIdx).map((part: TwohashDisplayPart) => ({
+  const partNodes: HastNode[] = parts.slice(startIdx).map((part: GloSharpDisplayPart) => ({
     type: 'element' as const,
     tagName: 'span',
-    properties: { class: `twohash-${part.kind}` },
+    properties: { class: `glosharp-${part.kind}` },
     children: [{ type: 'text' as const, value: part.text }],
   }))
 
@@ -759,7 +759,7 @@ function buildPopupContent(hover: TwohashHover): HastNode[] {
   const children: HastNode[] = [{
     type: 'element',
     tagName: 'code',
-    properties: { class: 'twohash-popup-code' },
+    properties: { class: 'glosharp-popup-code' },
     children: partNodes,
   }]
 
@@ -770,28 +770,28 @@ function buildPopupContent(hover: TwohashHover): HastNode[] {
   return children
 }
 
-function renderDocs(docs: TwohashDocComment): HastNode[] {
+function renderDocs(docs: GloSharpDocComment): HastNode[] {
   const docsChildren: HastNode[] = []
 
   if (docs.summary) {
     docsChildren.push({
       type: 'element',
       tagName: 'div',
-      properties: { class: 'twohash-popup-summary' },
+      properties: { class: 'glosharp-popup-summary' },
       children: [{ type: 'text', value: docs.summary }],
     })
   }
 
   if (docs.params && docs.params.length > 0) {
-    const paramItems: HastNode[] = docs.params.map((p: TwohashDocParam) => ({
+    const paramItems: HastNode[] = docs.params.map((p: GloSharpDocParam) => ({
       type: 'element' as const,
       tagName: 'div',
-      properties: { class: 'twohash-popup-param' },
+      properties: { class: 'glosharp-popup-param' },
       children: [
         {
           type: 'element' as const,
           tagName: 'span',
-          properties: { class: 'twohash-popup-param-name' },
+          properties: { class: 'glosharp-popup-param-name' },
           children: [{ type: 'text' as const, value: p.name }],
         },
         { type: 'text' as const, value: ` — ${p.text}` },
@@ -801,12 +801,12 @@ function renderDocs(docs: TwohashDocComment): HastNode[] {
     docsChildren.push({
       type: 'element',
       tagName: 'div',
-      properties: { class: 'twohash-popup-params' },
+      properties: { class: 'glosharp-popup-params' },
       children: [
         {
           type: 'element',
           tagName: 'div',
-          properties: { class: 'twohash-popup-section-label' },
+          properties: { class: 'glosharp-popup-section-label' },
           children: [{ type: 'text', value: 'Parameters' }],
         },
         ...paramItems,
@@ -818,12 +818,12 @@ function renderDocs(docs: TwohashDocComment): HastNode[] {
     docsChildren.push({
       type: 'element',
       tagName: 'div',
-      properties: { class: 'twohash-popup-returns' },
+      properties: { class: 'glosharp-popup-returns' },
       children: [
         {
           type: 'element',
           tagName: 'div',
-          properties: { class: 'twohash-popup-section-label' },
+          properties: { class: 'glosharp-popup-section-label' },
           children: [{ type: 'text', value: 'Returns' }],
         },
         { type: 'text', value: docs.returns },
@@ -835,12 +835,12 @@ function renderDocs(docs: TwohashDocComment): HastNode[] {
     docsChildren.push({
       type: 'element',
       tagName: 'div',
-      properties: { class: 'twohash-popup-remarks' },
+      properties: { class: 'glosharp-popup-remarks' },
       children: [
         {
           type: 'element',
           tagName: 'div',
-          properties: { class: 'twohash-popup-section-label' },
+          properties: { class: 'glosharp-popup-section-label' },
           children: [{ type: 'text', value: 'Remarks' }],
         },
         { type: 'text', value: docs.remarks },
@@ -859,12 +859,12 @@ function renderDocs(docs: TwohashDocComment): HastNode[] {
     docsChildren.push({
       type: 'element',
       tagName: 'div',
-      properties: { class: 'twohash-popup-example' },
+      properties: { class: 'glosharp-popup-example' },
       children: [
         {
           type: 'element',
           tagName: 'div',
-          properties: { class: 'twohash-popup-section-label' },
+          properties: { class: 'glosharp-popup-section-label' },
           children: [{ type: 'text', value: 'Examples' }],
         },
         ...exampleNodes,
@@ -873,15 +873,15 @@ function renderDocs(docs: TwohashDocComment): HastNode[] {
   }
 
   if (docs.exceptions && docs.exceptions.length > 0) {
-    const exceptionItems: HastNode[] = docs.exceptions.map((e: TwohashDocException) => ({
+    const exceptionItems: HastNode[] = docs.exceptions.map((e: GloSharpDocException) => ({
       type: 'element' as const,
       tagName: 'div',
-      properties: { class: 'twohash-popup-exception' },
+      properties: { class: 'glosharp-popup-exception' },
       children: [
         {
           type: 'element' as const,
           tagName: 'span',
-          properties: { class: 'twohash-popup-exception-type' },
+          properties: { class: 'glosharp-popup-exception-type' },
           children: [{ type: 'text' as const, value: e.type }],
         },
         { type: 'text' as const, value: ` — ${e.text}` },
@@ -891,12 +891,12 @@ function renderDocs(docs: TwohashDocComment): HastNode[] {
     docsChildren.push({
       type: 'element',
       tagName: 'div',
-      properties: { class: 'twohash-popup-exceptions' },
+      properties: { class: 'glosharp-popup-exceptions' },
       children: [
         {
           type: 'element',
           tagName: 'div',
-          properties: { class: 'twohash-popup-section-label' },
+          properties: { class: 'glosharp-popup-section-label' },
           children: [{ type: 'text', value: 'Exceptions' }],
         },
         ...exceptionItems,
@@ -909,17 +909,17 @@ function renderDocs(docs: TwohashDocComment): HastNode[] {
   return [{
     type: 'element',
     tagName: 'div',
-    properties: { class: 'twohash-popup-docs' },
+    properties: { class: 'glosharp-popup-docs' },
     children: docsChildren,
   }]
 }
 
 // Hover annotation: wraps token, popup shown/hidden by JS
-class TwohashHoverAnnotation {
-  readonly hover: TwohashHover
+class GloSharpHoverAnnotation {
+  readonly hover: GloSharpHover
   readonly inlineRange: { columnStart: number; columnEnd: number }
 
-  constructor(hover: TwohashHover) {
+  constructor(hover: GloSharpHover) {
     this.hover = hover
     this.inlineRange = {
       columnStart: hover.character,
@@ -933,13 +933,13 @@ class TwohashHoverAnnotation {
     return nodesToTransform.map(node => ({
       type: 'element' as const,
       tagName: 'span',
-      properties: { class: 'twohash-hover' },
+      properties: { class: 'glosharp-hover' },
       children: [
         node,
         {
           type: 'element',
           tagName: 'div',
-          properties: { class: 'twohash-popup-container' },
+          properties: { class: 'glosharp-popup-container' },
           children: popupChildren,
         },
       ],
@@ -950,10 +950,10 @@ class TwohashHoverAnnotation {
 // Static annotation: persistent ^? query, rendered as a block between lines
 // This is a LINE-level annotation (no inlineRange) so it wraps the entire line
 // and appends the static tooltip after the line content.
-class TwohashStaticAnnotation {
-  readonly hover: TwohashHover
+class GloSharpStaticAnnotation {
+  readonly hover: GloSharpHover
 
-  constructor(hover: TwohashHover) {
+  constructor(hover: GloSharpHover) {
     this.hover = hover
   }
 
@@ -965,20 +965,20 @@ class TwohashStaticAnnotation {
     return nodesToTransform.map(node => ({
       type: 'element' as const,
       tagName: 'div',
-      properties: { class: 'twohash-noline' },
+      properties: { class: 'glosharp-noline' },
       children: [
         node,
         {
           type: 'element' as const,
           tagName: 'div',
           properties: {
-            class: 'twohash-static',
+            class: 'glosharp-static',
             style: `margin-left: ${marginLeft}ch`,
           },
           children: [{
             type: 'element',
             tagName: 'div',
-            properties: { class: 'twohash-static-container' },
+            properties: { class: 'glosharp-static-container' },
             children: popupChildren,
           }],
         },
@@ -996,7 +996,7 @@ function buildErrorCodeNode(code: string): HastNode {
       type: 'element',
       tagName: 'a',
       properties: {
-        class: 'twohash-error-code',
+        class: 'glosharp-error-code',
         href: `https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/${code.toLowerCase()}`,
         target: '_blank',
         rel: 'noopener',
@@ -1007,17 +1007,17 @@ function buildErrorCodeNode(code: string): HastNode {
   return {
     type: 'element',
     tagName: 'span',
-    properties: { class: 'twohash-error-code' },
+    properties: { class: 'glosharp-error-code' },
     children: [{ type: 'text', value: code }],
   }
 }
 
-class TwohashErrorAnnotation {
-  readonly error: TwohashError
+class GloSharpErrorAnnotation {
+  readonly error: GloSharpError
   readonly inlineRange: { columnStart: number; columnEnd: number }
   readonly isMessageOnly: boolean
 
-  constructor(error: TwohashError, opts?: { messageOnly?: boolean }) {
+  constructor(error: GloSharpError, opts?: { messageOnly?: boolean }) {
     this.error = error
     this.isMessageOnly = opts?.messageOnly ?? false
     this.inlineRange = {
@@ -1027,7 +1027,7 @@ class TwohashErrorAnnotation {
   }
 
   render({ nodesToTransform }: { nodesToTransform: HastNode[] }): HastNode[] {
-    const severityClass = `twohash-severity-${this.error.severity}`
+    const severityClass = `glosharp-severity-${this.error.severity}`
 
     if (this.isMessageOnly) {
       return [
@@ -1035,7 +1035,7 @@ class TwohashErrorAnnotation {
         {
           type: 'element',
           tagName: 'div',
-          properties: { class: `twohash-error-message ${severityClass}` },
+          properties: { class: `glosharp-error-message ${severityClass}` },
           children: [
             buildErrorCodeNode(this.error.code),
             { type: 'text', value: `: ${this.error.message}` },
@@ -1047,13 +1047,13 @@ class TwohashErrorAnnotation {
     return nodesToTransform.map(node => ({
       type: 'element' as const,
       tagName: 'span',
-      properties: { class: `twohash-error-underline ${severityClass}` },
+      properties: { class: `glosharp-error-underline ${severityClass}` },
       children: [
         node,
         {
           type: 'element',
           tagName: 'div',
-          properties: { class: `twohash-error-message ${severityClass}` },
+          properties: { class: `glosharp-error-message ${severityClass}` },
           children: [
             buildErrorCodeNode(this.error.code),
             { type: 'text', value: `: ${this.error.message}` },
@@ -1064,11 +1064,11 @@ class TwohashErrorAnnotation {
   }
 }
 
-class TwohashCompletionAnnotation {
-  readonly completion: TwohashCompletion
+class GloSharpCompletionAnnotation {
+  readonly completion: GloSharpCompletion
   readonly inlineRange: { columnStart: number; columnEnd: number }
 
-  constructor(completion: TwohashCompletion) {
+  constructor(completion: GloSharpCompletion) {
     this.completion = completion
     this.inlineRange = {
       columnStart: completion.character,
@@ -1080,24 +1080,24 @@ class TwohashCompletionAnnotation {
     const items: HastNode[] = this.completion.items.map(item => ({
       type: 'element' as const,
       tagName: 'li',
-      properties: { class: `twohash-completion-item twohash-completion-kind-${item.kind}` },
+      properties: { class: `glosharp-completion-item glosharp-completion-kind-${item.kind}` },
       children: [
         {
           type: 'element',
           tagName: 'span',
-          properties: { class: 'twohash-completion-kind' },
+          properties: { class: 'glosharp-completion-kind' },
           children: [{ type: 'text', value: item.kind }],
         },
         {
           type: 'element',
           tagName: 'span',
-          properties: { class: 'twohash-completion-label' },
+          properties: { class: 'glosharp-completion-label' },
           children: [{ type: 'text', value: item.label }],
         },
         ...(item.detail ? [{
           type: 'element' as const,
           tagName: 'span',
-          properties: { class: 'twohash-completion-detail' },
+          properties: { class: 'glosharp-completion-detail' },
           children: [{ type: 'text', value: item.detail }],
         }] : []),
       ],
@@ -1106,7 +1106,7 @@ class TwohashCompletionAnnotation {
     const completionList: HastNode = {
       type: 'element',
       tagName: 'ul',
-      properties: { class: 'twohash-completion-list' },
+      properties: { class: 'glosharp-completion-list' },
       children: items,
     }
 
@@ -1114,18 +1114,18 @@ class TwohashCompletionAnnotation {
   }
 }
 
-class TwohashHighlightAnnotation {
+class GloSharpHighlightAnnotation {
   render({ nodesToTransform }: { nodesToTransform: HastNode[] }): HastNode[] {
     return nodesToTransform.map(node => ({
       type: 'element' as const,
       tagName: 'div',
-      properties: { class: 'twohash-highlight' },
+      properties: { class: 'glosharp-highlight' },
       children: [node],
     }))
   }
 }
 
-class TwohashDiffAnnotation {
+class GloSharpDiffAnnotation {
   readonly diffKind: 'add' | 'remove'
 
   constructor(diffKind: 'add' | 'remove') {
@@ -1136,18 +1136,18 @@ class TwohashDiffAnnotation {
     return nodesToTransform.map(node => ({
       type: 'element' as const,
       tagName: 'div',
-      properties: { class: `twohash-diff-${this.diffKind}` },
+      properties: { class: `glosharp-diff-${this.diffKind}` },
       children: [node],
     }))
   }
 }
 
-class TwohashFocusDimAnnotation {
+class GloSharpFocusDimAnnotation {
   render({ nodesToTransform }: { nodesToTransform: HastNode[] }): HastNode[] {
     return nodesToTransform.map(node => ({
       type: 'element' as const,
       tagName: 'div',
-      properties: { class: 'twohash-focus-dim' },
+      properties: { class: 'glosharp-focus-dim' },
       children: [node],
     }))
   }

@@ -1,19 +1,19 @@
 ## ADDED Requirements
 
-### Requirement: TwohashDocComment model
-The system SHALL define a `TwohashDocComment` class with the following fields: `summary` (string, nullable), `params` (list of name/text pairs), `returns` (string, nullable), `remarks` (string, nullable), `examples` (list of strings), and `exceptions` (list of type/text pairs). All collection fields SHALL default to empty lists.
+### Requirement: GloSharpDocComment model
+The system SHALL define a `GloSharpDocComment` class with the following fields: `summary` (string, nullable), `params` (list of name/text pairs), `returns` (string, nullable), `remarks` (string, nullable), `examples` (list of strings), and `exceptions` (list of type/text pairs). All collection fields SHALL default to empty lists.
 
 #### Scenario: Doc comment with all tags
 - **WHEN** an XML doc comment contains `<summary>`, `<param>`, `<returns>`, `<remarks>`, `<example>`, and `<exception>` elements
-- **THEN** the resulting `TwohashDocComment` has all fields populated with the extracted text
+- **THEN** the resulting `GloSharpDocComment` has all fields populated with the extracted text
 
 #### Scenario: Doc comment with only summary
 - **WHEN** an XML doc comment contains only `<summary>`
-- **THEN** the resulting `TwohashDocComment` has `summary` set and all other fields empty/null
+- **THEN** the resulting `GloSharpDocComment` has `summary` set and all other fields empty/null
 
 #### Scenario: No documentation
 - **WHEN** a symbol has no XML documentation
-- **THEN** `ExtractDocComment` returns null (not an empty `TwohashDocComment`)
+- **THEN** `ExtractDocComment` returns null (not an empty `GloSharpDocComment`)
 
 ### Requirement: Extract summary text
 The system SHALL extract the text content of the `<summary>` element, trimming leading and trailing whitespace.
@@ -27,7 +27,7 @@ The system SHALL extract the text content of the `<summary>` element, trimming l
 - **THEN** `summary` is the content with internal whitespace normalized to single spaces and outer whitespace trimmed
 
 ### Requirement: Extract param tags
-The system SHALL extract all `<param>` elements, preserving the `name` attribute and text content as a list of `TwohashDocParam` objects with `name` and `text` fields.
+The system SHALL extract all `<param>` elements, preserving the `name` attribute and text content as a list of `GloSharpDocParam` objects with `name` and `text` fields.
 
 #### Scenario: Multiple params
 - **WHEN** XML contains `<param name="value">The value to write.</param>` and `<param name="format">The format string.</param>`
@@ -67,7 +67,7 @@ The system SHALL extract the text content of all `<example>` elements as a list 
 - **THEN** `examples` contains two entries in document order
 
 ### Requirement: Extract exception tags
-The system SHALL extract all `<exception>` elements, capturing the `cref` attribute as `type` and the text content as `text`, into a list of `TwohashDocException` objects.
+The system SHALL extract all `<exception>` elements, capturing the `cref` attribute as `type` and the text content as `text`, into a list of `GloSharpDocException` objects.
 
 #### Scenario: Exception with cref
 - **WHEN** XML contains `<exception cref="ArgumentNullException">Value cannot be null.</exception>`

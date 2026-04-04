@@ -2,7 +2,7 @@
 
 ## The big picture
 
-C# developers writing docs and blogs overwhelmingly use JavaScript-based static site generators. There is no dominant .NET-native SSG. This means twohash's integrations should target the JS ecosystem.
+C# developers writing docs and blogs overwhelmingly use JavaScript-based static site generators. There is no dominant .NET-native SSG. This means glosharp's integrations should target the JS ecosystem.
 
 ## Framework comparison
 
@@ -77,7 +77,7 @@ C# developers writing docs and blogs overwhelmingly use JavaScript-based static 
 - Generates API reference from XML doc comments
 - Used for learn.microsoft.com
 
-**Integration opportunity**: Docfx already has its own code handling. Twohash could add hover information that Docfx doesn't currently provide, but the integration surface is different from Shiki/EC.
+**Integration opportunity**: Docfx already has its own code handling. GloSharp could add hover information that Docfx doesn't currently provide, but the integration surface is different from Shiki/EC.
 
 ## Where C# developers blog
 
@@ -99,4 +99,4 @@ The EC plugin and Shiki transformer can share the same core data format — the 
 
 ## Key insight
 
-The doc framework doesn't matter much for twohash's core design. The C# → JSON metadata pipeline is framework-agnostic. What matters is having clean integration points at the rendering layer. Design the data format right, and framework integrations become thin adapters.
+The doc framework doesn't matter much for glosharp's core design. The C# → JSON metadata pipeline is framework-agnostic. What matters is having clean integration points at the rendering layer. Design the data format right, and framework integrations become thin adapters.

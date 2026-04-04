@@ -1,6 +1,6 @@
 var todos = new List<Todo>
 {
-    new("Learn twohash", true),
+    new("Learn Glo#", true),
     new("Build docs", false),
 };
 

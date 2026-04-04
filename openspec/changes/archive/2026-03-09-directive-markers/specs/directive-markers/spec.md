@@ -49,7 +49,7 @@ The system SHALL recognize `// @diff: +` and `// @diff: -` comment lines to mark
 - **WHEN** source contains `// @diff: +` or `// @diff: -` lines
 - **THEN** the directive lines are removed from the processed output code
 
-### Requirement: TwohashHighlight model
+### Requirement: GloSharpHighlight model
 Each highlight entry SHALL contain: `line` (number, 0-based in processed output), `character` (number, 0 for whole-line), `length` (number, length of the line content for whole-line), and `kind` (one of `"highlight"`, `"focus"`, `"add"`, `"remove"`).
 
 #### Scenario: Highlight entry shape

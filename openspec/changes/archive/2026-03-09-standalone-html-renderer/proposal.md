@@ -1,6 +1,6 @@
 ## Why
 
-The existing twohash integrations (Shiki transformer, Expressive Code plugin) require a JavaScript-based doc framework. Many C# developers use Hugo, Jekyll, plain HTML docs, or want quick previews without setting up a Node.js pipeline. A `twohash render` CLI command would produce self-contained HTML directly from C# source, making twohash's rich code rendering accessible everywhere with zero JS dependencies.
+The existing glosharp integrations (Shiki transformer, Expressive Code plugin) require a JavaScript-based doc framework. Many C# developers use Hugo, Jekyll, plain HTML docs, or want quick previews without setting up a Node.js pipeline. A `glosharp render` CLI command would produce self-contained HTML directly from C# source, making glosharp's rich code rendering accessible everywhere with zero JS dependencies.
 
 ## What Changes
 
@@ -22,7 +22,7 @@ The existing twohash integrations (Shiki transformer, Expressive Code plugin) re
 
 ## Impact
 
-- **Core library**: New `HtmlRenderer` class and `SyntaxClassifier` wrapper added to `TwoHash.Core`
+- **Core library**: New `HtmlRenderer` class and `SyntaxClassifier` wrapper added to `GloSharp.Core`
 - **CLI**: New `render` command added alongside existing `process` and `verify` commands
 - **Dependencies**: No new external dependencies — Roslyn's `Classifier` API is already available via `Microsoft.CodeAnalysis.CSharp.Workspaces`
 - **Output contract**: New HTML output format (the existing JSON contract is unchanged)

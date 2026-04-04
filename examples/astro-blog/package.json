@@ -1,18 +1,18 @@
 {
-  "name": "twohash-astro-blog-example",
+  "name": "glosharp-astro-blog-example",
   "type": "module",
   "version": "0.0.1",
   "scripts": {
-    "predev": "npm run build -w @twohash/core -w @twohash/shiki",
+    "predev": "npm run build -w @glosharp/core -w @glosharp/shiki",
     "dev": "astro dev",
-    "prebuild": "npm run build -w @twohash/core -w @twohash/shiki",
+    "prebuild": "npm run build -w @glosharp/core -w @glosharp/shiki",
     "build": "astro build",
     "preview": "astro preview"
   },
   "dependencies": {
-    "@twohash/shiki": "*",
+    "@glosharp/shiki": "*",
     "astro": "^5.7.0",
-    "@twohash/core": "*",
+    "@glosharp/core": "*",
     "unist-util-visit": "^5.1.0"
   }
 }

@@ -1,10 +1,10 @@
 ## Context
 
-Twohash extracts hover information from C# code blocks using Roslyn's semantic model. The `BuildHoverFromToken` method in `TwohashProcessor.cs` resolves symbols for each token through a three-step fallback: `GetSymbolInfo()` → `GetDeclaredSymbol()` → parent-walk `GetDeclaredSymbol()`. The parent-walk fallback causes keywords like `case` and `break` to incorrectly resolve to their containing method/type.
+GloSharp extracts hover information from C# code blocks using Roslyn's semantic model. The `BuildHoverFromToken` method in `GloSharpProcessor.cs` resolves symbols for each token through a three-step fallback: `GetSymbolInfo()` → `GetDeclaredSymbol()` → parent-walk `GetDeclaredSymbol()`. The parent-walk fallback causes keywords like `case` and `break` to incorrectly resolve to their containing method/type.
 
 Error suppression currently works only at per-line granularity via `// @errors: CSxxxx`. For blog posts referencing unavailable frameworks (Xamarin, UIKit), this requires dozens of annotations. The `@noErrors` directive serves the opposite purpose (asserting zero errors).
 
-The EC plugin's `pluginTwohash()` returns a `styleSettings` plain object that is incompatible with EC 0.41's `PluginStyleSettings` type, requiring consumers to strip it manually.
+The EC plugin's `pluginGloSharp()` returns a `styleSettings` plain object that is incompatible with EC 0.41's `PluginStyleSettings` type, requiring consumers to strip it manually.
 
 ## Goals / Non-Goals
 
@@ -44,7 +44,7 @@ The EC plugin's `pluginTwohash()` returns a `styleSettings` plain object that is
 
 ### 4. Remove styleSettings from plugin return object
 
-**Decision**: Remove the `styleSettings` property from the object returned by `pluginTwohash()`. The styles are already embedded in `baseStyles` via CSS custom properties, making `styleSettings` redundant.
+**Decision**: Remove the `styleSettings` property from the object returned by `pluginGloSharp()`. The styles are already embedded in `baseStyles` via CSS custom properties, making `styleSettings` redundant.
 
 **Rationale**: The `styleSettings` object was causing a type mismatch with EC 0.41 (`PluginStyleSettings` expected, plain object given). Since `baseStyles` already defines all the CSS custom properties, removing `styleSettings` is the correct fix — it's not doing anything useful.
 

@@ -4,7 +4,7 @@ sidebar_position: 2
 
 # Type Inference
 
-C# uses `var` to infer types at compile time. Twohash shows you exactly what the
+C# uses `var` to infer types at compile time. GloSharp shows you exactly what the
 compiler resolves.
 
 ## Basic Inference

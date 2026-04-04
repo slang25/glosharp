@@ -1,0 +1,26 @@
+{
+  "name": "@glosharp/core",
+  "version": "0.1.0-alpha.1",
+  "description": "Node.js bridge for the glosharp C# type extraction CLI",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc"
+  },
+  "files": [
+    "dist"
+  ],
+  "devDependencies": {
+    "@types/node": "^25.3.5",
+    "typescript": "^6.0.0",
+    "vitest": "^4.0.18"
+  }
+}

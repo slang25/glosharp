@@ -1,13 +1,13 @@
 ## Context
 
-Twohash currently outputs JSON metadata via `twohash process`, consumed by JavaScript integrations (Shiki transformer, EC plugin). Users without a Node.js pipeline (Hugo, Jekyll, plain HTML, quick previews) have no way to get rendered output. The architecture diagram already includes a "Standalone renderer" path producing "Static HTML" for "Anywhere."
+GloSharp currently outputs JSON metadata via `glosharp process`, consumed by JavaScript integrations (Shiki transformer, EC plugin). Users without a Node.js pipeline (Hugo, Jekyll, plain HTML, quick previews) have no way to get rendered output. The architecture diagram already includes a "Standalone renderer" path producing "Static HTML" for "Anywhere."
 
-The core already has everything needed for metadata extraction — `TwohashProcessor.ProcessAsync()` returns a `TwohashResult` with hovers, errors, highlights, and completions. What's missing is syntax highlighting (token classification) and HTML generation.
+The core already has everything needed for metadata extraction — `GloSharpProcessor.ProcessAsync()` returns a `GloSharpResult` with hovers, errors, highlights, and completions. What's missing is syntax highlighting (token classification) and HTML generation.
 
 ## Goals / Non-Goals
 
 **Goals:**
-- Add `twohash render` CLI command producing self-contained HTML fragments
+- Add `glosharp render` CLI command producing self-contained HTML fragments
 - Use Roslyn's Classifier for C# syntax highlighting (no TextMate/Shiki dependency)
 - Ship built-in themes (github-dark, github-light) with a clear extension point
 - CSS-only interactivity (anchor positioning for popups, no JavaScript in output)
@@ -54,23 +54,23 @@ The core already has everything needed for metadata extraction — `TwohashProce
 
 **Rationale**: Per decision 005 in the design docs, all major browsers now support CSS anchor positioning. The fallback ensures older browsers still show popups (just with less precise positioning). No JavaScript needed.
 
-### 5. Architecture: SyntaxClassifier + HtmlRenderer in TwoHash.Core
+### 5. Architecture: SyntaxClassifier + HtmlRenderer in GloSharp.Core
 
-**Decision**: Add two new classes to `TwoHash.Core`:
+**Decision**: Add two new classes to `GloSharp.Core`:
 - `SyntaxClassifier` — wraps Roslyn's `Classifier.GetClassifiedSpansAsync()`, returns classified spans for a source/compilation pair
-- `HtmlRenderer` — takes a `TwohashResult` + classified spans + theme, produces HTML string
+- `HtmlRenderer` — takes a `GloSharpResult` + classified spans + theme, produces HTML string
 
 The CLI `render` command orchestrates: process → classify → render → output.
 
 **Alternatives considered**:
-- **Separate project (TwoHash.Renderer)**: Adds project complexity for a small amount of code. The renderer depends heavily on Core types already.
+- **Separate project (GloSharp.Renderer)**: Adds project complexity for a small amount of code. The renderer depends heavily on Core types already.
 - **All in CLI**: Would prevent reuse by anyone who wants to call the renderer programmatically.
 
 **Rationale**: Keeping it in Core allows the Node bridge to expose `render` functionality later if needed. The `HtmlRenderer` is a pure function (data in, string out) with no side effects.
 
 ### 6. Popup content rendering: reuse hover `parts` with theme colors
 
-**Decision**: Render hover popup content using the `parts` array from `TwohashHover`, applying the same theme colors to part kinds. This gives syntax-highlighted type signatures in popups.
+**Decision**: Render hover popup content using the `parts` array from `GloSharpHover`, applying the same theme colors to part kinds. This gives syntax-highlighted type signatures in popups.
 
 **Rationale**: The EC plugin already does this (re-renders type info with syntax highlighting). Since we have the `parts` array with semantic kinds (`keyword`, `className`, `localName`, etc.), we can map them to the same theme colors used for code tokens. The `docs` field (when present) is rendered as plain text below the type signature.
 
@@ -80,6 +80,6 @@ The CLI `render` command orchestrates: process → classify → render → outpu
 
 **[Theme colors may not perfectly match Shiki/EC output]** → Roslyn's classification kinds don't map 1:1 to TextMate scopes. Users comparing standalone HTML to EC-rendered output may see slight color differences. Acceptable trade-off — the standalone renderer is for environments without Shiki/EC.
 
-**[Inline `<style>` may conflict with page CSS]** → CSS class names use `twohash-` prefix to minimize conflicts. The inline style block is scoped to `.twohash-code` container. If multiple twohash blocks appear on one page, the style block is duplicated — a minor size concern.
+**[Inline `<style>` may conflict with page CSS]** → CSS class names use `glosharp-` prefix to minimize conflicts. The inline style block is scoped to `.glosharp-code` container. If multiple glosharp blocks appear on one page, the style block is duplicated — a minor size concern.
 
 **[CSS anchor positioning fallback is less precise]** → The absolute positioning fallback positions popups relative to the hover span's parent, not the viewport. Popups may overlap or clip in some layouts. This matches behavior users would expect from older browser support.

@@ -1,4 +1,4 @@
-# twohash
+# glosharp
 
 **twoslash for C#** — extract rich symbol metadata from C# code using Roslyn, for rendering beautiful code snippets in docs, blogs, and slides.
 
@@ -8,7 +8,7 @@ TypeScript has [twoslash](https://twoslash.netlify.app/), which extracts compile
 
 ## The vision
 
-Run twohash against C# code and get:
+Run glosharp against C# code and get:
 - **Hover information** — type signatures, XML doc comments, just like VS/VS Code tooltips
 - **Compile verification** — fail in CI if the code doesn't compile
 - **Structured metadata** — JSON output that integrations can consume

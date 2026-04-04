@@ -1,7 +1,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: TypeScript type definitions
-The package SHALL export TypeScript interfaces for `TwohashResult`, `TwohashHover`, `TwohashError`, `TwohashMeta`, and `TwohashDisplayPart` matching the JSON output schema. The `TwohashError` interface SHALL include optional `endLine` (number) and `endCharacter` (number) fields for multi-line diagnostic spans.
+The package SHALL export TypeScript interfaces for `GloSharpResult`, `GloSharpHover`, `GloSharpError`, `GloSharpMeta`, and `GloSharpDisplayPart` matching the JSON output schema. The `GloSharpError` interface SHALL include optional `endLine` (number) and `endCharacter` (number) fields for multi-line diagnostic spans.
 
 #### Scenario: Type-safe access
 - **WHEN** a consumer accesses `result.hovers[0].parts[0].kind`

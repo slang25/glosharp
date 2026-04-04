@@ -1,6 +1,6 @@
 import type { Config } from '@docusaurus/types'
 import type * as Preset from '@docusaurus/preset-classic'
-import { remarkTwohash } from './src/plugins/twohash-plugin'
+import { remarkGloSharp } from './src/plugins/glosharp-plugin'
 
 const config: Config = {
   title: 'My C# Library',
@@ -15,7 +15,7 @@ const config: Config = {
         docs: {
           routeBasePath: '/',
           sidebarPath: './sidebars.ts',
-          beforeDefaultRemarkPlugins: [remarkTwohash],
+          beforeDefaultRemarkPlugins: [remarkGloSharp],
         },
         blog: false,
         theme: {

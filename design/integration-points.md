@@ -1,10 +1,10 @@
 # Integration points
 
-How twohash connects to rendering frameworks.
+How glosharp connects to rendering frameworks.
 
 ## Marker syntax
 
-Twohash uses comment-based markers in C# source code, inspired by twoslash.
+GloSharp uses comment-based markers in C# source code, inspired by twoslash.
 
 ### Query markers (from twoslash)
 
@@ -49,7 +49,7 @@ For .NET 10+, use the SDK's native `#:` directive syntax instead of custom marke
 #:property TargetFramework=net10.0   // Target framework
 ```
 
-These `#:` lines are stripped from the rendered output automatically. The file is simultaneously a valid `dotnet build` input and a twohash snippet. For pre-.NET 10, use a `.csproj` alongside the snippet.
+These `#:` lines are stripped from the rendered output automatically. The file is simultaneously a valid `dotnet build` input and a glosharp snippet. For pre-.NET 10, use a `.csproj` alongside the snippet.
 
 ### Cut markers
 
@@ -66,7 +66,7 @@ The Shiki transformer follows the pattern established by `@shikijs/twoslash`.
 
 ### How it works
 
-1. **Pre-process**: Extract twohash markers from the code, call CLI, get JSON
+1. **Pre-process**: Extract glosharp markers from the code, call CLI, get JSON
 2. **Tokens phase**: No changes (Shiki handles syntax highlighting)
 3. **Code phase**: Inject hover popups and error annotations into the HAST
 
@@ -75,34 +75,34 @@ The Shiki transformer follows the pattern established by `@shikijs/twoslash`.
 For a hover popup:
 
 ```html
-<span class="twohash-hover" style="anchor-name: --twohash-0">x</span>
-<div class="twohash-popup" style="position-anchor: --twohash-0">
-  <code>(<span class="twohash-text">local variable</span>) <span class="twohash-keyword">int</span> <span class="twohash-local">x</span></code>
+<span class="glosharp-hover" style="anchor-name: --glosharp-0">x</span>
+<div class="glosharp-popup" style="position-anchor: --glosharp-0">
+  <code>(<span class="glosharp-text">local variable</span>) <span class="glosharp-keyword">int</span> <span class="glosharp-local">x</span></code>
 </div>
 ```
 
 For an error annotation:
 
 ```html
-<span class="twohash-error" data-error-code="CS1002">
-  <span class="twohash-error-underline">foo</span>
+<span class="glosharp-error" data-error-code="CS1002">
+  <span class="glosharp-error-underline">foo</span>
 </span>
-<div class="twohash-error-message">; expected [CS1002]</div>
+<div class="glosharp-error-message">; expected [CS1002]</div>
 ```
 
 ### CSS anchor positioning for tooltips
 
 ```css
-.twohash-popup {
+.glosharp-popup {
   display: none;
   position: fixed;
   position-anchor: var(--anchor);
   inset-area: top;
   margin-bottom: 4px;
 
-  background: var(--twohash-popup-bg, #1e1e1e);
-  color: var(--twohash-popup-fg, #d4d4d4);
-  border: 1px solid var(--twohash-popup-border, #454545);
+  background: var(--glosharp-popup-bg, #1e1e1e);
+  color: var(--glosharp-popup-fg, #d4d4d4);
+  border: 1px solid var(--glosharp-popup-border, #454545);
   border-radius: 3px;
   padding: 4px 8px;
   font-size: 0.85em;
@@ -110,8 +110,8 @@ For an error annotation:
   z-index: 10;
 }
 
-.twohash-hover:hover + .twohash-popup,
-.twohash-popup:hover {
+.glosharp-hover:hover + .glosharp-popup,
+.glosharp-popup:hover {
   display: block;
 }
 ```
@@ -123,10 +123,10 @@ No JavaScript required. The popup positions itself relative to the anchor elemen
 ```css
 /* Fallback: position relative to parent */
 @supports not (anchor-name: --x) {
-  .twohash-hover {
+  .glosharp-hover {
     position: relative;
   }
-  .twohash-popup {
+  .glosharp-popup {
     position: absolute;
     bottom: 100%;
     left: 0;
@@ -141,25 +141,25 @@ No JavaScript required. The popup positions itself relative to the anchor elemen
 ```typescript
 import { definePlugin } from '@expressive-code/core'
 
-export const pluginTwohash = (options = {}) => {
+export const pluginGloSharp = (options = {}) => {
   return definePlugin({
-    name: 'twohash',
+    name: 'glosharp',
 
     // Inject CSS for hover popups
-    baseStyles: () => twohashStyles,
+    baseStyles: () => glosharpStyles,
 
     // Optional client-side JS (if needed beyond CSS)
     jsModules: [],
 
     hooks: {
-      // Process code blocks marked with twohash
+      // Process code blocks marked with glosharp
       preprocessCode: ({ codeBlock }) => {
         // Detect if this block should be processed
-        // (e.g., has twohash markers or meta flag)
+        // (e.g., has glosharp markers or meta flag)
       },
 
       annotateCode: ({ codeBlock }) => {
-        // Call twohash CLI, get JSON
+        // Call glosharp CLI, get JSON
         // Map hovers/errors to EC annotations
         // Add InlineStyleAnnotation or custom annotations
       },
@@ -174,22 +174,22 @@ export const pluginTwohash = (options = {}) => {
 
 ### EC annotation mapping
 
-Twohash metadata maps to EC concepts:
+GloSharp metadata maps to EC concepts:
 
-| Twohash data | EC concept |
+| GloSharp data | EC concept |
 |---|---|
-| Hover info | Custom `TwohashHoverAnnotation` with popup rendering |
+| Hover info | Custom `GloSharpHoverAnnotation` with popup rendering |
 | Error underline | `InlineStyleAnnotation` with error decoration |
-| Error message | Custom `TwohashErrorAnnotation` rendered below the line |
+| Error message | Custom `GloSharpErrorAnnotation` rendered below the line |
 | Line highlight | `InlineStyleAnnotation` with highlight background |
 | Diff markers | Built-in EC diff support |
 
 ### Custom annotation class
 
 ```typescript
-class TwohashHoverAnnotation extends ExpressiveCodeAnnotation {
+class GloSharpHoverAnnotation extends ExpressiveCodeAnnotation {
   hoverText: string
-  parts: TwohashPart[]
+  parts: GloSharpPart[]
   docs?: string
 
   render({ nodesToTransform }) {
@@ -198,7 +198,7 @@ class TwohashHoverAnnotation extends ExpressiveCodeAnnotation {
     return nodesToTransform.map(node => ({
       type: 'element',
       tagName: 'span',
-      properties: { class: 'twohash-hover' },
+      properties: { class: 'glosharp-hover' },
       children: [
         node,
         this.renderPopup(),
@@ -217,7 +217,7 @@ For environments without Shiki or EC (Hugo, Jekyll, plain HTML).
 The CLI itself can produce complete HTML:
 
 ```bash
-twohash render src/Example.cs --theme github-dark --format html
+glosharp render src/Example.cs --theme github-dark --format html
 ```
 
 This:
@@ -229,12 +229,12 @@ This:
 ### Output
 
 ```html
-<div class="twohash-code" data-theme="github-dark">
+<div class="glosharp-code" data-theme="github-dark">
   <style>/* inline theme + popup styles */</style>
   <pre><code>
-    <span class="mtk6">var</span> <span class="twohash-hover" style="anchor-name: --th-0"><span class="mtk1">greeting</span></span> = <span class="mtk4">"Hello!"</span>;
+    <span class="mtk6">var</span> <span class="glosharp-hover" style="anchor-name: --th-0"><span class="mtk1">greeting</span></span> = <span class="mtk4">"Hello!"</span>;
   </code></pre>
-  <div class="twohash-popup" style="position-anchor: --th-0">
+  <div class="glosharp-popup" style="position-anchor: --th-0">
     <code>(local variable) string greeting</code>
   </div>
 </div>

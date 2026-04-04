@@ -1,5 +1,5 @@
 {
-  "name": "twohash-e2e-tests",
+  "name": "glosharp-e2e-tests",
   "private": true,
   "type": "module",
   "scripts": {

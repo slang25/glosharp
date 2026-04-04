@@ -1,6 +1,6 @@
 ## Context
 
-Twohash's `TwohashProcessor` currently creates a Roslyn `CSharpCompilation` using only framework reference assemblies resolved by `FrameworkResolver`. The `TwohashMeta.Packages` field is always empty. To support real-world documentation snippets that use NuGet packages, we need to resolve package assemblies from a .csproj's `project.assets.json` and add them as `MetadataReference` entries.
+GloSharp's `GloSharpProcessor` currently creates a Roslyn `CSharpCompilation` using only framework reference assemblies resolved by `FrameworkResolver`. The `GloSharpMeta.Packages` field is always empty. To support real-world documentation snippets that use NuGet packages, we need to resolve package assemblies from a .csproj's `project.assets.json` and add them as `MetadataReference` entries.
 
 The `project.assets.json` file is written by `dotnet restore` to the project's `obj/` directory. It contains the full transitive dependency graph with resolved assembly paths per target framework.
 
@@ -10,7 +10,7 @@ The `project.assets.json` file is written by `dotnet restore` to the project's `
 - Parse `project.assets.json` to extract resolved NuGet assembly paths for a given target framework
 - Merge project references with framework references in the Roslyn compilation
 - Expose `--project` option through CLI → Node.js bridge → Shiki/EC integrations
-- Populate `TwohashMeta.Packages` with resolved package info
+- Populate `GloSharpMeta.Packages` with resolved package info
 - Optionally run `dotnet restore` if assets file is missing
 
 **Non-Goals:**
@@ -48,7 +48,7 @@ This means `--framework` and `--project` work together — the project provides 
 
 If `project.assets.json` doesn't exist, the CLI runs `dotnet restore` on the project before proceeding. A `--no-restore` flag skips this. This matches the `dotnet build` convention and avoids confusing "assets file not found" errors for users who forgot to restore.
 
-Auto-restore only happens at the CLI layer, not in TwoHash.Core — the core library expects a resolved assets file path.
+Auto-restore only happens at the CLI layer, not in GloSharp.Core — the core library expects a resolved assets file path.
 
 ### 5. Assembly path resolution from assets
 

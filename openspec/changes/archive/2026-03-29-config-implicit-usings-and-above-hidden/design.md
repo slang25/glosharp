@@ -1,6 +1,6 @@
 ## Context
 
-TwoHash already has a `twohash.config.json` with auto-discovery (walking up parent directories) and a `MarkerParser` that handles directives like `// ---cut---`, `// @hide`, `// @show`, etc. The processor prepends hardcoded global usings (`System`, `System.Collections.Generic`, `System.IO`, `System.Linq`, `System.Net.Http`, `System.Threading`, `System.Threading.Tasks`) as a separate syntax tree before compilation.
+GloSharp already has a `glosharp.config.json` with auto-discovery (walking up parent directories) and a `MarkerParser` that handles directives like `// ---cut---`, `// @hide`, `// @show`, etc. The processor prepends hardcoded global usings (`System`, `System.Collections.Generic`, `System.IO`, `System.Linq`, `System.Net.Http`, `System.Threading`, `System.Threading.Tasks`) as a separate syntax tree before compilation.
 
 `langVersion` and `nullable` are currently only settable via per-block `@langVersion`/`@nullable` markers. There is no config-level default for these — the processor defaults to `LanguageVersion.Latest` and `NullableContextOptions.Enable`.
 
@@ -9,7 +9,7 @@ The current `// ---cut---` syntax is not self-documenting. The global usings lis
 ## Goals / Non-Goals
 
 **Goals:**
-- Allow users to configure implicit usings in `twohash.config.json` (replacing defaults when specified)
+- Allow users to configure implicit usings in `glosharp.config.json` (replacing defaults when specified)
 - Add `langVersion` and `nullable` as config-level defaults
 - Introduce `// @above-hidden` as a self-documenting alternative to `// ---cut---`
 - Support both cut syntaxes simultaneously for backwards compatibility
@@ -35,7 +35,7 @@ Config sets the project-wide baseline. Per-block `@langVersion`/`@nullable` mark
 
 **Precedence**: marker > config > hardcoded default (`Latest` / `Enable`).
 
-**Implementation**: Pass config values through `TwohashProcessorOptions`. In `TwohashProcessor.ProcessAsync`, use marker value if present, else config value, else default. The existing marker parsing in `MarkerParser` is unchanged.
+**Implementation**: Pass config values through `GloSharpProcessorOptions`. In `GloSharpProcessor.ProcessAsync`, use marker value if present, else config value, else default. The existing marker parsing in `MarkerParser` is unchanged.
 
 ### 3. Single regex matches both `---cut---` and `@above-hidden`
 
@@ -49,4 +49,4 @@ Both syntaxes are first-class. Documentation will recommend `@above-hidden` but 
 
 - **Replace vs extend confusion**: Users might expect `implicitUsings` to add to defaults. Clear documentation needed. → Mitigation: Document that omitting the property keeps defaults; specifying it replaces them.
 - **Empty array removes all implicit usings**: `"implicitUsings": []` means no global usings at all. This is valid (user wants explicit control) but could surprise if done accidentally. → Mitigation: This is the expected .NET SDK behavior; no special handling needed.
-- **Config discovery scope**: All config properties apply to all code blocks under a config file. Different subdirectories can have different configs by placing multiple `twohash.config.json` files. → Acceptable; matches existing `framework` behavior.
+- **Config discovery scope**: All config properties apply to all code blocks under a config file. Different subdirectories can have different configs by placing multiple `glosharp.config.json` files. → Acceptable; matches existing `framework` behavior.

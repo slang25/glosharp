@@ -1,7 +1,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: Empty arrays for unused fields
-Fields without data (`completions`, `highlights`, `hidden`) SHALL be present as empty arrays, not omitted. When directive markers are present, the `highlights` array SHALL contain `TwohashHighlight` objects instead of being empty.
+Fields without data (`completions`, `highlights`, `hidden`) SHALL be present as empty arrays, not omitted. When directive markers are present, the `highlights` array SHALL contain `GloSharpHighlight` objects instead of being empty.
 
 #### Scenario: No completions in output
 - **WHEN** source has no `^|` markers
@@ -13,7 +13,7 @@ Fields without data (`completions`, `highlights`, `hidden`) SHALL be present as 
 
 #### Scenario: Highlights populated from directives
 - **WHEN** source has `@highlight`, `@focus`, or `@diff` markers
-- **THEN** `highlights` contains `TwohashHighlight` objects with `line`, `character`, `length`, and `kind` fields
+- **THEN** `highlights` contains `GloSharpHighlight` objects with `line`, `character`, `length`, and `kind` fields
 
 ## ADDED Requirements
 

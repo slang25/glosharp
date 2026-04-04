@@ -35,28 +35,28 @@ jobs:
             fi
           }
 
-          NEXT=$(get_next_version "@twohash/core")
+          NEXT=$(get_next_version "@glosharp/core")
           echo "Publishing version: $NEXT"
 
           # Set the same version on all packages
-          npm pkg set "version=$NEXT" -w @twohash/core
-          npm pkg set "version=$NEXT" -w @twohash/shiki
-          npm pkg set "version=$NEXT" -w @twohash/expressive-code
+          npm pkg set "version=$NEXT" -w @glosharp/core
+          npm pkg set "version=$NEXT" -w @glosharp/shiki
+          npm pkg set "version=$NEXT" -w @glosharp/expressive-code
 
           # Update cross-package dependency references
-          cd packages/shiki && npm pkg set "dependencies.@twohash/core=$NEXT" && cd ../..
-          cd packages/expressive-code && npm pkg set "dependencies.@twohash/core=$NEXT" && cd ../..
+          cd packages/shiki && npm pkg set "dependencies.@glosharp/core=$NEXT" && cd ../..
+          cd packages/expressive-code && npm pkg set "dependencies.@glosharp/core=$NEXT" && cd ../..
 
       - name: Build packages
         run: |
-          npm run build -w @twohash/core
-          npm run build -w @twohash/shiki
-          npm run build -w @twohash/expressive-code
+          npm run build -w @glosharp/core
+          npm run build -w @glosharp/shiki
+          npm run build -w @glosharp/expressive-code
 
       - name: Publish packages
         run: |
-          npm publish -w @twohash/core --access public --tag alpha
-          npm publish -w @twohash/shiki --access public --tag alpha
-          npm publish -w @twohash/expressive-code --access public --tag alpha
+          npm publish -w @glosharp/core --access public --tag alpha
+          npm publish -w @glosharp/shiki --access public --tag alpha
+          npm publish -w @glosharp/expressive-code --access public --tag alpha
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
