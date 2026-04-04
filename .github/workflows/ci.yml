@@ -47,7 +47,7 @@ jobs:
           node-version: '24'
 
       - name: Install dependencies
-        run: rm package-lock.json && npm install
+        run: npm ci
 
       - name: Build packages
         run: |
