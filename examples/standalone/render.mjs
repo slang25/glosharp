@@ -2,8 +2,8 @@
  * Standalone rendering script — generates a self-contained HTML page from C# snippets.
  *
  * Prerequisites:
- *   npm install @twohash/core @twohash/shiki shiki
- *   dotnet tool install -g twohash
+ *   npm install @glosharp/core @glosharp/shiki shiki
+ *   dotnet tool install -g glosharp
  *
  * Usage:
  *   node render.mjs               # renders all .cs files in this directory
@@ -13,7 +13,7 @@
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs'
 import { basename, resolve } from 'node:path'
 import { codeToHtml } from 'shiki'
-import { processTwohashCode, transformerTwohashWithResult } from '@twohash/shiki'
+import { processGloSharpCode, transformerGloSharpWithResult } from '@glosharp/shiki'
 
 const files = process.argv.slice(2)
 const csFiles = files.length > 0
@@ -31,8 +31,8 @@ for (const file of csFiles) {
   const code = readFileSync(resolve(import.meta.dirname, file), 'utf-8')
   console.log(`Processing ${file}...`)
 
-  const result = await processTwohashCode(code)
-  const transformers = result ? [transformerTwohashWithResult(result)] : []
+  const result = await processGloSharpCode(code)
+  const transformers = result ? [transformerGloSharpWithResult(result)] : []
 
   const html = await codeToHtml(result?.code ?? code, {
     lang: 'csharp',
@@ -48,7 +48,7 @@ const page = `<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Twohash Standalone Example</title>
+  <title>GloSharp Standalone Example</title>
   <style>
     body {
       font-family: system-ui, -apple-system, sans-serif;
@@ -69,8 +69,8 @@ const page = `<!DOCTYPE html>
       overflow-x: auto;
     }
 
-    /* Twohash hover styles */
-    .twohash-hover {
+    /* GloSharp hover styles */
+    .glosharp-hover {
       position: relative;
       border-bottom: 1px dotted transparent;
       transition: border-color 0.3s ease;
@@ -78,24 +78,24 @@ const page = `<!DOCTYPE html>
     }
 
     @media (prefers-reduced-motion: reduce) {
-      .twohash-hover { transition: none; }
+      .glosharp-hover { transition: none; }
     }
 
     /* Container hover: subtle underline on all hoverable tokens */
-    pre:hover .twohash-hover:not(:hover):not(.twohash-hover-persistent) {
+    pre:hover .glosharp-hover:not(:hover):not(.glosharp-hover-persistent) {
       border-bottom-color: color-mix(in srgb, currentColor 40%, transparent);
     }
 
     /* Token hover: strong underline */
-    .twohash-hover:hover {
+    .glosharp-hover:hover {
       border-bottom-color: currentColor;
     }
 
-    .twohash-hover-persistent {
+    .glosharp-hover-persistent {
       border-bottom-color: currentColor;
     }
 
-    .twohash-popup {
+    .glosharp-popup {
       display: none;
       position: fixed;
       position-area: top;
@@ -113,29 +113,29 @@ const page = `<!DOCTYPE html>
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
     }
 
-    .twohash-hover:hover + .twohash-popup,
-    .twohash-popup:hover {
+    .glosharp-hover:hover + .glosharp-popup,
+    .glosharp-popup:hover {
       display: block;
     }
 
-    .twohash-popup-code { font-family: inherit; }
+    .glosharp-popup-code { font-family: inherit; }
 
-    .twohash-popup-docs {
+    .glosharp-popup-docs {
       margin-top: 6px;
       padding-top: 6px;
       border-top: 1px solid #3c3c3c;
     }
 
     /* VS Code-like syntax colors */
-    .twohash-keyword { color: #569cd6; }
-    .twohash-className, .twohash-structName { color: #4ec9b0; }
-    .twohash-interfaceName, .twohash-enumName { color: #b8d7a3; }
-    .twohash-methodName { color: #dcdcaa; }
-    .twohash-propertyName, .twohash-localName, .twohash-parameterName { color: #9cdcfe; }
-    .twohash-punctuation, .twohash-operator, .twohash-text { color: #d4d4d4; }
+    .glosharp-keyword { color: #569cd6; }
+    .glosharp-className, .glosharp-structName { color: #4ec9b0; }
+    .glosharp-interfaceName, .glosharp-enumName { color: #b8d7a3; }
+    .glosharp-methodName { color: #dcdcaa; }
+    .glosharp-propertyName, .glosharp-localName, .glosharp-parameterName { color: #9cdcfe; }
+    .glosharp-punctuation, .glosharp-operator, .glosharp-text { color: #d4d4d4; }
 
     /* Error display */
-    .twohash-error-message {
+    .glosharp-error-message {
       display: block;
       padding: 2px 8px;
       margin-top: 2px;
@@ -145,12 +145,12 @@ const page = `<!DOCTYPE html>
       font-size: 0.85em;
     }
 
-    .twohash-error-code { font-weight: bold; }
-    a.twohash-error-code { color: inherit; text-decoration: none; }
-    a.twohash-error-code:hover { text-decoration: underline; }
+    .glosharp-error-code { font-weight: bold; }
+    a.glosharp-error-code { color: inherit; text-decoration: none; }
+    a.glosharp-error-code:hover { text-decoration: underline; }
 
     /* Completion list */
-    .twohash-completion-list {
+    .glosharp-completion-list {
       list-style: none;
       margin: 4px 0 0 0;
       padding: 4px 0;
@@ -162,14 +162,14 @@ const page = `<!DOCTYPE html>
       overflow-y: auto;
     }
 
-    .twohash-completion-item {
+    .glosharp-completion-item {
       display: flex;
       gap: 8px;
       padding: 2px 8px;
       align-items: center;
     }
 
-    .twohash-completion-kind {
+    .glosharp-completion-kind {
       font-size: 0.75em;
       opacity: 0.7;
       min-width: 60px;
@@ -177,7 +177,7 @@ const page = `<!DOCTYPE html>
   </style>
 </head>
 <body>
-  <h1>Twohash Standalone Example</h1>
+  <h1>GloSharp Standalone Example</h1>
   <p>Hover over the code to reveal interactive tokens, then hover a token to see its type.</p>
   ${sections.join('\n  ')}
 </body>

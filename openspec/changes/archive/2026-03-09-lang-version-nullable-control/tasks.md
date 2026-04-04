@@ -10,7 +10,7 @@
 - [x] 2.1 Create helper methods to map langVersion string → `LanguageVersion` enum and nullable string → `NullableContextOptions` enum, returning null for invalid values
 - [x] 2.2 Write unit tests for value mapping: all valid numeric versions, named versions (latest/preview/default), all nullable options, invalid values return null
 
-## 3. TwohashProcessor — apply parsed values
+## 3. GloSharpProcessor — apply parsed values
 
 - [x] 3.1 Read `LangVersion` and `Nullable` from `MarkerParseResult` in `ProcessWithContextAsync`, map to enum values, use them instead of hardcoded `LanguageVersion.Latest` / `NullableContextOptions.Enable` (lines 111, 162)
 - [x] 3.2 Do the same in `ExtractCompletions` (lines 255-256) so `^|` markers also respect the settings
@@ -19,10 +19,10 @@
 
 ## 4. Models and JSON output
 
-- [x] 4.1 Add `LangVersion` (string?) and `Nullable` (string?) properties to `TwohashMeta` in Models.cs, with JSON serialization configured to omit when null
-- [x] 4.2 Populate `meta.LangVersion` and `meta.Nullable` from parsed marker values in TwohashProcessor
+- [x] 4.1 Add `LangVersion` (string?) and `Nullable` (string?) properties to `GloSharpMeta` in Models.cs, with JSON serialization configured to omit when null
+- [x] 4.2 Populate `meta.LangVersion` and `meta.Nullable` from parsed marker values in GloSharpProcessor
 - [x] 4.3 Write tests verifying JSON output includes `langVersion` / `nullable` in meta when markers present, omits when absent
 
 ## 5. Node bridge types
 
-- [x] 5.1 Add optional `langVersion?: string` and `nullable?: string` fields to `TwohashMeta` interface in `packages/twohash/src/types.ts`
+- [x] 5.1 Add optional `langVersion?: string` and `nullable?: string` fields to `GloSharpMeta` interface in `packages/glosharp/src/types.ts`

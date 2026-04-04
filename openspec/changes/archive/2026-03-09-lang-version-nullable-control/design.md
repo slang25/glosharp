@@ -1,6 +1,6 @@
 ## Context
 
-Twohash hardcodes `LanguageVersion.Latest` and `NullableContextOptions.Enable` in `TwohashProcessor.cs` (lines 111 and 162, repeated at lines 255-256 for completions). All snippets compile under the same settings regardless of authorial intent.
+GloSharp hardcodes `LanguageVersion.Latest` and `NullableContextOptions.Enable` in `GloSharpProcessor.cs` (lines 111 and 162, repeated at lines 255-256 for completions). All snippets compile under the same settings regardless of authorial intent.
 
 The existing `MarkerParser` already handles `// @directive` comment markers (highlight, focus, diff, errors, noErrors) by regex-matching, recording metadata, and stripping the line from output. This is the natural extension point.
 
@@ -15,9 +15,9 @@ The existing `MarkerParser` already handles `// @directive` comment markers (hig
 - JSON meta reflects active settings for downstream consumers
 
 **Non-Goals:**
-- Config-file-based defaults (that's roadmap item 8, `.twohashrc`)
+- Config-file-based defaults (that's roadmap item 8, `.glosharprc`)
 - CLI flags for language version / nullable (defer to config file)
-- Supporting these via `#:property` file-based app directives (those are SDK-level; these are twohash-level markers)
+- Supporting these via `#:property` file-based app directives (those are SDK-level; these are glosharp-level markers)
 
 ## Decisions
 
@@ -25,11 +25,11 @@ The existing `MarkerParser` already handles `// @directive` comment markers (hig
 
 **Alternatives considered:**
 - **(a)** `#:property LanguageVersion=12` — reuses file-based app directive syntax
-- **(b)** `// @langVersion: 12` / `// @nullable: enable` — new twohash comment markers
+- **(b)** `// @langVersion: 12` / `// @nullable: enable` — new glosharp comment markers
 
 **Decision: (b) Comment markers**
 
-Rationale: `#:property` directives are passed to the .NET SDK's MSBuild system and affect `dotnet build` behavior. Language version and nullable context are Roslyn compilation settings that twohash controls directly. Using twohash's own `// @` marker convention keeps the two systems separate and works for all resolution tiers (not just file-based apps). It also matches the existing pattern for `// @errors`, `// @highlight`, etc.
+Rationale: `#:property` directives are passed to the .NET SDK's MSBuild system and affect `dotnet build` behavior. Language version and nullable context are Roslyn compilation settings that glosharp controls directly. Using glosharp's own `// @` marker convention keeps the two systems separate and works for all resolution tiers (not just file-based apps). It also matches the existing pattern for `// @errors`, `// @highlight`, etc.
 
 ### 2. Markers are per-snippet, not per-line
 
@@ -46,11 +46,11 @@ Each marker sets the value for the entire snippet. If multiple `// @langVersion`
 - `"enable"` → `Enable`, `"disable"` → `Disable`, `"warnings"` → `Warnings`, `"annotations"` → `Annotations`
 - Case-insensitive matching
 
-Invalid values produce a twohash-level error in the `errors` array (not a Roslyn diagnostic), with a clear message listing valid options.
+Invalid values produce a glosharp-level error in the `errors` array (not a Roslyn diagnostic), with a clear message listing valid options.
 
 ### 4. Meta output fields
 
-`TwohashMeta` gains two optional string fields:
+`GloSharpMeta` gains two optional string fields:
 - `langVersion`: the resolved language version string (e.g., `"12"`, `"latest"`), or null when using the default
 - `nullable`: the resolved nullable context string (e.g., `"enable"`, `"disable"`), or null when using the default
 

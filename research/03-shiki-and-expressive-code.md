@@ -1,6 +1,6 @@
 # Shiki and Expressive Code integration research
 
-How twohash will plug into the rendering layer. Shiki handles syntax highlighting; Expressive Code adds rich presentation features on top.
+How glosharp will plug into the rendering layer. Shiki handles syntax highlighting; Expressive Code adds rich presentation features on top.
 
 ## Shiki transformers
 
@@ -45,17 +45,17 @@ interface ShikiTransformer {
 import type { ShikiTransformer } from 'shiki'
 
 const myTransformer: ShikiTransformer = {
-  name: 'twohash',
+  name: 'glosharp',
 
-  // Run twohash before Shiki tokenizes the code
+  // Run glosharp before Shiki tokenizes the code
   preprocess(code, options) {
     if (options.lang !== 'csharp') return;
 
-    // Call twohash CLI, get JSON
-    const result = runTwohash(code);
+    // Call glosharp CLI, get JSON
+    const result = runGloSharp(code);
 
     // Store result for later hooks
-    this.twohashResult = result;
+    this.glosharpResult = result;
 
     // Return cleaned code (markers removed)
     return result.code;
@@ -63,7 +63,7 @@ const myTransformer: ShikiTransformer = {
 
   // Inject hover popups into the HAST
   root(hast) {
-    const result = this.twohashResult;
+    const result = this.glosharpResult;
     if (!result) return;
 
     // Walk the tree, find token spans at hover positions,
@@ -84,15 +84,15 @@ const myTransformer: ShikiTransformer = {
 Transformers can read the markdown code fence meta via `this.options.meta`:
 
 ````markdown
-```csharp twohash title="example.cs"
+```csharp glosharp title="example.cs"
 var x = 42;
 ```
 ````
 
 ```typescript
 preprocess(code, options) {
-  const meta = this.options.meta?.__raw; // "twohash title=\"example.cs\""
-  if (!meta?.includes('twohash')) return;
+  const meta = this.options.meta?.__raw; // "glosharp title=\"example.cs\""
+  if (!meta?.includes('glosharp')) return;
   // ...
 }
 ```
@@ -103,7 +103,7 @@ Use `enforce` to control when your transformer runs relative to others:
 
 ```typescript
 const transformer: ShikiTransformer = {
-  name: 'twohash',
+  name: 'glosharp',
   enforce: 'pre', // Run before other transformers
   // ...
 };
@@ -111,7 +111,7 @@ const transformer: ShikiTransformer = {
 
 ## How @shikijs/twoslash works (the pattern to follow)
 
-The twoslash Shiki integration is the template for twohash:
+The twoslash Shiki integration is the template for glosharp:
 
 1. **`preprocess`**: Detect twoslash code blocks, run twoslash, store result, return cleaned code
 2. **`root`**: Walk the HAST, match token positions to twoslash data, inject popup elements
@@ -132,7 +132,7 @@ Shiki's twoslash provides pluggable renderers:
 - **`rendererClassic`**: Legacy compatibility format
 - **`rendererFloatingVue`**: Vue component templates for VitePress
 
-For twohash, we'd implement a single renderer initially (rich CSS-class-based).
+For glosharp, we'd implement a single renderer initially (rich CSS-class-based).
 
 ## Expressive Code plugins
 
@@ -141,22 +141,22 @@ For twohash, we'd implement a single renderer initially (rich CSS-class-based).
 ```typescript
 import { definePlugin } from '@expressive-code/core'
 
-export function pluginTwohash(options = {}) {
+export function pluginGloSharp(options = {}) {
   return definePlugin({
-    name: 'twohash',
+    name: 'glosharp',
 
     // CSS styles (automatically scoped to EC blocks)
     baseStyles: `
-      .twohash-hover {
+      .glosharp-hover {
         text-decoration: underline dotted;
         cursor: pointer;
       }
-      .twohash-popup {
+      .glosharp-popup {
         display: none;
         position: fixed;
         /* ... */
       }
-      .twohash-hover:hover + .twohash-popup {
+      .glosharp-hover:hover + .glosharp-popup {
         display: block;
       }
     `,
@@ -195,10 +195,10 @@ EC hooks execute in this order:
 9. `postprocessRenderedBlock` — modify the entire block's AST
 10. `postprocessRenderedBlockGroup` — modify grouped blocks
 
-### Where twohash hooks in
+### Where glosharp hooks in
 
 ```
-preprocessCode          ← Remove twohash markers, call CLI, store result
+preprocessCode          ← Remove glosharp markers, call CLI, store result
 annotateCode            ← Map hovers/errors to EC annotations
 postprocessRenderedBlock ← Inject popup HTML elements
 ```
@@ -209,10 +209,10 @@ postprocessRenderedBlock ← Inject popup HTML elements
 import { ExpressiveCodeAnnotation } from '@expressive-code/core'
 import { h } from '@expressive-code/core/hast'
 
-class TwohashHoverAnnotation extends ExpressiveCodeAnnotation {
+class GloSharpHoverAnnotation extends ExpressiveCodeAnnotation {
   constructor(
     readonly hoverText: string,
-    readonly parts: TwohashPart[],
+    readonly parts: GloSharpPart[],
     readonly docs?: string,
     options: { inlineRange: { columnStart: number; columnEnd: number } }
   ) {
@@ -221,11 +221,11 @@ class TwohashHoverAnnotation extends ExpressiveCodeAnnotation {
 
   render({ nodesToTransform }) {
     return nodesToTransform.map(node => {
-      return h('span.twohash-hover', [
+      return h('span.glosharp-hover', [
         node,
-        h('div.twohash-popup', [
+        h('div.glosharp-popup', [
           h('code', this.renderParts()),
-          this.docs ? h('div.twohash-docs', this.docs) : null,
+          this.docs ? h('div.glosharp-docs', this.docs) : null,
         ].filter(Boolean)),
       ])
     })
@@ -233,7 +233,7 @@ class TwohashHoverAnnotation extends ExpressiveCodeAnnotation {
 
   private renderParts() {
     return this.parts.map(part =>
-      h(`span.twohash-${part.kind}`, part.text)
+      h(`span.glosharp-${part.kind}`, part.text)
     )
   }
 }
@@ -244,14 +244,14 @@ class TwohashHoverAnnotation extends ExpressiveCodeAnnotation {
 ```typescript
 hooks: {
   annotateCode: ({ codeBlock }) => {
-    const result = getTwohashResult(codeBlock);
+    const result = getGloSharpResult(codeBlock);
     if (!result) return;
 
     for (const hover of result.hovers) {
       const line = codeBlock.getLine(hover.line);
       if (!line) continue;
 
-      line.addAnnotation(new TwohashHoverAnnotation(
+      line.addAnnotation(new GloSharpHoverAnnotation(
         hover.text,
         hover.parts,
         hover.docs,
@@ -270,9 +270,9 @@ hooks: {
 ### Styling with theme awareness
 
 ```typescript
-export function pluginTwohash() {
+export function pluginGloSharp() {
   return definePlugin({
-    name: 'twohash',
+    name: 'glosharp',
 
     // Define style settings that respond to themes
     styleSettings: {
@@ -283,12 +283,12 @@ export function pluginTwohash() {
     },
 
     baseStyles: (context) => `
-      .twohash-popup {
+      .glosharp-popup {
         background: ${context.cssVar('popupBackground')};
         color: ${context.cssVar('popupForeground')};
         border: 1px solid ${context.cssVar('popupBorder')};
       }
-      .twohash-error-underline {
+      .glosharp-error-underline {
         text-decoration: wavy underline ${context.cssVar('errorUnderline')};
       }
     `,
@@ -305,7 +305,7 @@ hooks: {
   postprocessRenderedBlock: ({ renderData }) => {
     // renderData.blockAst is the full HAST for the code block
     // You can append elements, modify structure, etc.
-    const popupContainer = h('div.twohash-popups', popupElements);
+    const popupContainer = h('div.glosharp-popups', popupElements);
     renderData.blockAst.children.push(popupContainer);
   },
 }
@@ -319,14 +319,14 @@ Modern CSS provides a native way to position tooltips without JavaScript.
 
 ```css
 /* The token is the anchor */
-.twohash-hover {
-  anchor-name: --twohash-target;
+.glosharp-hover {
+  anchor-name: --glosharp-target;
 }
 
 /* The popup positions itself relative to the anchor */
-.twohash-popup {
+.glosharp-popup {
   position: fixed;
-  position-anchor: --twohash-target;
+  position-anchor: --glosharp-target;
   inset-area: top;        /* position above the anchor */
   margin-bottom: 4px;     /* small gap */
 }
@@ -337,13 +337,13 @@ Modern CSS provides a native way to position tooltips without JavaScript.
 Since we may have many hovers per code block, each needs a unique anchor name. Use inline styles:
 
 ```html
-<span class="twohash-hover" style="anchor-name: --th-0">greeting</span>
-<div class="twohash-popup" style="position-anchor: --th-0">
+<span class="glosharp-hover" style="anchor-name: --th-0">greeting</span>
+<div class="glosharp-popup" style="position-anchor: --th-0">
   (local variable) string greeting
 </div>
 
-<span class="twohash-hover" style="anchor-name: --th-1">WriteLine</span>
-<div class="twohash-popup" style="position-anchor: --th-1">
+<span class="glosharp-hover" style="anchor-name: --th-1">WriteLine</span>
+<div class="glosharp-popup" style="position-anchor: --th-1">
   void Console.WriteLine(string? value)
 </div>
 ```
@@ -351,12 +351,12 @@ Since we may have many hovers per code block, each needs a unique anchor name. U
 ### Show on hover (pure CSS)
 
 ```css
-.twohash-popup {
+.glosharp-popup {
   display: none;
 }
 
-.twohash-hover:hover + .twohash-popup,
-.twohash-popup:hover {
+.glosharp-hover:hover + .glosharp-popup,
+.glosharp-popup:hover {
   display: block;
 }
 ```
@@ -371,11 +371,11 @@ The `:hover` on the popup itself ensures the user can move their mouse to the po
 - Safari 26+ (fully shipped)
 - Safari iOS 26+ (fully shipped)
 
-All major browsers now support CSS anchor positioning without flags. This is a solid foundation for twohash's tooltip positioning strategy.
+All major browsers now support CSS anchor positioning without flags. This is a solid foundation for glosharp's tooltip positioning strategy.
 
 ## How expressive-code-twoslash actually works (reference implementation)
 
-The [`expressive-code-twoslash`](https://github.com/withstudiocms/expressive-code-twoslash) plugin by StudioCMS is the direct pattern for twohash's EC integration. It's the only real-world example of a twoslash-style EC plugin.
+The [`expressive-code-twoslash`](https://github.com/withstudiocms/expressive-code-twoslash) plugin by StudioCMS is the direct pattern for glosharp's EC integration. It's the only real-world example of a twoslash-style EC plugin.
 
 ### Plugin structure overview
 
@@ -560,7 +560,7 @@ async function renderType(typeText: string, config) {
 }
 ```
 
-This is clever — the popup code is syntax-highlighted using the same theme as the main code block. **For twohash, we'd do the same but render C# type info.**
+This is clever — the popup code is syntax-highlighted using the same theme as the main code block. **For glosharp, we'd do the same but render C# type info.**
 
 ### Popup positioning: Floating UI vs CSS anchors
 
@@ -569,12 +569,12 @@ The existing twoslash plugin uses **Floating UI** (JavaScript) for popup positio
 - The popup position is calculated on hover
 - Works in all browsers (no anchor positioning needed)
 
-**For twohash, we have a choice:**
+**For glosharp, we have a choice:**
 - **CSS anchor positioning** — zero JS, modern browsers all support it now, cleaner markup
 - **Floating UI** — the proven approach, works everywhere including older browsers
 - **Both** — CSS anchors by default, Floating UI as an opt-in fallback
 
-Given that all major browsers now support CSS anchor positioning (Safari 26+, Chrome 125+, Firefox 147+), the CSS-only approach is viable for twohash.
+Given that all major browsers now support CSS anchor positioning (Safari 26+, Chrome 125+, Firefox 147+), the CSS-only approach is viable for glosharp.
 
 ### Style settings architecture
 
@@ -610,7 +610,7 @@ The plugin processes code blocks based on:
 2. **Meta string**: can include `twoslash` to opt-in
 3. **Configuration**: can be set to process all TS/JS blocks automatically
 
-### Lessons for twohash's EC plugin
+### Lessons for glosharp's EC plugin
 
 1. **Use `preprocessCode`, not `annotateCode`** — we need to modify the code (strip markers) before syntax highlighting
 2. **Re-render type info with EC** — create a mini EC instance to syntax-highlight C# type signatures in popups
@@ -627,7 +627,7 @@ The plugin processes code blocks based on:
                     ──────────                    ───────
                          │                            │
               preprocess hook              preprocessCode hook
-              (call twohash CLI)           (call twohash CLI)
+              (call glosharp CLI)           (call glosharp CLI)
                          │                            │
               Shiki tokenizes              EC/Shiki tokenizes
                          │                            │
@@ -642,12 +642,12 @@ The plugin processes code blocks based on:
                     with hover popups            with hover popups
 ```
 
-Both paths consume the same twohash JSON output. The difference is just how they inject it into the rendering pipeline.
+Both paths consume the same glosharp JSON output. The difference is just how they inject it into the rendering pipeline.
 
 ## Open questions
 
 - Should we use `position: absolute` inside a `position: relative` container instead of CSS anchor positioning, for broader compatibility?
 - For the EC plugin, should popup HTML go inside the annotation render, or be appended in `postprocessRenderedBlock`?
 - How do we handle code blocks with many hovers — will unique anchor names per-hover scale?
-- Should the Shiki transformer cache twohash results between builds (e.g., based on source hash)?
+- Should the Shiki transformer cache glosharp results between builds (e.g., based on source hash)?
 - Can we share CSS between the Shiki and EC integrations, or do they need separate stylesheets?

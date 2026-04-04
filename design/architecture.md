@@ -2,18 +2,18 @@
 
 ## System overview
 
-Twohash is split into layers: a .NET core that does the heavy lifting with Roslyn, a CLI interface that produces JSON, and thin JS integrations that consume that JSON for rendering.
+GloSharp is split into layers: a .NET core that does the heavy lifting with Roslyn, a CLI interface that produces JSON, and thin JS integrations that consume that JSON for rendering.
 
 ```
                           Build time
                     ┌─────────────────────┐
                     │                     │
-  .cs files ──────►│   twohash core      │──────► JSON metadata
+  .cs files ──────►│   glosharp core      │──────► JSON metadata
   .csproj ────────►│   (C# / Roslyn)     │
                     │                     │
                     └─────────────────────┘
                               │
-                         twohash CLI
+                         glosharp CLI
                               │
                        JSON on stdout
                               │
@@ -34,15 +34,15 @@ Twohash is split into layers: a .NET core that does the heavy lifting with Rosly
 
 ## Component details
 
-### 1. Twohash Core (.NET library)
+### 1. GloSharp Core (.NET library)
 
-**Package**: `TwoHash.Core` (or similar)
+**Package**: `GloSharp.Core` (or similar)
 
 **Responsibilities**:
 - Parse C# source code via Roslyn
 - Create `CSharpCompilation` with appropriate references
 - Walk syntax tree, extract symbol metadata at marker positions
-- Process twohash marker syntax (`^?`, `// @errors`, etc.)
+- Process glosharp marker syntax (`^?`, `// @errors`, etc.)
 - Produce structured metadata output
 - Report diagnostics (compile errors)
 
@@ -57,28 +57,28 @@ Twohash is split into layers: a .NET core that does the heavy lifting with Rosly
 - C# source code (string or file path)
 - Compilation context: assembly references, either from a .csproj/project.assets.json or default framework refs
 
-**Output**: `TwohashResult` object (serialized as JSON)
+**Output**: `GloSharpResult` object (serialized as JSON)
 
-### 2. Twohash CLI
+### 2. GloSharp CLI
 
-**Package**: `twohash` dotnet tool (global or local)
+**Package**: `glosharp` dotnet tool (global or local)
 
 **Usage**:
 ```bash
 # Process a single file
-twohash process src/Example.cs
+glosharp process src/Example.cs
 
 # Process a specific region
-twohash process src/Example.cs --region getting-started
+glosharp process src/Example.cs --region getting-started
 
 # Process with a project context
-twohash process src/Example.cs --project src/Example.csproj
+glosharp process src/Example.cs --project src/Example.csproj
 
 # Verify all snippets compile (CI mode)
-twohash verify samples/
+glosharp verify samples/
 
 # Output JSON to stdout
-twohash process src/Example.cs --format json
+glosharp process src/Example.cs --format json
 ```
 
 **Responsibilities**:
@@ -90,23 +90,23 @@ twohash process src/Example.cs --format json
 
 ### 3. Node.js bridge
 
-**Package**: `twohash` (npm)
+**Package**: `glosharp` (npm)
 
 **Responsibilities**:
-- Spawn `twohash` CLI as child process
+- Spawn `glosharp` CLI as child process
 - Parse JSON output
 - Provide typed TypeScript API for integrations
 - Cache results during a build
 
 ```typescript
-import { createTwohash } from 'twohash'
+import { createGloSharp } from 'glosharp'
 
-const twohash = createTwohash({
+const glosharp = createGloSharp({
   // Path to dotnet tool, or auto-detect
-  executable: 'twohash',
+  executable: 'glosharp',
 })
 
-const result = await twohash.process({
+const result = await glosharp.process({
   code: 'var x = 42;',
   // or: file: 'src/Example.cs',
   // or: file: 'src/Example.cs', region: 'snippet-name',
@@ -118,19 +118,19 @@ const result = await twohash.process({
 
 ### 4. Shiki transformer
 
-**Package**: `@twohash/shiki` (npm)
+**Package**: `@glosharp/shiki` (npm)
 
 Follows the same pattern as `@shikijs/twoslash`:
 
 ```typescript
-import { transformerTwohash } from '@twohash/shiki'
+import { transformerGloSharp } from '@glosharp/shiki'
 
 const html = await codeToHtml(code, {
   lang: 'csharp',
   themes: { light: 'github-light', dark: 'github-dark' },
   transformers: [
-    transformerTwohash({
-      // twohash options
+    transformerGloSharp({
+      // glosharp options
     }),
   ],
 })
@@ -138,16 +138,16 @@ const html = await codeToHtml(code, {
 
 ### 5. Expressive Code plugin
 
-**Package**: `@twohash/expressive-code` (npm)
+**Package**: `@glosharp/expressive-code` (npm)
 
 ```typescript
-import { pluginTwohash } from '@twohash/expressive-code'
+import { pluginGloSharp } from '@glosharp/expressive-code'
 
 export default defineConfig({
   integrations: [
     starlight({
       expressiveCode: {
-        plugins: [pluginTwohash()],
+        plugins: [pluginGloSharp()],
       },
     }),
   ],
@@ -156,12 +156,12 @@ export default defineConfig({
 
 ### 6. Standalone renderer
 
-**Package**: part of `twohash` npm package or separate
+**Package**: part of `glosharp` npm package or separate
 
 For environments without Shiki/EC (Hugo, Jekyll, custom builds):
 
 ```bash
-twohash render src/Example.cs --theme github-dark > output.html
+glosharp render src/Example.cs --theme github-dark > output.html
 ```
 
 Produces self-contained HTML with inline CSS. Uses CSS anchor positioning for hover tooltips.
@@ -170,8 +170,8 @@ Produces self-contained HTML with inline CSS. Uses CSS anchor positioning for ho
 
 1. **Author** writes C# in a sample project with `#region` markers
 2. **Doc framework** (e.g., Starlight) processes markdown, encounters a code block referencing the sample
-3. **Twohash plugin** calls the CLI with the source file and region
-4. **Twohash CLI** loads the .csproj, resolves references, compiles with Roslyn, extracts metadata
+3. **GloSharp plugin** calls the CLI with the source file and region
+4. **GloSharp CLI** loads the .csproj, resolves references, compiles with Roslyn, extracts metadata
 5. **JSON metadata** flows back to the plugin
 6. **Plugin** maps metadata to HAST nodes (Shiki) or annotations (EC)
 7. **Rendered HTML** includes hover tooltips, error markers, type information

@@ -1,8 +1,8 @@
 ## Context
 
-Twohash already extracts Roslyn diagnostics with full severity metadata (`error`, `warning`, `info`, `hidden`) and surfaces them through the JSON contract. However, all three renderers (EC plugin, Shiki transformer, standalone HTML) treat every diagnostic identically — red wavy underlines regardless of severity. Error codes are plain text. Diagnostic spans are assumed to be single-line.
+GloSharp already extracts Roslyn diagnostics with full severity metadata (`error`, `warning`, `info`, `hidden`) and surfaces them through the JSON contract. However, all three renderers (EC plugin, Shiki transformer, standalone HTML) treat every diagnostic identically — red wavy underlines regardless of severity. Error codes are plain text. Diagnostic spans are assumed to be single-line.
 
-The existing `TwohashError` model has `line`, `character`, `length` but no end position. Roslyn's `Diagnostic.Location.SourceSpan` provides full start/end positions, but we currently only extract the start + length.
+The existing `GloSharpError` model has `line`, `character`, `length` but no end position. Roslyn's `Diagnostic.Location.SourceSpan` provides full start/end positions, but we currently only extract the start + length.
 
 ## Goals / Non-Goals
 
@@ -22,7 +22,7 @@ The existing `TwohashError` model has `line`, `character`, `length` but no end p
 ### 1. Multi-line span representation: `endLine`/`endCharacter` fields
 
 **Options:**
-- (a) Add `endLine` and `endCharacter` optional fields to `TwohashError`
+- (a) Add `endLine` and `endCharacter` optional fields to `GloSharpError`
 - (b) Replace `length` with a `range` object `{ start: { line, character }, end: { line, character } }`
 - (c) Flatten multi-line spans into per-line segments at extraction time
 

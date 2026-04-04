@@ -21,8 +21,8 @@ jobs:
       - name: Get next alpha version
         id: version
         run: |
-          # Query NuGet for the latest published alpha version of TwoHash.Core
-          CURRENT=$(dotnet package search TwoHash.Core --source https://api.nuget.org/v3/index.json --prerelease --exact-match --format json \
+          # Query NuGet for the latest published alpha version of GloSharp.Core
+          CURRENT=$(dotnet package search GloSharp.Core --source https://api.nuget.org/v3/index.json --prerelease --exact-match --format json \
             | jq -r '[.searchResult[0].packages[] | select(.version | test("alpha"))] | sort_by(.version) | last | .version // empty' 2>/dev/null || echo "")
           if [ -z "$CURRENT" ]; then
             NEXT="0.1.0-alpha.1"
@@ -45,5 +45,5 @@ jobs:
 
       - name: Publish packages
         run: |
-          dotnet nuget push src/TwoHash.Core/bin/Release/TwoHash.Core.*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ steps.login.outputs.NUGET_API_KEY }}
-          dotnet nuget push src/TwoHash.Cli/bin/Release/twohash.*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ steps.login.outputs.NUGET_API_KEY }}
+          dotnet nuget push src/GloSharp.Core/bin/Release/GloSharp.Core.*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ steps.login.outputs.NUGET_API_KEY }}
+          dotnet nuget push src/GloSharp.Cli/bin/Release/glosharp.*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ steps.login.outputs.NUGET_API_KEY }}

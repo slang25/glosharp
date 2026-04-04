@@ -1,7 +1,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: Extract hover information at queried positions
-The system SHALL resolve the syntax node at each hover query position, obtain symbol info via `SemanticModel.GetSymbolInfo()` or `SemanticModel.GetDeclaredSymbol()`, and produce structured hover data including display parts, documentation, and symbol kind. The `Docs` field SHALL contain a structured `TwohashDocComment` object (or null) instead of a plain summary string.
+The system SHALL resolve the syntax node at each hover query position, obtain symbol info via `SemanticModel.GetSymbolInfo()` or `SemanticModel.GetDeclaredSymbol()`, and produce structured hover data including display parts, documentation, and symbol kind. The `Docs` field SHALL contain a structured `GloSharpDocComment` object (or null) instead of a plain summary string.
 
 #### Scenario: Local variable hover
 - **WHEN** a hover query targets a local variable `x` of type `int`

@@ -1,6 +1,6 @@
 ## Context
 
-Twohash currently resolves compilation references through a tiered approach in `TwohashProcessor`:
+GloSharp currently resolves compilation references through a tiered approach in `GloSharpProcessor`:
 1. `--project` flag → `ProjectAssetsResolver` reads `project.assets.json`
 2. `#:` file directives → `FileBasedAppResolver` runs `dotnet build` then reads generated assets
 3. Fallback → `FrameworkResolver` loads SDK reference assemblies only
@@ -15,7 +15,7 @@ All three tiers require either the .NET SDK installed or a restored project on t
 - Accept `.complog` files as a compilation source, bypassing all existing reference resolution
 - Support selecting a specific project from multi-project complogs
 - Integrate cleanly with existing caching (result cache, compilation context cache)
-- Propagate complog metadata (framework, packages) into `TwohashMeta`
+- Propagate complog metadata (framework, packages) into `GloSharpMeta`
 - Surface complog support through CLI, Node bridge, and config file
 
 **Non-Goals:**
@@ -34,7 +34,7 @@ All three tiers require either the .NET SDK installed or a restored project on t
 
 **Decision: (b) — Extract references and options**
 
-The complog's `Compilation` contains the original project's source trees, which are irrelevant to the user's snippet. We need a compilation with twohash's processed source (markers stripped, global usings added). Extracting references and options keeps the complog resolver aligned with how `FrameworkResolver` and `ProjectAssetsResolver` work — they all produce references that `TwohashProcessor` assembles into a compilation. This also means the existing `CompilationContextCache` can cache complog-sourced references naturally.
+The complog's `Compilation` contains the original project's source trees, which are irrelevant to the user's snippet. We need a compilation with glosharp's processed source (markers stripped, global usings added). Extracting references and options keeps the complog resolver aligned with how `FrameworkResolver` and `ProjectAssetsResolver` work — they all produce references that `GloSharpProcessor` assembles into a compilation. This also means the existing `CompilationContextCache` can cache complog-sourced references naturally.
 
 ### 2. Project selection defaults to first C# compilation
 
@@ -59,11 +59,11 @@ This keeps the mental model simple: complog replaces the entire reference resolu
 
 ### 4. Cache key for complog-sourced results
 
-The result cache key currently includes: twohash version, framework, packages, project path, source code. For complog mode, the key SHALL include: twohash version, complog file path, complog project name (or empty), source code. The complog file path serves as a proxy for the compilation state — if the complog is regenerated, the path is typically the same but the mtime/content changes. For correctness, we include a hash of the complog file's last-write-time rather than the file content (complogs can be large).
+The result cache key currently includes: glosharp version, framework, packages, project path, source code. For complog mode, the key SHALL include: glosharp version, complog file path, complog project name (or empty), source code. The complog file path serves as a proxy for the compilation state — if the complog is regenerated, the path is typically the same but the mtime/content changes. For correctness, we include a hash of the complog file's last-write-time rather than the file content (complogs can be large).
 
 The compilation context cache key for complog-sourced references SHALL be: complog file path + complog project name + complog last-write-time. This allows multiple snippets using the same complog to share cached references.
 
-### 5. ComplogResolver as a new class in TwoHash.Core
+### 5. ComplogResolver as a new class in GloSharp.Core
 
 `ComplogResolver` follows the same pattern as the other resolvers:
 - Input: complog file path, optional project name
@@ -74,16 +74,16 @@ The compilation context cache key for complog-sourced references SHALL be: compl
 
 ### 6. Config file placement of complog path
 
-The `complog` path in `twohash.config.json` resolves relative to the config file (same as `project` and `cacheDir`). This makes it natural to reference a complog in the repo: `{"complog": "./artifacts/build.complog"}`.
+The `complog` path in `glosharp.config.json` resolves relative to the config file (same as `project` and `cacheDir`). This makes it natural to reference a complog in the repo: `{"complog": "./artifacts/build.complog"}`.
 
 ## Risks / Trade-offs
 
-**[Risk] Large dependency size** → `Basic.CompilerLog.Util` may add significant size to the TwoHash.Core package. Mitigation: Measure the impact. If too large, consider making it a separate `TwoHash.Complog` package that users opt into. For now, include it directly since the CLI is already a large .NET tool.
+**[Risk] Large dependency size** → `Basic.CompilerLog.Util` may add significant size to the GloSharp.Core package. Mitigation: Measure the impact. If too large, consider making it a separate `GloSharp.Complog` package that users opt into. For now, include it directly since the CLI is already a large .NET tool.
 
 **[Risk] complog library API instability** → The complog library is maintained by Jared Parsons but is not a stable/versioned product. API may change. Mitigation: Pin to a specific version, wrap usage behind `ComplogResolver` to isolate the dependency. Monitor releases.
 
-**[Risk] Stale complog files** → If the project changes but the complog isn't regenerated, twohash gives results based on old references. Mitigation: Document that complogs are snapshots. The result cache key includes the complog's last-write-time, so regenerating the complog invalidates the cache. A future enhancement could compare complog creation time to source file mtime and warn.
+**[Risk] Stale complog files** → If the project changes but the complog isn't regenerated, glosharp gives results based on old references. Mitigation: Document that complogs are snapshots. The result cache key includes the complog's last-write-time, so regenerating the complog invalidates the cache. A future enhancement could compare complog creation time to source file mtime and warn.
 
-**[Risk] complog reader holds file handles** → The complog reader may keep the file open during processing. Mitigation: `ComplogResolver` implements `IDisposable`. `TwohashProcessor` disposes it after extracting references. For `verify` command (multiple files), the resolver is opened once and shared across files, disposed at the end.
+**[Risk] complog reader holds file handles** → The complog reader may keep the file open during processing. Mitigation: `ComplogResolver` implements `IDisposable`. `GloSharpProcessor` disposes it after extracting references. For `verify` command (multiple files), the resolver is opened once and shared across files, disposed at the end.
 
 **[Trade-off] No framework/package override with complog** → When using complog, `--framework` and `#:package` directives are ignored for resolution. The complog's compilation state is authoritative. This simplifies the model but means users can't "patch" a complog with additional references. This is acceptable — if you need different references, rebuild the complog.

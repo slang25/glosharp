@@ -5,7 +5,7 @@ title: Getting Started with C#
 
 # Getting Started with C#
 
-Hover over any underlined token to see its type — powered by **twohash** and the Roslyn compiler, rendered with **Expressive Code**.
+Hover over any underlined token to see its type — powered by **glosharp** and the Roslyn compiler, rendered with **Expressive Code**.
 
 ## Variables and Type Inference
 
@@ -31,7 +31,7 @@ var evens = numbers.Where(n => n % 2 == 0).ToList();
 
 ## Error Handling
 
-Twohash can also show compile errors inline. Here's what happens when you use an undeclared variable:
+GloSharp can also show compile errors inline. Here's what happens when you use an undeclared variable:
 
 ```csharp
 // @errors: CS0103

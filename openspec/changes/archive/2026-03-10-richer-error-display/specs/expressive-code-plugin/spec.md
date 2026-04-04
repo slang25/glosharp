@@ -1,18 +1,18 @@
 ## MODIFIED Requirements
 
 ### Requirement: Add error annotations in annotateCode hook
-The `annotateCode` hook SHALL create `TwohashErrorAnnotation` instances for error underlines and error message display. Annotations SHALL carry the diagnostic severity and apply severity-specific styling: error (red), warning (yellow/amber), info (blue). When a diagnostic spans multiple lines, underline annotations SHALL be created for each affected line.
+The `annotateCode` hook SHALL create `GloSharpErrorAnnotation` instances for error underlines and error message display. Annotations SHALL carry the diagnostic severity and apply severity-specific styling: error (red), warning (yellow/amber), info (blue). When a diagnostic spans multiple lines, underline annotations SHALL be created for each affected line.
 
 #### Scenario: Error annotation created
-- **WHEN** the twohash result contains an error at line 3
+- **WHEN** the glosharp result contains an error at line 3
 - **THEN** an inline error underline annotation and a block error message annotation are added for that line
 
 #### Scenario: Warning annotation uses amber styling
-- **WHEN** the twohash result contains a warning diagnostic at line 5
+- **WHEN** the glosharp result contains a warning diagnostic at line 5
 - **THEN** the underline annotation uses amber/yellow decoration color and the message annotation uses amber styling
 
 #### Scenario: Multi-line error annotation
-- **WHEN** the twohash result contains a diagnostic spanning lines 2-4
+- **WHEN** the glosharp result contains a diagnostic spanning lines 2-4
 - **THEN** underline annotations are created for lines 2, 3, and 4, and the error message annotation is placed on line 4
 
 ### Requirement: Theme-aware styling via styleSettings

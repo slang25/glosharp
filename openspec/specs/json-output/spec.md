@@ -16,7 +16,7 @@ The system SHALL output JSON with the following top-level fields: `code` (proces
 - **THEN** the `completions` array is `[]`
 
 ### Requirement: Hover objects in JSON
-Each hover entry SHALL contain: `line` (number), `character` (number), `length` (number), `text` (string), `parts` (array of `{kind, text}`), `docs` (structured `TwohashDocComment` object or null), `symbolKind` (string), and `targetText` (string). The `docs` object, when present, SHALL contain: `summary` (string or null), `params` (array of `{name, text}`), `returns` (string or null), `remarks` (string or null), `examples` (array of strings), and `exceptions` (array of `{type, text}`). Empty arrays and null fields within `docs` SHALL be omitted from JSON output.
+Each hover entry SHALL contain: `line` (number), `character` (number), `length` (number), `text` (string), `parts` (array of `{kind, text}`), `docs` (structured `GloSharpDocComment` object or null), `symbolKind` (string), and `targetText` (string). The `docs` object, when present, SHALL contain: `summary` (string or null), `params` (array of `{name, text}`), `returns` (string or null), `remarks` (string or null), `examples` (array of strings), and `exceptions` (array of `{type, text}`). Empty arrays and null fields within `docs` SHALL be omitted from JSON output.
 
 #### Scenario: Hover JSON with full docs
 - **WHEN** a hover query resolves to a method with summary, params, and returns documentation
@@ -85,7 +85,7 @@ The `meta` object SHALL contain: `targetFramework` (string), `packages` (array o
 - **THEN** `meta.langVersion` is null and `meta.nullable` is null (or omitted)
 
 ### Requirement: Empty arrays for unused fields
-Fields without data (`completions`, `highlights`, `hidden`) SHALL be present as empty arrays, not omitted. When directive markers are present, the `highlights` array SHALL contain `TwohashHighlight` objects instead of being empty.
+Fields without data (`completions`, `highlights`, `hidden`) SHALL be present as empty arrays, not omitted. When directive markers are present, the `highlights` array SHALL contain `GloSharpHighlight` objects instead of being empty.
 
 #### Scenario: No completions in output
 - **WHEN** source has no `^|` markers
@@ -97,7 +97,7 @@ Fields without data (`completions`, `highlights`, `hidden`) SHALL be present as 
 
 #### Scenario: Highlights populated from directives
 - **WHEN** source has `@highlight`, `@focus`, or `@diff` markers
-- **THEN** `highlights` contains `TwohashHighlight` objects with `line`, `character`, `length`, and `kind` fields
+- **THEN** `highlights` contains `GloSharpHighlight` objects with `line`, `character`, `length`, and `kind` fields
 
 ### Requirement: Parts kind values
 The `kind` field in hover parts SHALL use values mapped from Roslyn's `SymbolDisplayPartKind`: `keyword`, `className`, `structName`, `interfaceName`, `enumName`, `delegateName`, `methodName`, `propertyName`, `fieldName`, `eventName`, `localName`, `parameterName`, `namespaceName`, `punctuation`, `operator`, `space`, `text`, `lineBreak`.

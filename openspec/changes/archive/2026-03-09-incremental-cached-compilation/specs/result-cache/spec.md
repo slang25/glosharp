@@ -1,25 +1,25 @@
 ## ADDED Requirements
 
 ### Requirement: Disk-based result caching by content hash
-The system SHALL cache `TwohashResult` JSON to disk when a cache directory is configured. The cache key SHALL be the SHA256 hash of: twohash assembly version, target framework, sorted package list (as JSON), project path, and source code, concatenated with null byte separators.
+The system SHALL cache `GloSharpResult` JSON to disk when a cache directory is configured. The cache key SHALL be the SHA256 hash of: glosharp assembly version, target framework, sorted package list (as JSON), project path, and source code, concatenated with null byte separators.
 
 #### Scenario: Cache miss writes result to disk
-- **WHEN** `TwohashProcessor.ProcessAsync()` completes with a cache directory configured and no matching cache file exists
+- **WHEN** `GloSharpProcessor.ProcessAsync()` completes with a cache directory configured and no matching cache file exists
 - **THEN** the result JSON SHALL be written to `<cache-dir>/<sha256-hex>.json`
 
 #### Scenario: Cache hit returns stored result
-- **WHEN** `TwohashProcessor.ProcessAsync()` is called with a cache directory configured and a matching cache file exists at `<cache-dir>/<sha256-hex>.json`
+- **WHEN** `GloSharpProcessor.ProcessAsync()` is called with a cache directory configured and a matching cache file exists at `<cache-dir>/<sha256-hex>.json`
 - **THEN** the cached JSON SHALL be deserialized and returned without invoking Roslyn compilation or reference resolution
 
 #### Scenario: No cache directory configured
-- **WHEN** `TwohashProcessor.ProcessAsync()` is called without a cache directory in options
+- **WHEN** `GloSharpProcessor.ProcessAsync()` is called without a cache directory in options
 - **THEN** no disk caching SHALL occur and processing proceeds as before
 
-### Requirement: Cache key includes twohash version
-The cache key computation SHALL include the twohash assembly version so that cached results from a different version are not reused.
+### Requirement: Cache key includes glosharp version
+The cache key computation SHALL include the glosharp assembly version so that cached results from a different version are not reused.
 
 #### Scenario: Version change invalidates cache
-- **WHEN** a cache file exists from twohash version 1.0.0 and twohash version 1.1.0 processes the same source
+- **WHEN** a cache file exists from glosharp version 1.0.0 and glosharp version 1.1.0 processes the same source
 - **THEN** the cache key differs and the system processes from scratch, writing a new cache entry
 
 ### Requirement: Atomic cache writes

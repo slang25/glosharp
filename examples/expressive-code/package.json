@@ -1,19 +1,19 @@
 {
-  "name": "twohash-expressive-code-example",
+  "name": "glosharp-expressive-code-example",
   "type": "module",
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "predev": "npm run build -w @twohash/core -w @twohash/expressive-code",
+    "predev": "npm run build -w @glosharp/core -w @glosharp/expressive-code",
     "dev": "astro dev",
-    "prebuild": "npm run build -w @twohash/core -w @twohash/expressive-code",
+    "prebuild": "npm run build -w @glosharp/core -w @glosharp/expressive-code",
     "build": "astro build",
     "preview": "astro preview"
   },
   "dependencies": {
-    "@twohash/expressive-code": "*",
+    "@glosharp/expressive-code": "*",
     "astro": "^5.7.0",
     "astro-expressive-code": "^0.41.0",
-    "@twohash/core": "*"
+    "@glosharp/core": "*"
   }
 }

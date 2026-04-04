@@ -4,25 +4,25 @@
 The CLI SHALL accept a `process` command with a file path argument to process a C# source file and output JSON to stdout. Before processing, the CLI SHALL load config file defaults (via auto-discovery or `--config`) and merge them with CLI arguments, with CLI arguments taking precedence.
 
 #### Scenario: Process a file
-- **WHEN** `twohash process src/Example.cs` is run
-- **THEN** the CLI auto-discovers `twohash.config.json`, merges config defaults with CLI args, reads the file, processes it through the core, and writes JSON to stdout
+- **WHEN** `glosharp process src/Example.cs` is run
+- **THEN** the CLI auto-discovers `glosharp.config.json`, merges config defaults with CLI args, reads the file, processes it through the core, and writes JSON to stdout
 
 #### Scenario: Process with config defaults
-- **WHEN** `twohash process src/Example.cs` is run and `twohash.config.json` contains `{"framework": "net9.0", "project": "./Samples.csproj"}`
+- **WHEN** `glosharp process src/Example.cs` is run and `glosharp.config.json` contains `{"framework": "net9.0", "project": "./Samples.csproj"}`
 - **THEN** the CLI uses `net9.0` as framework and `./Samples.csproj` as project without explicit CLI flags
 
 ### Requirement: Process command accepts stdin
 The CLI SHALL accept source code from stdin when no file path is provided or when `--stdin` is specified.
 
 #### Scenario: Pipe source via stdin
-- **WHEN** `echo "var x = 42;" | twohash process --stdin` is run
+- **WHEN** `echo "var x = 42;" | glosharp process --stdin` is run
 - **THEN** the CLI reads from stdin, processes it, and writes JSON to stdout
 
 ### Requirement: Target framework option
 The CLI SHALL accept a `--framework` option to specify the target framework moniker (e.g., `net8.0`, `net9.0`).
 
 #### Scenario: Specify target framework
-- **WHEN** `twohash process file.cs --framework net8.0` is run
+- **WHEN** `glosharp process file.cs --framework net8.0` is run
 - **THEN** the core uses `net8.0` framework reference assemblies for compilation
 
 ### Requirement: JSON output to stdout
@@ -47,40 +47,40 @@ The CLI SHALL exit with code 0 when processing succeeds (all errors are expected
 The CLI SHALL be packable and installable as a .NET global or local tool via `dotnet tool install`.
 
 #### Scenario: Global tool install
-- **WHEN** `dotnet tool install -g twohash` is run
-- **THEN** the `twohash` command becomes available on the PATH
+- **WHEN** `dotnet tool install -g glosharp` is run
+- **THEN** the `glosharp` command becomes available on the PATH
 
 ### Requirement: Verify command for CI
 The CLI SHALL accept a `verify` command that processes all `.cs` files in a directory and exits non-zero if any have unexpected compilation errors. Before processing, the CLI SHALL load config file defaults and merge them with CLI arguments.
 
 #### Scenario: Verify a samples directory
-- **WHEN** `twohash verify samples/` is run and all files compile
+- **WHEN** `glosharp verify samples/` is run and all files compile
 - **THEN** the CLI auto-discovers config, merges defaults, and exits with code 0
 
 #### Scenario: Verify fails on error
-- **WHEN** `twohash verify samples/` is run and one file has unexpected errors
+- **WHEN** `glosharp verify samples/` is run and one file has unexpected errors
 - **THEN** the CLI exits with non-zero code and reports which file(s) failed to stderr
 
 #### Scenario: Verify with config defaults
-- **WHEN** `twohash verify samples/` is run and `twohash.config.json` contains `{"framework": "net9.0", "cacheDir": ".twohash-cache"}`
-- **THEN** the CLI uses `net9.0` and `.twohash-cache` from config for all files
+- **WHEN** `glosharp verify samples/` is run and `glosharp.config.json` contains `{"framework": "net9.0", "cacheDir": ".glosharp-cache"}`
+- **THEN** the CLI uses `net9.0` and `.glosharp-cache` from config for all files
 
 ### Requirement: Project option for process command
 The CLI SHALL accept a `--project` option on the `process` command specifying a .csproj file or directory. When provided, the CLI resolves NuGet package references from the project's `project.assets.json`.
 
 #### Scenario: Process with project context
-- **WHEN** `twohash process snippet.cs --project ./MyProject.csproj` is run
+- **WHEN** `glosharp process snippet.cs --project ./MyProject.csproj` is run
 - **THEN** the CLI resolves NuGet packages from `MyProject`'s `obj/project.assets.json` and compiles with those references
 
 #### Scenario: Process with project directory
-- **WHEN** `twohash process snippet.cs --project ./MyProject/` is run
+- **WHEN** `glosharp process snippet.cs --project ./MyProject/` is run
 - **THEN** the CLI locates the .csproj in that directory and resolves packages
 
 ### Requirement: Project option for verify command
 The CLI SHALL accept a `--project` option on the `verify` command, applying the same project context to all files being verified.
 
 #### Scenario: Verify with project context
-- **WHEN** `twohash verify samples/ --project ./Samples.csproj` is run
+- **WHEN** `glosharp verify samples/ --project ./Samples.csproj` is run
 - **THEN** all `.cs` files are compiled with NuGet packages from the project
 
 ### Requirement: Auto-restore when assets missing
@@ -109,51 +109,51 @@ The CLI SHALL accept a `--no-restore` flag that prevents automatic `dotnet resto
 The CLI SHALL accept a `--region` option on the `process` command specifying a `#region` name to extract from the source file.
 
 #### Scenario: Process a specific region
-- **WHEN** `twohash process src/Example.cs --region getting-started` is run
+- **WHEN** `glosharp process src/Example.cs --region getting-started` is run
 - **THEN** the CLI extracts the named region from the file, compiles the full file, and outputs JSON with only the region's code
 
 #### Scenario: Process without region
-- **WHEN** `twohash process src/Example.cs` is run without `--region`
+- **WHEN** `glosharp process src/Example.cs` is run without `--region`
 - **THEN** the CLI processes the entire file as before (no behavior change)
 
 #### Scenario: Region not found exits with error
-- **WHEN** `twohash process src/Example.cs --region nonexistent` is run and the file has no such region
+- **WHEN** `glosharp process src/Example.cs --region nonexistent` is run and the file has no such region
 - **THEN** the CLI exits with non-zero code and writes an error to stderr
 
 ### Requirement: Region option for verify command
 The CLI SHALL accept a `--region` option on the `verify` command to verify only the specified region in each file that contains it.
 
 #### Scenario: Verify with region
-- **WHEN** `twohash verify samples/ --region getting-started` is run
+- **WHEN** `glosharp verify samples/ --region getting-started` is run
 - **THEN** files containing the named region are verified; files without it are skipped
 
 ### Requirement: Region option incompatible with stdin
 The CLI SHALL reject `--region` when used with `--stdin`, since region extraction requires a file with `#region` directives.
 
 #### Scenario: Region with stdin rejected
-- **WHEN** `twohash process --stdin --region getting-started` is run
+- **WHEN** `glosharp process --stdin --region getting-started` is run
 - **THEN** the CLI exits with non-zero code and an error message explaining the incompatibility
 
 ### Requirement: Auto-detect file-based app mode
 The CLI SHALL auto-detect file-based app mode when no `--project` flag is provided and the source file contains `#:` directive lines. In this mode, the CLI SHALL use SDK-based resolution instead of framework-only mode.
 
 #### Scenario: Auto-detection with directives present
-- **WHEN** `twohash process snippet.cs` is run without `--project` and `snippet.cs` contains `#:package Newtonsoft.Json@13.0.3`
+- **WHEN** `glosharp process snippet.cs` is run without `--project` and `snippet.cs` contains `#:package Newtonsoft.Json@13.0.3`
 - **THEN** the CLI uses file-based app resolution via the .NET SDK
 
 #### Scenario: No auto-detection without directives
-- **WHEN** `twohash process snippet.cs` is run without `--project` and `snippet.cs` contains no `#:` lines
+- **WHEN** `glosharp process snippet.cs` is run without `--project` and `snippet.cs` contains no `#:` lines
 - **THEN** the CLI uses framework-only resolution (existing behavior unchanged)
 
 #### Scenario: Project flag overrides auto-detection
-- **WHEN** `twohash process snippet.cs --project ./MyProject.csproj` is run and `snippet.cs` contains `#:` directives
+- **WHEN** `glosharp process snippet.cs --project ./MyProject.csproj` is run and `snippet.cs` contains `#:` directives
 - **THEN** the CLI uses project-based resolution from the `.csproj`, ignoring `#:` directives for resolution purposes (directives are still stripped from output)
 
 ### Requirement: File-based app mode with verify command
 The `verify` command SHALL support file-based app auto-detection per file. Each file SHALL be independently checked for `#:` directives.
 
 #### Scenario: Verify with mixed files
-- **WHEN** `twohash verify samples/` is run and some files contain `#:` directives while others do not
+- **WHEN** `glosharp verify samples/` is run and some files contain `#:` directives while others do not
 - **THEN** files with `#:` directives use SDK-based resolution; files without use framework-only resolution
 
 ### Requirement: No-restore flag applies to file-based app resolution
@@ -167,86 +167,86 @@ The `--no-restore` flag SHALL prevent the CLI from invoking `dotnet build` or `d
 The CLI SHALL accept a `--cache-dir <path>` option on the `process` command specifying a directory for disk-based result caching.
 
 #### Scenario: Process with cache directory
-- **WHEN** `twohash process snippet.cs --cache-dir .twohash-cache` is run
+- **WHEN** `glosharp process snippet.cs --cache-dir .glosharp-cache` is run
 - **THEN** the CLI checks the cache directory for a matching result before processing, and writes the result to the cache on a miss
 
 #### Scenario: Process without cache directory
-- **WHEN** `twohash process snippet.cs` is run without `--cache-dir`
+- **WHEN** `glosharp process snippet.cs` is run without `--cache-dir`
 - **THEN** no disk caching occurs (existing behavior unchanged)
 
 ### Requirement: Cache-dir option for verify command
 The CLI SHALL accept a `--cache-dir <path>` option on the `verify` command. Each file's result SHALL be individually cached.
 
 #### Scenario: Verify with cache directory
-- **WHEN** `twohash verify samples/ --cache-dir .twohash-cache` is run
+- **WHEN** `glosharp verify samples/ --cache-dir .glosharp-cache` is run
 - **THEN** each file checks the cache before processing and writes results on cache miss
 
 #### Scenario: Verify reuses cached results on rebuild
-- **WHEN** `twohash verify samples/ --cache-dir .twohash-cache` is run a second time with no source changes
+- **WHEN** `glosharp verify samples/ --cache-dir .glosharp-cache` is run a second time with no source changes
 - **THEN** all files hit the cache and no Roslyn compilation occurs
 
 ### Requirement: Render command produces HTML output
 The CLI SHALL accept a `render` command with the same file/stdin input and options as `process` (`--framework`, `--project`, `--region`, `--no-restore`, `--cache-dir`, `--config`), plus additional rendering options. Before processing, the CLI SHALL load config file defaults (including `render.theme` and `render.standalone`) and merge them with CLI arguments.
 
 #### Scenario: Render a file to stdout
-- **WHEN** `twohash render src/Example.cs` is run
+- **WHEN** `glosharp render src/Example.cs` is run
 - **THEN** the CLI auto-discovers config, merges defaults, processes the file, classifies tokens, and writes self-contained HTML to stdout
 
 #### Scenario: Render with config theme
-- **WHEN** `twohash render file.cs` is run and `twohash.config.json` contains `{"render": {"theme": "github-light"}}`
+- **WHEN** `glosharp render file.cs` is run and `glosharp.config.json` contains `{"render": {"theme": "github-light"}}`
 - **THEN** the HTML uses github-light color scheme from config
 
 #### Scenario: Render CLI theme overrides config
-- **WHEN** `twohash render file.cs --theme github-dark` is run and config contains `{"render": {"theme": "github-light"}}`
+- **WHEN** `glosharp render file.cs --theme github-dark` is run and config contains `{"render": {"theme": "github-light"}}`
 - **THEN** the HTML uses github-dark (CLI wins)
 
 #### Scenario: Render from stdin
-- **WHEN** `echo "var x = 42;" | twohash render --stdin` is run
+- **WHEN** `echo "var x = 42;" | glosharp render --stdin` is run
 - **THEN** the CLI reads from stdin, processes, classifies, and writes HTML to stdout
 
 #### Scenario: Render with project context
-- **WHEN** `twohash render snippet.cs --project ./MyProject.csproj` is run
+- **WHEN** `glosharp render snippet.cs --project ./MyProject.csproj` is run
 - **THEN** the CLI resolves NuGet packages from the project and includes accurate type information in hovers
 
 #### Scenario: Render with region extraction
-- **WHEN** `twohash render src/Example.cs --region getting-started` is run
+- **WHEN** `glosharp render src/Example.cs --region getting-started` is run
 - **THEN** the CLI extracts the named region and renders only that region's code
 
 ### Requirement: Theme option for render command
 The CLI SHALL accept a `--theme` option on the `render` command specifying the color theme. Valid values SHALL be `github-dark` and `github-light`. The default SHALL be `github-dark`.
 
 #### Scenario: Render with explicit theme
-- **WHEN** `twohash render file.cs --theme github-light` is run
+- **WHEN** `glosharp render file.cs --theme github-light` is run
 - **THEN** the HTML uses github-light color scheme
 
 #### Scenario: Render with default theme
-- **WHEN** `twohash render file.cs` is run without `--theme`
+- **WHEN** `glosharp render file.cs` is run without `--theme`
 - **THEN** the HTML uses github-dark color scheme
 
 #### Scenario: Invalid theme name
-- **WHEN** `twohash render file.cs --theme nonexistent` is run
+- **WHEN** `glosharp render file.cs --theme nonexistent` is run
 - **THEN** the CLI exits with non-zero code and writes an error to stderr listing valid theme names
 
 ### Requirement: Standalone option for render command
 The CLI SHALL accept a `--standalone` flag on the `render` command. When specified, the output SHALL be a complete HTML page instead of an embeddable fragment.
 
 #### Scenario: Standalone HTML page
-- **WHEN** `twohash render file.cs --standalone` is run
+- **WHEN** `glosharp render file.cs --standalone` is run
 - **THEN** the output is a complete HTML page with `<!DOCTYPE html>`, `<head>`, and `<body>`
 
 #### Scenario: Fragment output (default)
-- **WHEN** `twohash render file.cs` is run without `--standalone`
+- **WHEN** `glosharp render file.cs` is run without `--standalone`
 - **THEN** the output is an embeddable `<div>` fragment
 
 ### Requirement: Output option for render command
 The CLI SHALL accept an `--output` option on the `render` command specifying a file path to write the HTML to instead of stdout.
 
 #### Scenario: Write to file
-- **WHEN** `twohash render file.cs --output rendered.html` is run
+- **WHEN** `glosharp render file.cs --output rendered.html` is run
 - **THEN** the HTML is written to `rendered.html` instead of stdout
 
 #### Scenario: Write to stdout (default)
-- **WHEN** `twohash render file.cs` is run without `--output`
+- **WHEN** `glosharp render file.cs` is run without `--output`
 - **THEN** the HTML is written to stdout
 
 ### Requirement: Render command exit codes
@@ -271,20 +271,20 @@ The `render` command SHALL write only HTML to stdout. Progress messages, warning
 The CLI SHALL accept a `--config <path>` option on the `process`, `verify`, and `render` commands specifying an explicit path to a config file.
 
 #### Scenario: Config flag on process
-- **WHEN** `twohash process file.cs --config ./twohash.config.json` is run
+- **WHEN** `glosharp process file.cs --config ./glosharp.config.json` is run
 - **THEN** the specified config file is loaded and its values are used as defaults
 
 #### Scenario: Config flag on verify
-- **WHEN** `twohash verify samples/ --config ./twohash.config.json` is run
+- **WHEN** `glosharp verify samples/ --config ./glosharp.config.json` is run
 - **THEN** the specified config file is loaded and its values are used as defaults
 
 #### Scenario: Config flag on render
-- **WHEN** `twohash render file.cs --config ./twohash.config.json` is run
+- **WHEN** `glosharp render file.cs --config ./glosharp.config.json` is run
 - **THEN** the specified config file is loaded and its values are used as defaults
 
 ### Requirement: Init subcommand
 The CLI SHALL accept an `init` subcommand that delegates to the init command logic.
 
 #### Scenario: Init recognized as command
-- **WHEN** `twohash init` is run
+- **WHEN** `glosharp init` is run
 - **THEN** the CLI executes the init command (not treated as a file path or unknown command)

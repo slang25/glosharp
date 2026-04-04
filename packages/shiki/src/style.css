@@ -1,5 +1,5 @@
-/* Twohash hover token anchor */
-.twohash-hover {
+/* GloSharp hover token anchor */
+.glosharp-hover {
   position: relative;
   border-bottom: 1px dotted transparent;
   transition: border-color 0.3s ease;
@@ -7,21 +7,21 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .twohash-hover { transition: none; }
+  .glosharp-hover { transition: none; }
 }
 
 /* Container hover: subtle underline on all hoverable tokens */
-pre:hover .twohash-hover:not(:hover):not(.twohash-hover-persistent) {
+pre:hover .glosharp-hover:not(:hover):not(.glosharp-hover-persistent) {
   border-bottom-color: color-mix(in srgb, currentColor 40%, transparent);
 }
 
 /* Token hover: strong underline */
-.twohash-hover:hover {
+.glosharp-hover:hover {
   border-bottom-color: currentColor;
 }
 
 /* Popup container - CSS anchor positioned */
-.twohash-popup {
+.glosharp-popup {
   display: none;
   position: fixed;
   position-area: top;
@@ -43,18 +43,18 @@ pre:hover .twohash-hover:not(:hover):not(.twohash-hover-persistent) {
 }
 
 /* Show popup on hover */
-.twohash-hover:hover + .twohash-popup,
-.twohash-popup:hover {
+.glosharp-hover:hover + .glosharp-popup,
+.glosharp-popup:hover {
   display: block;
 }
 
 /* Popup code block */
-.twohash-popup-code {
+.glosharp-popup-code {
   font-family: inherit;
 }
 
 /* Popup docs section */
-.twohash-popup-docs {
+.glosharp-popup-docs {
   margin-top: 6px;
   padding-top: 6px;
   border-top: 1px solid #3c3c3c;
@@ -63,11 +63,11 @@ pre:hover .twohash-hover:not(:hover):not(.twohash-hover-persistent) {
 }
 
 /* Error annotations */
-.twohash-error-underline {
+.glosharp-error-underline {
   border-bottom: 2px wavy #f44747;
 }
 
-.twohash-error-message {
+.glosharp-error-message {
   display: block;
   padding: 2px 8px;
   margin-top: 2px;
@@ -77,28 +77,28 @@ pre:hover .twohash-hover:not(:hover):not(.twohash-hover-persistent) {
   font-size: 0.85em;
 }
 
-.twohash-error-code {
+.glosharp-error-code {
   font-weight: bold;
 }
 
 /* Display part kind colors (VS Code-like) */
-.twohash-keyword { color: #569cd6; }
-.twohash-className,
-.twohash-structName,
-.twohash-recordClassName { color: #4ec9b0; }
-.twohash-interfaceName { color: #b8d7a3; }
-.twohash-enumName { color: #b8d7a3; }
-.twohash-delegateName { color: #4ec9b0; }
-.twohash-typeParameterName { color: #b8d7a3; }
-.twohash-methodName { color: #dcdcaa; }
-.twohash-propertyName { color: #9cdcfe; }
-.twohash-fieldName { color: #9cdcfe; }
-.twohash-eventName { color: #9cdcfe; }
-.twohash-localName { color: #9cdcfe; }
-.twohash-parameterName { color: #9cdcfe; }
-.twohash-namespaceName { color: #d4d4d4; }
-.twohash-punctuation { color: #d4d4d4; }
-.twohash-operator { color: #d4d4d4; }
-.twohash-text { color: #d4d4d4; }
-.twohash-space { }
-.twohash-lineBreak { }
+.glosharp-keyword { color: #569cd6; }
+.glosharp-className,
+.glosharp-structName,
+.glosharp-recordClassName { color: #4ec9b0; }
+.glosharp-interfaceName { color: #b8d7a3; }
+.glosharp-enumName { color: #b8d7a3; }
+.glosharp-delegateName { color: #4ec9b0; }
+.glosharp-typeParameterName { color: #b8d7a3; }
+.glosharp-methodName { color: #dcdcaa; }
+.glosharp-propertyName { color: #9cdcfe; }
+.glosharp-fieldName { color: #9cdcfe; }
+.glosharp-eventName { color: #9cdcfe; }
+.glosharp-localName { color: #9cdcfe; }
+.glosharp-parameterName { color: #9cdcfe; }
+.glosharp-namespaceName { color: #d4d4d4; }
+.glosharp-punctuation { color: #d4d4d4; }
+.glosharp-operator { color: #d4d4d4; }
+.glosharp-text { color: #d4d4d4; }
+.glosharp-space { }
+.glosharp-lineBreak { }

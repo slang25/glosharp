@@ -1,12 +1,12 @@
 ## Context
 
-Twohash already defines a `highlights` placeholder in both the C# models (`List<object>`) and TypeScript types (`unknown[]`), and the data format spec describes the target shape with `line`, `character`, `length`, `kind` fields. The MarkerParser currently handles `^?`, `^|`, `@errors`, `@noErrors`, `@hide`/`@show`, and `---cut---`. The EC plugin renders hovers, errors, and completions. This change fills in the gap: parsing three new directive markers and rendering them.
+GloSharp already defines a `highlights` placeholder in both the C# models (`List<object>`) and TypeScript types (`unknown[]`), and the data format spec describes the target shape with `line`, `character`, `length`, `kind` fields. The MarkerParser currently handles `^?`, `^|`, `@errors`, `@noErrors`, `@hide`/`@show`, and `---cut---`. The EC plugin renders hovers, errors, and completions. This change fills in the gap: parsing three new directive markers and rendering them.
 
 ## Goals / Non-Goals
 
 **Goals:**
 - Parse `@highlight`, `@focus`, and `@diff` directives with line-range and next-line targeting
-- Produce `TwohashHighlight` entries in the JSON output `highlights` array
+- Produce `GloSharpHighlight` entries in the JSON output `highlights` array
 - Render highlight, focus, and diff presentation in the EC plugin with theme-aware CSS
 - Strip directive marker lines from output code (same behavior as existing markers)
 
@@ -62,7 +62,7 @@ When any `focus` highlight exists, all lines without a focus marker get dimmed (
 
 ### 5. Highlights stored as line-based entries (one entry per affected line)
 
-A range directive like `// @highlight: 3-5` produces three separate `TwohashHighlight` entries (one per line). This avoids range-based logic in renderers.
+A range directive like `// @highlight: 3-5` produces three separate `GloSharpHighlight` entries (one per line). This avoids range-based logic in renderers.
 
 **Rationale**: EC annotations are per-line. Storing per-line entries simplifies the annotation mapping. Renderers iterate highlights and apply to matching lines directly.
 

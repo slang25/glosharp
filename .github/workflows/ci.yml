@@ -22,13 +22,13 @@ jobs:
         run: dotnet restore
 
       - name: Restore test fixtures
-        run: dotnet restore tests/TwoHash.Tests/fixtures/sample-project/SampleProject.csproj
+        run: dotnet restore tests/GloSharp.Tests/fixtures/sample-project/SampleProject.csproj
 
       - name: Build
         run: dotnet build --no-restore
 
       - name: Test
-        run: dotnet run --project tests/TwoHash.Tests/
+        run: dotnet run --project tests/GloSharp.Tests/
 
   node-build-and-test:
     name: Node Build & Test
@@ -51,9 +51,9 @@ jobs:
 
       - name: Build packages
         run: |
-          npm run build -w @twohash/core
-          npm run build -w @twohash/shiki
-          npm run build -w @twohash/expressive-code
+          npm run build -w @glosharp/core
+          npm run build -w @glosharp/shiki
+          npm run build -w @glosharp/expressive-code
 
       - name: E2E tests
         run: npm test --workspace=tests/e2e

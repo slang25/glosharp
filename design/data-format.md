@@ -1,6 +1,6 @@
 # Data format
 
-The JSON output from twohash. This is the contract between the C# core and all JS integrations.
+The JSON output from glosharp. This is the contract between the C# core and all JS integrations.
 
 ## Design principles
 

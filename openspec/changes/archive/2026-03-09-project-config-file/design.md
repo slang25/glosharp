@@ -1,40 +1,40 @@
 ## Context
 
-Twohash CLI currently requires all options (`--framework`, `--project`, `--cache-dir`, `--no-restore`) to be specified on every invocation. For documentation projects with many snippets sharing the same project context, this means build scripts repeat the same flags dozens of times. There's no mechanism for project-wide defaults.
+GloSharp CLI currently requires all options (`--framework`, `--project`, `--cache-dir`, `--no-restore`) to be specified on every invocation. For documentation projects with many snippets sharing the same project context, this means build scripts repeat the same flags dozens of times. There's no mechanism for project-wide defaults.
 
-The ROADMAP identifies this as the next high-impact feature. The existing CLI uses manual argument parsing in `Program.cs`, and options flow through `TwohashProcessorOptions` to the core. The Node bridge has `TwohashOptions` (instance-level) and `TwohashProcessOptions` (per-call), both of which would benefit from config file awareness.
+The ROADMAP identifies this as the next high-impact feature. The existing CLI uses manual argument parsing in `Program.cs`, and options flow through `GloSharpProcessorOptions` to the core. The Node bridge has `GloSharpOptions` (instance-level) and `GloSharpProcessOptions` (per-call), both of which would benefit from config file awareness.
 
 ## Goals / Non-Goals
 
 **Goals:**
-- Provide a `twohash.config.json` file format for project-wide defaults
+- Provide a `glosharp.config.json` file format for project-wide defaults
 - Auto-discover config by walking up from the working file/directory
 - Allow CLI args to override any config value
 - Support all existing CLI options as config properties: `framework`, `project`, `cacheDir`, `noRestore`, and render-specific options (`theme`, `standalone`)
 - Add `--config` flag for explicit config file path
-- Add `twohash init` command to scaffold a config file
+- Add `glosharp init` command to scaffold a config file
 - Extend the Node bridge to support config file resolution
 
 **Non-Goals:**
 - Per-file or per-directory overrides (e.g., nested config files that merge) — single nearest config wins
-- Config file format alternatives (YAML, TOML, `.twohashrc`) — JSON only for simplicity and tooling support
+- Config file format alternatives (YAML, TOML, `.glosharprc`) — JSON only for simplicity and tooling support
 - IDE integration (VS Code settings sync) — out of scope
 - Config file schema validation beyond basic type checking — keep it simple
 
 ## Decisions
 
-### 1. File format: JSON (`twohash.config.json`)
+### 1. File format: JSON (`glosharp.config.json`)
 
 **Alternatives considered:**
-- `.twohashrc` (INI-style or JSON) — less discoverable, no standard extension for tooling
-- `twohash.config.yaml` — adds a YAML parser dependency to the .NET project
+- `.glosharprc` (INI-style or JSON) — less discoverable, no standard extension for tooling
+- `glosharp.config.yaml` — adds a YAML parser dependency to the .NET project
 - Section in `package.json` — only works in Node.js projects, not standalone .NET
 
-**Decision:** `twohash.config.json`. JSON is natively supported by `System.Text.Json` in .NET and trivially parsed in Node.js. The explicit `.json` extension gives editors syntax highlighting and validation support. The `twohash.config.json` name follows the pattern of `tsconfig.json`, `jest.config.json`, etc.
+**Decision:** `glosharp.config.json`. JSON is natively supported by `System.Text.Json` in .NET and trivially parsed in Node.js. The explicit `.json` extension gives editors syntax highlighting and validation support. The `glosharp.config.json` name follows the pattern of `tsconfig.json`, `jest.config.json`, etc.
 
 ### 2. Discovery: walk up from input path
 
-The CLI will search for `twohash.config.json` starting from the directory of the input file (or the input directory for `verify`) and walking up parent directories until one is found or the filesystem root is reached.
+The CLI will search for `glosharp.config.json` starting from the directory of the input file (or the input directory for `verify`) and walking up parent directories until one is found or the filesystem root is reached.
 
 **Alternatives considered:**
 - Only look in CWD — too restrictive for monorepos
@@ -58,7 +58,7 @@ effective_value = cli_arg ?? config_value ?? built_in_default
 {
   "framework": "net9.0",
   "project": "./samples/Samples.csproj",
-  "cacheDir": ".twohash-cache",
+  "cacheDir": ".glosharp-cache",
   "noRestore": false,
   "render": {
     "theme": "github-dark",
@@ -69,26 +69,26 @@ effective_value = cli_arg ?? config_value ?? built_in_default
 
 All properties are optional. The `render` section groups render-specific options to avoid polluting the top level. Unknown properties are ignored (forward compatibility).
 
-### 5. Implementation location: `TwoHash.Core` with `ConfigLoader`
+### 5. Implementation location: `GloSharp.Core` with `ConfigLoader`
 
-A new `ConfigLoader` class in `TwoHash.Core` handles:
+A new `ConfigLoader` class in `GloSharp.Core` handles:
 - File discovery (walk-up search)
-- JSON deserialization into a `TwohashConfig` record
-- Merging with `TwohashProcessorOptions`
+- JSON deserialization into a `GloSharpConfig` record
+- Merging with `GloSharpProcessorOptions`
 
 This keeps the CLI thin — it calls `ConfigLoader`, merges with CLI args, and passes the result to the processor.
 
 ### 6. Node bridge: `configFile` option + auto-discovery
 
 The Node bridge gains:
-- `configFile?: string` in `TwohashOptions` — explicit config path passed as `--config` to CLI
+- `configFile?: string` in `GloSharpOptions` — explicit config path passed as `--config` to CLI
 - Auto-discovery: if no `configFile` is set, the CLI handles discovery itself (no Node-side file walking)
 
 This keeps the Node bridge thin — config resolution stays in the .NET CLI.
 
-### 7. `twohash init` command
+### 7. `glosharp init` command
 
-Writes a `twohash.config.json` to the current directory with all properties commented out (using JSON with `//` comments is not valid, so instead we write all properties with their default values and a note). Actually, since JSON doesn't support comments, we'll output a valid JSON file with all properties set to their defaults, and print a message to stderr explaining each property.
+Writes a `glosharp.config.json` to the current directory with all properties commented out (using JSON with `//` comments is not valid, so instead we write all properties with their default values and a note). Actually, since JSON doesn't support comments, we'll output a valid JSON file with all properties set to their defaults, and print a message to stderr explaining each property.
 
 **Alternative:** Output a file with `//` comments (JSONC) — but standard `System.Text.Json` and most tools expect valid JSON.
 

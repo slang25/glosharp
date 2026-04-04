@@ -30,8 +30,8 @@ The MVP supports hover queries (`^?`) and error diagnostics, but two key feature
 
 ## Impact
 
-- **TwoHash.Core**: New `CompletionExtractor` class using `AdhocWorkspace` + `CompletionService`; new `RegionExtractor` class for `#region` parsing; updates to `MarkerParser` and `TwohashProcessor`
-- **TwoHash.Cli**: New `--region` argument on `process` and `verify` commands
+- **GloSharp.Core**: New `CompletionExtractor` class using `AdhocWorkspace` + `CompletionService`; new `RegionExtractor` class for `#region` parsing; updates to `MarkerParser` and `GloSharpProcessor`
+- **GloSharp.Cli**: New `--region` argument on `process` and `verify` commands
 - **Node.js packages**: Updated types, option passing, and rendering for completions and regions
 - **Dependencies**: `Microsoft.CodeAnalysis.CSharp.Features` is already referenced (needed for `CompletionService`)
 - **Tests**: New test fixtures for completion and region scenarios

@@ -1,6 +1,6 @@
 ## Context
 
-Twohash's MVP supports hover queries (`^?`) and error diagnostics. The data format spec already defines `completions` and `highlights` arrays in the JSON output, but they're always empty. The architecture doc describes a `--region` CLI option and completion (`^|`) markers, but neither is implemented.
+GloSharp's MVP supports hover queries (`^?`) and error diagnostics. The data format spec already defines `completions` and `highlights` arrays in the JSON output, but they're always empty. The architecture doc describes a `--region` CLI option and completion (`^|`) markers, but neither is implemented.
 
 The core C# infrastructure (Roslyn compilation, semantic model, marker parsing, line mapping) is in place. `Microsoft.CodeAnalysis.CSharp.Features` is already referenced, which provides `CompletionService`. The `#region` directive is native C# syntax and Roslyn's parser already understands it.
 
@@ -32,7 +32,7 @@ The core C# infrastructure (Roslyn compilation, semantic model, marker parsing, 
 
 ### 2. Completion extraction is async — make Process async
 
-**Decision**: Make `TwohashProcessor.Process()` return `Task<TwohashResult>` (async) since `CompletionService.GetCompletionsAsync()` is async.
+**Decision**: Make `GloSharpProcessor.Process()` return `Task<GloSharpResult>` (async) since `CompletionService.GetCompletionsAsync()` is async.
 
 **Alternatives considered**:
 - *Sync wrapper (`.GetAwaiter().GetResult()`)* — works but risks deadlocks and is bad practice.

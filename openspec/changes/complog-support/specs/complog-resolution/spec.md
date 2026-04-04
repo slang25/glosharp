@@ -53,7 +53,7 @@ The system SHALL extract NuGet package references from the complog compilation's
 - **THEN** the resolved package list is empty
 
 ### Requirement: Complog resolution bypasses other resolvers
-When a complog path is provided to `TwohashProcessor`, the processor SHALL skip `FrameworkResolver`, `ProjectAssetsResolver`, and `FileBasedAppResolver` entirely and use only the complog-sourced references.
+When a complog path is provided to `GloSharpProcessor`, the processor SHALL skip `FrameworkResolver`, `ProjectAssetsResolver`, and `FileBasedAppResolver` entirely and use only the complog-sourced references.
 
 #### Scenario: Complog path provided with file-based app directives
 - **WHEN** `--complog` is specified and source contains `#:package` directives

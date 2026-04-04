@@ -5,7 +5,7 @@ The `postprocessRenderedBlock` hook SHALL inject hover popup HTML containers wit
 
 #### Scenario: Popup with summary only
 - **WHEN** a hover has `docs` with only `summary` populated
-- **THEN** the popup renders the summary in a `.twohash-popup-docs` div, visually identical to the current behavior
+- **THEN** the popup renders the summary in a `.glosharp-popup-docs` div, visually identical to the current behavior
 
 #### Scenario: Popup with params and returns
 - **WHEN** a hover has `docs` with `summary`, `params`, and `returns`
@@ -24,7 +24,7 @@ The `postprocessRenderedBlock` hook SHALL inject hover popup HTML containers wit
 - **THEN** the rendered HTML contains popup `<div>` elements with `position-anchor` CSS and structured display parts content
 
 ### Requirement: Theme-aware styling for doc sections
-The plugin SHALL define CSS classes for each doc section (`.twohash-popup-params`, `.twohash-popup-returns`, `.twohash-popup-remarks`, `.twohash-popup-example`, `.twohash-popup-exceptions`) with styles consistent with the existing popup design. Parameter names SHALL be visually distinct (e.g., monospace or bold).
+The plugin SHALL define CSS classes for each doc section (`.glosharp-popup-params`, `.glosharp-popup-returns`, `.glosharp-popup-remarks`, `.glosharp-popup-example`, `.glosharp-popup-exceptions`) with styles consistent with the existing popup design. Parameter names SHALL be visually distinct (e.g., monospace or bold).
 
 #### Scenario: Param list styling
 - **WHEN** a popup with params is rendered
@@ -32,4 +32,4 @@ The plugin SHALL define CSS classes for each doc section (`.twohash-popup-params
 
 #### Scenario: Section separators
 - **WHEN** a popup has multiple doc sections
-- **THEN** each section is visually separated (consistent with the existing `.twohash-popup-docs` border-top pattern)
+- **THEN** each section is visually separated (consistent with the existing `.glosharp-popup-docs` border-top pattern)

@@ -1,6 +1,6 @@
 # NuGet package resolution for Roslyn compilation
 
-This is the hardest problem in twohash. Roslyn needs actual DLL references to produce accurate type information. NuGet packages must be resolved to assemblies on disk.
+This is the hardest problem in glosharp. Roslyn needs actual DLL references to produce accurate type information. NuGet packages must be resolved to assemblies on disk.
 
 ## The problem
 
@@ -60,9 +60,9 @@ This file contains the resolved versions, target framework, and DLL paths for ev
 
 **How it works**:
 1. User has a real .csproj with `<PackageReference>` elements
-2. User runs `dotnet restore` (or twohash does it)
-3. Twohash reads `obj/project.assets.json` to find all resolved assembly paths
-4. Twohash creates `MetadataReference` for each assembly
+2. User runs `dotnet restore` (or glosharp does it)
+3. GloSharp reads `obj/project.assets.json` to find all resolved assembly paths
+4. GloSharp creates `MetadataReference` for each assembly
 
 **Code sketch**:
 
@@ -83,7 +83,7 @@ foreach (var dll in Directory.GetFiles(frameworkDir, "*.dll"))
 }
 
 // Create compilation
-var compilation = CSharpCompilation.Create("TwohashAnalysis",
+var compilation = CSharpCompilation.Create("GloSharpAnalysis",
     syntaxTrees: new[] { tree },
     references: references,
     options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
@@ -164,7 +164,7 @@ var json = JsonConvert.SerializeObject(new { Name = "test" });
 ```
 
 **Pros**: Battle-tested NuGet resolution, familiar syntax.
-**Cons**: Dependency on .NET Interactive, different marker syntax from twohash's comment-based approach.
+**Cons**: Dependency on .NET Interactive, different marker syntax from glosharp's comment-based approach.
 
 ## Approach 5: File-based apps (.NET 10+)
 
@@ -195,7 +195,7 @@ dotnet run file.cs         # build + run
 dotnet file.cs             # shorthand
 ```
 
-**This is a natural fit for twohash's lightweight mode.** Instead of inventing our own `// @nuget:` marker syntax, we could adopt the `#:` directive syntax that the SDK already understands. Twohash could:
+**This is a natural fit for glosharp's lightweight mode.** Instead of inventing our own `// @nuget:` marker syntax, we could adopt the `#:` directive syntax that the SDK already understands. GloSharp could:
 
 1. Detect `#:` directives in the source file
 2. Use `dotnet build file.cs` to resolve packages and produce the compilation
@@ -205,9 +205,9 @@ dotnet file.cs             # shorthand
 **Pros**: First-class SDK support, no custom NuGet resolution needed, familiar syntax for .NET 10+ users, packages declared inline in the snippet itself.
 **Cons**: Requires .NET 10 SDK (ships late 2025), the `#:` directives are not valid C# syntax (they're preprocessor-level), need to strip them before Roslyn parsing if we do our own compilation.
 
-### Implications for twohash marker syntax
+### Implications for glosharp marker syntax
 
-This changes the design equation. Rather than `// @nuget: Newtonsoft.Json@13.0.3` (a twohash-specific invention), we could support:
+This changes the design equation. Rather than `// @nuget: Newtonsoft.Json@13.0.3` (a glosharp-specific invention), we could support:
 
 ```csharp
 #:package Newtonsoft.Json@13.0.3
@@ -218,7 +218,7 @@ var json = JsonConvert.SerializeObject(new { Name = "test" });
 //                ^?
 ```
 
-The `#:` lines would be stripped from the rendered output (like cut markers), but the file itself is valid for `dotnet build`. This means **the same file is both a twohash snippet and a buildable .NET app** — no duplication, no custom tooling for package resolution.
+The `#:` lines would be stripped from the rendered output (like cut markers), but the file itself is valid for `dotnet build`. This means **the same file is both a glosharp snippet and a buildable .NET app** — no duplication, no custom tooling for package resolution.
 
 ## Approach 6: Compiler logs (complog) for portable compilations
 
@@ -254,11 +254,11 @@ var workspace = new AdhocWorkspace();
 var solution = workspace.AddSolution(solutionReader.ReadSolutionInfo());
 ```
 
-**This opens up an interesting architecture for twohash in documentation repos:**
+**This opens up an interesting architecture for glosharp in documentation repos:**
 
 1. CI builds the sample project with `-bl`, creating a binary log
 2. `complog create` packages the compilation into a portable `.complog` file
-3. Twohash consumes the `.complog` directly — no need to resolve NuGet packages, find SDK paths, or run `dotnet restore`
+3. GloSharp consumes the `.complog` directly — no need to resolve NuGet packages, find SDK paths, or run `dotnet restore`
 4. The `.complog` can be committed to the docs repo or stored as a build artifact
 
 ```bash
@@ -267,13 +267,13 @@ dotnet build samples/ -bl
 complog create msbuild.binlog -o samples.complog
 
 # In the docs build:
-twohash process src/Example.cs --complog samples.complog
+glosharp process src/Example.cs --complog samples.complog
 ```
 
 **Pros**: Completely portable (no SDK/NuGet needed on the docs build machine), captures the exact compilation state, handles source generators and analyzers, created by the compiler team so it tracks Roslyn closely.
 **Cons**: Extra build step to create the complog, the complog includes all source/references (potentially large, and sensitive — it's the full compilation), adds a dependency on the complog tool/library. Also the compilation is a snapshot — if you edit the snippet source, the complog's compilation no longer matches.
 
-### When complog makes sense for twohash
+### When complog makes sense for glosharp
 
 The complog approach is most valuable when:
 - The documentation build runs on a different machine from the code build (e.g., separate CI jobs)
@@ -315,7 +315,7 @@ var references = trustedAssemblies
 
 With .NET 10's file-based apps, the "lightweight mode" problem is essentially solved by the SDK itself. Instead of inventing custom `// @nuget:` markers, we adopt `#:package` — a real SDK feature. The snippet file is simultaneously:
 - A valid input for `dotnet build` (SDK resolves packages)
-- A valid input for twohash (we extract metadata)
+- A valid input for glosharp (we extract metadata)
 - Self-documenting (dependencies are declared inline)
 
 For `.NET 10+` targets, this should be the **default path**. Fall back to `.csproj` for older TFMs or complex projects.
@@ -360,14 +360,14 @@ public static string? FindFrameworkRefPath(string tfm = "net9.0")
 
 ## Open questions
 
-- Should twohash run `dotnet restore` / `dotnet build` automatically, or require the user to do it first?
+- Should glosharp run `dotnet restore` / `dotnet build` automatically, or require the user to do it first?
 - For file-based apps: can we hook into the SDK's virtual project to get resolved references without a full build? Or do we just `dotnet build file.cs` and read the output?
 - How do we handle target framework selection? Default to latest installed? Allow override via `#:property TargetFramework=net10.0`?
 - Should we support `<FrameworkReference>` beyond `Microsoft.NETCore.App` (e.g., `Microsoft.AspNetCore.App` via `#:sdk Microsoft.NET.Sdk.Web`)?
 - How do we handle source generators and analyzers that affect the compilation? (complog handles this; file-based apps handle it via the SDK)
 - For the complog approach: how large are typical complogs? Is it practical to commit them to a docs repo, or should they be CI artifacts?
-- Should twohash support both `#:package` (file-based apps) and `.csproj` (traditional) simultaneously, or pick one based on what's present?
-- The `#:` directives are not valid C# — they're handled by the SDK before the compiler sees them. How do we parse them in twohash's own pipeline?
+- Should glosharp support both `#:package` (file-based apps) and `.csproj` (traditional) simultaneously, or pick one based on what's present?
+- The `#:` directives are not valid C# — they're handled by the SDK before the compiler sees them. How do we parse them in glosharp's own pipeline?
 
 ## Key NuGet packages needed
 

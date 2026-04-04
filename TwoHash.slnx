@@ -1,9 +1,0 @@
-<Solution>
-  <Folder Name="/src/">
-    <Project Path="src/TwoHash.Cli/TwoHash.Cli.csproj" />
-    <Project Path="src/TwoHash.Core/TwoHash.Core.csproj" />
-  </Folder>
-  <Folder Name="/tests/">
-    <Project Path="tests/TwoHash.Tests/TwoHash.Tests.csproj" />
-  </Folder>
-</Solution>

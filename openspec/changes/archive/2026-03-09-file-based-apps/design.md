@@ -1,6 +1,6 @@
 ## Context
 
-Twohash currently supports two compilation modes: framework-only (standalone `.cs` with no NuGet packages) and project-based (`.csproj` with `project.assets.json`). The gap is snippets that need NuGet packages but don't warrant a full project file.
+GloSharp currently supports two compilation modes: framework-only (standalone `.cs` with no NuGet packages) and project-based (`.csproj` with `project.assets.json`). The gap is snippets that need NuGet packages but don't warrant a full project file.
 
 .NET 10 (shipping late 2025) introduces file-based apps — single `.cs` files with `#:` directives that the SDK resolves natively. This is the SDK's own solution to the same problem. Decision 003 already selected file-based apps as the default path for .NET 10+.
 
@@ -29,7 +29,7 @@ The current `MarkerParser` handles `//` comment-based markers. `#:` directives a
 
 **Alternatives considered**:
 - Extend `MarkerParser` to handle `#:` lines alongside `//` markers
-- Parse directives in `TwohashProcessor` directly
+- Parse directives in `GloSharpProcessor` directly
 
 **Rationale**: `#:` directives are structurally different from comment markers — they appear at the top of the file, use a different prefix, and carry different semantics (build metadata vs. display instructions). A separate parser keeps concerns clean and is easier to test independently. It runs first, producing a `FileDirectiveResult` with extracted directives and cleaned source, which then flows into the existing `MarkerParser`.
 
@@ -52,13 +52,13 @@ The current `MarkerParser` handles `//` comment-based markers. `#:` directives a
 
 ### 4. Framework pack resolution for `#:sdk`
 
-**Decision**: When `#:sdk Microsoft.NET.Sdk.Web` is present, the SDK's restore will include `Microsoft.AspNetCore.App.Ref` assemblies in `project.assets.json` automatically. No special handling needed in twohash — the `ProjectAssetsResolver` already reads whatever the SDK resolves.
+**Decision**: When `#:sdk Microsoft.NET.Sdk.Web` is present, the SDK's restore will include `Microsoft.AspNetCore.App.Ref` assemblies in `project.assets.json` automatically. No special handling needed in glosharp — the `ProjectAssetsResolver` already reads whatever the SDK resolves.
 
 **Rationale**: The SDK handles framework pack selection based on the SDK type. We don't need to duplicate that logic.
 
 ### 5. `#:` line stripping: happens in FileDirectiveParser
 
-**Decision**: `FileDirectiveParser` strips `#:` lines and adjusts line numbers before source reaches `MarkerParser`. The original source (with `#:` lines) is preserved in `TwohashResult.Original`.
+**Decision**: `FileDirectiveParser` strips `#:` lines and adjusts line numbers before source reaches `MarkerParser`. The original source (with `#:` lines) is preserved in `GloSharpResult.Original`.
 
 **Rationale**: `#:` lines must be excluded from both rendered output and Roslyn compilation (Roslyn doesn't understand them). Stripping early simplifies downstream processing. The existing line-mapping infrastructure in `MarkerParser` then handles the remaining `//` markers.
 

@@ -4,7 +4,7 @@ sidebar_position: 3
 
 # Error Handling
 
-Twohash can display compiler errors inline — useful for showing what _not_ to do.
+GloSharp can display compiler errors inline — useful for showing what _not_ to do.
 
 ## Expected Errors
 

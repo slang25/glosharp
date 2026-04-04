@@ -1,12 +1,12 @@
 {
-  "name": "twohash-docusaurus-example",
+  "name": "glosharp-docusaurus-example",
   "version": "0.0.1",
   "private": true,
   "scripts": {
     "docusaurus": "docusaurus",
-    "prestart": "npm run build -w @twohash/core -w @twohash/shiki",
+    "prestart": "npm run build -w @glosharp/core -w @glosharp/shiki",
     "start": "docusaurus start",
-    "prebuild": "npm run build -w @twohash/core -w @twohash/shiki",
+    "prebuild": "npm run build -w @glosharp/core -w @glosharp/shiki",
     "build": "docusaurus build"
   },
   "dependencies": {
@@ -14,8 +14,8 @@
     "@docusaurus/preset-classic": "^3.7.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "@twohash/core": "*",
-    "@twohash/shiki": "*",
+    "@glosharp/core": "*",
+    "@glosharp/shiki": "*",
     "rehype-raw": "^7.0.0",
     "shiki": "^3.0.0",
     "unist-util-visit": "^5.0.0"

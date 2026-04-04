@@ -1,6 +1,6 @@
 ## Why
 
-Twohash already extracts diagnostic severity from Roslyn (error, warning, info) but renders all diagnostics identically with red styling. Documentation authors showing warnings (e.g., obsolete API usage, nullable warnings) get confusing visuals indistinguishable from hard errors. Error codes like CS1002 are displayed as plain text when they could link directly to Microsoft's documentation. Multi-line diagnostic spans are truncated to a single line, losing context for diagnostics like unterminated literals or multi-line expression errors.
+GloSharp already extracts diagnostic severity from Roslyn (error, warning, info) but renders all diagnostics identically with red styling. Documentation authors showing warnings (e.g., obsolete API usage, nullable warnings) get confusing visuals indistinguishable from hard errors. Error codes like CS1002 are displayed as plain text when they could link directly to Microsoft's documentation. Multi-line diagnostic spans are truncated to a single line, losing context for diagnostics like unterminated literals or multi-line expression errors.
 
 ## What Changes
 
@@ -28,7 +28,7 @@ Twohash already extracts diagnostic severity from Roslyn (error, warning, info) 
 
 ## Impact
 
-- **C# Core**: `TwohashError` model, `TwohashProcessor` diagnostic extraction, `TwohashTheme`, `HtmlRenderer`
+- **C# Core**: `GloSharpError` model, `GloSharpProcessor` diagnostic extraction, `GloSharpTheme`, `HtmlRenderer`
 - **TypeScript packages**: `types.ts`, EC `plugin.ts`, Shiki `transformer.ts`
 - **JSON contract**: Additive — new optional fields `endLine` and `endCharacter` on error objects. Non-breaking for existing consumers.
 - **Tests**: New test cases for multi-line diagnostics, severity-based rendering, and error code URL generation.
