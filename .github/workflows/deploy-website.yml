@@ -29,6 +29,11 @@ jobs:
           node-version: '24'
           cache: 'npm'
 
+      - name: Pack and install GloSharp CLI tool
+        run: |
+          dotnet pack src/GloSharp.Cli/GloSharp.Cli.csproj -o .nupkg/
+          dotnet tool install GloSharp.Cli --local --add-source .nupkg/
+
       - name: Install dependencies
         run: npm ci
 
