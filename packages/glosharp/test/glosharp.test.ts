@@ -11,7 +11,7 @@ vi.mock('node:child_process', () => ({
 
 // Mock which to always find the executable
 vi.mock('../src/which.js', () => ({
-  which: vi.fn().mockResolvedValue('/usr/local/bin/glosharp'),
+  which: vi.fn().mockResolvedValue('/usr/local/bin/glosharp-cli'),
 }))
 
 const mockSpawn = vi.mocked(spawn)
@@ -78,7 +78,7 @@ describe('createGloSharp', () => {
     await glosharp.process({ code: 'var x = 42;' })
 
     expect(mockSpawn).toHaveBeenCalledWith(
-      '/usr/local/bin/glosharp',
+      '/usr/local/bin/glosharp-cli',
       ['process', '--stdin'],
       expect.any(Object),
     )
@@ -91,7 +91,7 @@ describe('createGloSharp', () => {
     await glosharp.process({ file: 'src/Example.cs' })
 
     expect(mockSpawn).toHaveBeenCalledWith(
-      '/usr/local/bin/glosharp',
+      '/usr/local/bin/glosharp-cli',
       ['process', 'src/Example.cs'],
       expect.any(Object),
     )
@@ -104,7 +104,7 @@ describe('createGloSharp', () => {
     await glosharp.process({ code: 'var x = 42;' })
 
     expect(mockSpawn).toHaveBeenCalledWith(
-      '/usr/local/bin/glosharp',
+      '/usr/local/bin/glosharp-cli',
       ['process', '--stdin', '--framework', 'net9.0'],
       expect.any(Object),
     )
@@ -129,7 +129,7 @@ describe('createGloSharp', () => {
 
     const glosharp = createGloSharp()
     await expect(glosharp.process({ code: 'bad code' }))
-      .rejects.toThrow('glosharp CLI exited with code 1')
+      .rejects.toThrow('glosharp-cli exited with code 1')
   })
 
   it('throws on invalid JSON output', async () => {
@@ -147,7 +147,7 @@ describe('createGloSharp', () => {
     await glosharp.process({ code: 'var x = 42;', project: './MyProject.csproj' })
 
     expect(mockSpawn).toHaveBeenCalledWith(
-      '/usr/local/bin/glosharp',
+      '/usr/local/bin/glosharp-cli',
       ['process', '--stdin', '--project', './MyProject.csproj'],
       expect.any(Object),
     )
@@ -160,7 +160,7 @@ describe('createGloSharp', () => {
     await glosharp.process({ code: 'var x = 42;', project: './MyProject.csproj', noRestore: true })
 
     expect(mockSpawn).toHaveBeenCalledWith(
-      '/usr/local/bin/glosharp',
+      '/usr/local/bin/glosharp-cli',
       ['process', '--stdin', '--project', './MyProject.csproj', '--no-restore'],
       expect.any(Object),
     )
@@ -197,7 +197,7 @@ describe('createGloSharp', () => {
     await glosharp.process({ file: 'src/Example.cs', region: 'getting-started' })
 
     expect(mockSpawn).toHaveBeenCalledWith(
-      '/usr/local/bin/glosharp',
+      '/usr/local/bin/glosharp-cli',
       ['process', 'src/Example.cs', '--region', 'getting-started'],
       expect.any(Object),
     )

@@ -61,24 +61,24 @@ GloSharp is split into layers: a .NET core that does the heavy lifting with Rosl
 
 ### 2. GloSharp CLI
 
-**Package**: `glosharp` dotnet tool (global or local)
+**Package**: `GloSharp.Cli` dotnet tool (global or local)
 
 **Usage**:
 ```bash
 # Process a single file
-glosharp process src/Example.cs
+glosharp-cli process src/Example.cs
 
 # Process a specific region
-glosharp process src/Example.cs --region getting-started
+glosharp-cli process src/Example.cs --region getting-started
 
 # Process with a project context
-glosharp process src/Example.cs --project src/Example.csproj
+glosharp-cli process src/Example.cs --project src/Example.csproj
 
 # Verify all snippets compile (CI mode)
-glosharp verify samples/
+glosharp-cli verify samples/
 
 # Output JSON to stdout
-glosharp process src/Example.cs --format json
+glosharp-cli process src/Example.cs --format json
 ```
 
 **Responsibilities**:
@@ -93,7 +93,7 @@ glosharp process src/Example.cs --format json
 **Package**: `glosharp` (npm)
 
 **Responsibilities**:
-- Spawn `glosharp` CLI as child process
+- Spawn `glosharp-cli` as child process
 - Parse JSON output
 - Provide typed TypeScript API for integrations
 - Cache results during a build
@@ -103,7 +103,7 @@ import { createGloSharp } from 'glosharp'
 
 const glosharp = createGloSharp({
   // Path to dotnet tool, or auto-detect
-  executable: 'glosharp',
+  executable: 'glosharp-cli',
 })
 
 const result = await glosharp.process({
@@ -161,7 +161,7 @@ export default defineConfig({
 For environments without Shiki/EC (Hugo, Jekyll, custom builds):
 
 ```bash
-glosharp render src/Example.cs --theme github-dark > output.html
+glosharp-cli render src/Example.cs --theme github-dark > output.html
 ```
 
 Produces self-contained HTML with inline CSS. Uses CSS anchor positioning for hover tooltips.

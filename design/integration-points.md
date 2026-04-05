@@ -217,7 +217,7 @@ For environments without Shiki or EC (Hugo, Jekyll, plain HTML).
 The CLI itself can produce complete HTML:
 
 ```bash
-glosharp render src/Example.cs --theme github-dark --format html
+glosharp-cli render src/Example.cs --theme github-dark --format html
 ```
 
 This:

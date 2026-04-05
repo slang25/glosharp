@@ -3,7 +3,7 @@
  *
  * Prerequisites:
  *   npm install @glosharp/core @glosharp/shiki shiki
- *   dotnet tool install -g glosharp
+ *   dotnet tool install -g GloSharp.Cli
  *
  * Usage:
  *   node render.mjs               # renders all .cs files in this directory

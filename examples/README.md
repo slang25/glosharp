@@ -11,7 +11,7 @@ All examples require the glosharp CLI and the npm packages.
 ```bash
 # Pack and install the CLI as a local dotnet tool
 dotnet pack src/GloSharp.Cli/ -o .nupkg/
-dotnet tool restore  # or: dotnet tool install glosharp --local --add-source .nupkg/
+dotnet tool restore  # or: dotnet tool install GloSharp.Cli --local --add-source .nupkg/
 
 # Install npm dependencies (workspaces resolve glosharp packages locally)
 npm install
@@ -24,7 +24,7 @@ npm run build --workspace=packages/shiki
 Or if the packages are published, just install the CLI globally:
 
 ```bash
-dotnet tool install -g glosharp
+dotnet tool install -g GloSharp.Cli
 ```
 
 ## Examples
