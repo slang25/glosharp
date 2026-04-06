@@ -39,8 +39,8 @@ public static class SymbolDisplayPartKindMapping
         Microsoft.CodeAnalysis.SymbolKind.Method => "Method",
         Microsoft.CodeAnalysis.SymbolKind.NamedType => symbol is INamedTypeSymbol nts ? nts.TypeKind switch
         {
-            TypeKind.Class => "Class",
-            TypeKind.Struct => "Struct",
+            TypeKind.Class => nts.IsRecord ? "Record" : "Class",
+            TypeKind.Struct => nts.IsRecord ? "Record" : "Struct",
             TypeKind.Interface => "Interface",
             TypeKind.Enum => "Enum",
             TypeKind.Delegate => "Delegate",
