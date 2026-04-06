@@ -656,6 +656,12 @@ public class GloSharpProcessor
                 token.IsKind(SyntaxKind.InterpolatedStringEndToken))
                 continue;
 
+            // Skip < and > tokens that are part of generic type argument/parameter lists —
+            // the GenericNameSyntax identifier already provides the hover for the whole type
+            if ((token.IsKind(SyntaxKind.LessThanToken) || token.IsKind(SyntaxKind.GreaterThanToken))
+                && token.Parent is (TypeArgumentListSyntax or TypeParameterListSyntax))
+                continue;
+
             var tokenLineSpan = token.GetLocation().GetLineSpan();
             var compilationLine = tokenLineSpan.StartLinePosition.Line;
 
@@ -692,7 +698,8 @@ public class GloSharpProcessor
         if (token.IsKeyword()
             && token.Parent is not PredefinedTypeSyntax
             && token.Parent is not ThisExpressionSyntax
-            && token.Parent is not BaseExpressionSyntax)
+            && token.Parent is not BaseExpressionSyntax
+            && token.Parent is not ImplicitObjectCreationExpressionSyntax)
             return null;
 
         var node = GetMeaningfulNode(token);
@@ -964,7 +971,8 @@ public class GloSharpProcessor
                 node is PropertyDeclarationSyntax ||
                 node is ParameterSyntax ||
                 node is MemberAccessExpressionSyntax ||
-                node is InvocationExpressionSyntax)
+                node is InvocationExpressionSyntax ||
+                node is ImplicitObjectCreationExpressionSyntax)
             {
                 return node;
             }
@@ -1001,8 +1009,8 @@ public class GloSharpProcessor
         IEventSymbol => "event",
         INamedTypeSymbol nts => nts.TypeKind switch
         {
-            TypeKind.Class => "class",
-            TypeKind.Struct => "struct",
+            TypeKind.Class => nts.IsRecord ? "record" : "class",
+            TypeKind.Struct => nts.IsRecord ? "record struct" : "struct",
             TypeKind.Interface => "interface",
             TypeKind.Enum => "enum",
             TypeKind.Delegate => "delegate",
