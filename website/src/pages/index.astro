@@ -43,7 +43,7 @@ const sources = {
 		<nav>
 			<div class="nav-inner">
 				<a href="/" class="logo">
-					<span class="logo-hash">#</span> Glo#
+					Glo<span class="logo-hash">#</span>
 				</a>
 				<div class="nav-links">
 					<a href="#features">Features</a>
@@ -60,6 +60,15 @@ const sources = {
 		<!-- Hero -->
 		<section class="hero">
 			<div class="container">
+				<!-- Glowing Logo -->
+				<div class="hero-logo">
+					<div class="hero-logo-aurora"></div>
+					<div class="hero-logo-aurora hero-logo-aurora--2"></div>
+					<div class="hero-logo-aurora hero-logo-aurora--3"></div>
+					<div class="hero-logo-text">
+						<span class="hero-logo-glo">Glo</span><span class="hero-logo-hash">#</span>
+					</div>
+				</div>
 				<div class="hero-badge">twoslash for C#</div>
 				<h1>Rich, interactive C# code snippets<br/>powered by <span class="gradient-text">Roslyn</span></h1>
 				<p class="hero-subtitle">
@@ -700,6 +709,107 @@ glosharp verify samples/ --cache-dir .glosharp-cache`} />
 				background: radial-gradient(ellipse, rgba(139, 92, 246, 0.12), transparent 70%);
 				pointer-events: none;
 			}
+			/* Hero Logo */
+			.hero-logo {
+				position: relative;
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				margin-bottom: 32px;
+				width: 280px;
+				height: 280px;
+			}
+			.hero-logo-aurora {
+				position: absolute;
+				inset: 0;
+				border-radius: 50%;
+				background: conic-gradient(
+					from 0deg,
+					rgba(139, 92, 246, 0.0),
+					rgba(139, 92, 246, 0.5),
+					rgba(99, 102, 241, 0.6),
+					rgba(56, 189, 248, 0.4),
+					rgba(129, 140, 248, 0.5),
+					rgba(167, 139, 250, 0.3),
+					rgba(139, 92, 246, 0.0)
+				);
+				animation: aurora-rotate 6s linear infinite;
+				filter: blur(30px);
+				opacity: 0.7;
+			}
+			.hero-logo-aurora--2 {
+				background: conic-gradient(
+					from 120deg,
+					rgba(99, 102, 241, 0.0),
+					rgba(56, 189, 248, 0.4),
+					rgba(167, 139, 250, 0.5),
+					rgba(236, 72, 153, 0.3),
+					rgba(139, 92, 246, 0.5),
+					rgba(99, 102, 241, 0.0)
+				);
+				animation: aurora-rotate 8s linear infinite reverse;
+				filter: blur(40px);
+				opacity: 0.5;
+			}
+			.hero-logo-aurora--3 {
+				background: conic-gradient(
+					from 240deg,
+					rgba(129, 140, 248, 0.0),
+					rgba(34, 211, 238, 0.3),
+					rgba(139, 92, 246, 0.5),
+					rgba(99, 102, 241, 0.4),
+					rgba(167, 139, 250, 0.3),
+					rgba(129, 140, 248, 0.0)
+				);
+				animation: aurora-rotate 10s linear infinite;
+				filter: blur(35px);
+				opacity: 0.6;
+			}
+			@keyframes aurora-rotate {
+				from { transform: rotate(0deg) scale(1); }
+				50% { transform: rotate(180deg) scale(1.05); }
+				to { transform: rotate(360deg) scale(1); }
+			}
+			.hero-logo-text {
+				position: relative;
+				z-index: 1;
+				font-size: clamp(4.5rem, 10vw, 7rem);
+				font-weight: 800;
+				letter-spacing: -0.04em;
+				line-height: 1;
+				text-shadow:
+					0 0 20px rgba(139, 92, 246, 0.5),
+					0 0 40px rgba(139, 92, 246, 0.3),
+					0 0 80px rgba(99, 102, 241, 0.2);
+				animation: logo-glow 3s ease-in-out infinite alternate;
+			}
+			.hero-logo-glo {
+				color: #e0e0f0;
+			}
+			.hero-logo-hash {
+				background: linear-gradient(135deg, #a78bfa, #818cf8, #38bdf8);
+				-webkit-background-clip: text;
+				-webkit-text-fill-color: transparent;
+				background-clip: text;
+				font-family: 'JetBrains Mono', monospace;
+				filter: drop-shadow(0 0 12px rgba(139, 92, 246, 0.6));
+			}
+			@keyframes logo-glow {
+				from {
+					text-shadow:
+						0 0 20px rgba(139, 92, 246, 0.5),
+						0 0 40px rgba(139, 92, 246, 0.3),
+						0 0 80px rgba(99, 102, 241, 0.2);
+				}
+				to {
+					text-shadow:
+						0 0 30px rgba(139, 92, 246, 0.7),
+						0 0 60px rgba(139, 92, 246, 0.4),
+						0 0 100px rgba(99, 102, 241, 0.3),
+						0 0 140px rgba(56, 189, 248, 0.15);
+				}
+			}
+
 			.hero-badge {
 				display: inline-block;
 				padding: 6px 16px;
