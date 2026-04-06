@@ -45,7 +45,7 @@ public static partial class RegionExtractor
 
     /// <summary>
     /// Transforms the source so that everything outside the named region is hidden
-    /// (using @hide/@show markers), and the #region/#endregion lines themselves are removed.
+    /// (using ---cut-start---/---cut-end--- markers), and the #region/#endregion lines themselves are removed.
     /// The full source is still available for compilation.
     /// </summary>
     public static string ApplyRegion(string source, string regionName)
@@ -57,10 +57,10 @@ public static partial class RegionExtractor
         // Hide everything before the region content
         if (regionStartLine > 0)
         {
-            result.Add("// @hide");
+            result.Add("// ---cut-start---");
             for (var i = 0; i < regionStartLine; i++)
                 result.Add(lines[i]);
-            result.Add("// @show");
+            result.Add("// ---cut-end---");
         }
 
         // Skip the #region line itself — it's a marker we don't include
@@ -73,7 +73,7 @@ public static partial class RegionExtractor
         // Hide everything after the region content (including #endregion)
         if (regionEndLine < lines.Length - 1)
         {
-            result.Add("// @hide");
+            result.Add("// ---cut-start---");
             for (var i = regionEndLine; i < lines.Length; i++)
                 result.Add(lines[i]);
         }

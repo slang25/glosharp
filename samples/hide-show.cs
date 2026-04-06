@@ -1,7 +1,7 @@
 // @noErrors
 var x = 10;
-// @hide
+// ---cut-start---
 var helper = x * 2;
-// @show
+// ---cut-end---
 Console.WriteLine(x);
 //                ^?

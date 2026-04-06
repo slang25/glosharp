@@ -33,9 +33,10 @@ public static partial class MarkerParser
     private static readonly Regex ErrorsDirectiveRegex = ErrorsDirectivePattern();
     private static readonly Regex NoErrorsDirectiveRegex = NoErrorsDirectivePattern();
     private static readonly Regex SuppressErrorsDirectiveRegex = SuppressErrorsDirectivePattern();
-    private static readonly Regex CutMarkerRegex = CutMarkerPattern();
-    private static readonly Regex HideDirectiveRegex = HideDirectivePattern();
-    private static readonly Regex ShowDirectiveRegex = ShowDirectivePattern();
+    private static readonly Regex CutBeforeMarkerRegex = CutBeforeMarkerPattern();
+    private static readonly Regex CutAfterMarkerRegex = CutAfterMarkerPattern();
+    private static readonly Regex CutStartDirectiveRegex = CutStartDirectivePattern();
+    private static readonly Regex CutEndDirectiveRegex = CutEndDirectivePattern();
     private static readonly Regex HighlightDirectiveRegex = HighlightDirectivePattern();
     private static readonly Regex FocusDirectiveRegex = FocusDirectivePattern();
     private static readonly Regex DiffDirectiveRegex = DiffDirectivePattern();
@@ -57,14 +58,17 @@ public static partial class MarkerParser
     [GeneratedRegex(@"^\s*//\s*@suppressErrors(?::\s*(.+))?\s*$")]
     private static partial Regex SuppressErrorsDirectivePattern();
 
-    [GeneratedRegex(@"^\s*//\s*(@above-hidden|---cut---)\s*$")]
-    private static partial Regex CutMarkerPattern();
+    [GeneratedRegex(@"^\s*//\s*(---cut(?:-before)?---)\s*$")]
+    private static partial Regex CutBeforeMarkerPattern();
 
-    [GeneratedRegex(@"^\s*//\s*@hide\s*$")]
-    private static partial Regex HideDirectivePattern();
+    [GeneratedRegex(@"^\s*//\s*(---cut-after---)\s*$")]
+    private static partial Regex CutAfterMarkerPattern();
 
-    [GeneratedRegex(@"^\s*//\s*@show\s*$")]
-    private static partial Regex ShowDirectivePattern();
+    [GeneratedRegex(@"^\s*//\s*(---cut-start---)\s*$")]
+    private static partial Regex CutStartDirectivePattern();
+
+    [GeneratedRegex(@"^\s*//\s*(---cut-end---)\s*$")]
+    private static partial Regex CutEndDirectivePattern();
 
     [GeneratedRegex(@"^\s*//\s*@highlight(?::\s*(.+))?\s*$")]
     private static partial Regex HighlightDirectivePattern();
@@ -100,8 +104,9 @@ public static partial class MarkerParser
 
         // First pass: identify marker lines and collect metadata
         var isMarkerLine = new bool[lines.Length];
-        var isCutLine = -1;
-        var hideStart = -1;
+        var cutBeforeLine = -1;
+        var cutAfterLine = -1;
+        var cutStartLine = -1;
         var isHiddenLine = new bool[lines.Length];
 
         for (var i = 0; i < lines.Length; i++)
@@ -189,32 +194,41 @@ public static partial class MarkerParser
                 continue;
             }
 
-            // ---cut--- or @above-hidden (first occurrence wins)
-            if (CutMarkerRegex.IsMatch(line))
+            // ---cut--- or ---cut-before--- (first occurrence wins)
+            if (CutBeforeMarkerRegex.IsMatch(line))
             {
-                if (isCutLine < 0)
-                    isCutLine = i;
+                if (cutBeforeLine < 0)
+                    cutBeforeLine = i;
                 isMarkerLine[i] = true;
                 continue;
             }
 
-            // @hide
-            if (HideDirectiveRegex.IsMatch(line))
+            // ---cut-after---
+            if (CutAfterMarkerRegex.IsMatch(line))
             {
-                hideStart = i;
+                if (cutAfterLine < 0)
+                    cutAfterLine = i;
                 isMarkerLine[i] = true;
                 continue;
             }
 
-            // @show
-            if (ShowDirectiveRegex.IsMatch(line))
+            // ---cut-start---
+            if (CutStartDirectiveRegex.IsMatch(line))
             {
-                if (hideStart >= 0)
+                cutStartLine = i;
+                isMarkerLine[i] = true;
+                continue;
+            }
+
+            // ---cut-end---
+            if (CutEndDirectiveRegex.IsMatch(line))
+            {
+                if (cutStartLine >= 0)
                 {
-                    for (var h = hideStart; h <= i; h++)
+                    for (var h = cutStartLine; h <= i; h++)
                         isHiddenLine[h] = true;
-                    hiddenRanges.Add(new HiddenRange(hideStart, i));
-                    hideStart = -1;
+                    hiddenRanges.Add(new HiddenRange(cutStartLine, i));
+                    cutStartLine = -1;
                 }
                 isMarkerLine[i] = true;
                 continue;
@@ -292,20 +306,28 @@ public static partial class MarkerParser
             }
         }
 
-        // If @hide was never closed, hide to end of file
-        if (hideStart >= 0)
+        // If ---cut-start--- was never closed, hide to end of file
+        if (cutStartLine >= 0)
         {
-            for (var h = hideStart; h < lines.Length; h++)
+            for (var h = cutStartLine; h < lines.Length; h++)
                 isHiddenLine[h] = true;
-            hiddenRanges.Add(new HiddenRange(hideStart, lines.Length - 1));
+            hiddenRanges.Add(new HiddenRange(cutStartLine, lines.Length - 1));
         }
 
-        // If there's a cut marker, everything before it is hidden
-        if (isCutLine >= 0)
+        // If there's a cut-before marker, everything before it (inclusive) is hidden
+        if (cutBeforeLine >= 0)
         {
-            for (var h = 0; h <= isCutLine; h++)
+            for (var h = 0; h <= cutBeforeLine; h++)
                 isHiddenLine[h] = true;
-            hiddenRanges.Insert(0, new HiddenRange(0, isCutLine));
+            hiddenRanges.Insert(0, new HiddenRange(0, cutBeforeLine));
+        }
+
+        // If there's a cut-after marker, everything after it (inclusive) is hidden
+        if (cutAfterLine >= 0)
+        {
+            for (var h = cutAfterLine; h < lines.Length; h++)
+                isHiddenLine[h] = true;
+            hiddenRanges.Add(new HiddenRange(cutAfterLine, lines.Length - 1));
         }
 
         // Build processed code: remove marker lines and hidden lines
@@ -414,9 +436,10 @@ public static partial class MarkerParser
                 ErrorsDirectiveRegex.IsMatch(line) ||
                 NoErrorsDirectiveRegex.IsMatch(line) ||
                 SuppressErrorsDirectiveRegex.IsMatch(line) ||
-                CutMarkerRegex.IsMatch(line) ||
-                HideDirectiveRegex.IsMatch(line) ||
-                ShowDirectiveRegex.IsMatch(line) ||
+                CutBeforeMarkerRegex.IsMatch(line) ||
+                CutAfterMarkerRegex.IsMatch(line) ||
+                CutStartDirectiveRegex.IsMatch(line) ||
+                CutEndDirectiveRegex.IsMatch(line) ||
                 HighlightDirectiveRegex.IsMatch(line) ||
                 FocusDirectiveRegex.IsMatch(line) ||
                 DiffDirectiveRegex.IsMatch(line) ||
@@ -470,9 +493,10 @@ public static partial class MarkerParser
                 !ErrorsDirectiveRegex.IsMatch(line) &&
                 !NoErrorsDirectiveRegex.IsMatch(line) &&
                 !SuppressErrorsDirectiveRegex.IsMatch(line) &&
-                !CutMarkerRegex.IsMatch(line) &&
-                !HideDirectiveRegex.IsMatch(line) &&
-                !ShowDirectiveRegex.IsMatch(line) &&
+                !CutBeforeMarkerRegex.IsMatch(line) &&
+                !CutAfterMarkerRegex.IsMatch(line) &&
+                !CutStartDirectiveRegex.IsMatch(line) &&
+                !CutEndDirectiveRegex.IsMatch(line) &&
                 !HighlightDirectiveRegex.IsMatch(line) &&
                 !FocusDirectiveRegex.IsMatch(line) &&
                 !DiffDirectiveRegex.IsMatch(line) &&

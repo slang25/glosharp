@@ -251,7 +251,7 @@ const sources = {
 							</div>
 							<div class="example-content-wrapper">
 								<div class="feature-example example-rendered">
-									<Code lang="csharp" code={`// @suppressErrors\n// @hide\npublic class User {\n  public string First { get; set; }\n  public string Last { get; set; }\n// @show\n  public string FullName\n    => $"{First} {Last}";\n// @hide\n}`} />
+									<Code lang="csharp" code={`// @suppressErrors\n// ---cut-start---\npublic class User {\n  public string First { get; set; }\n  public string Last { get; set; }\n// ---cut-end---\n  public string FullName\n    => $"{First} {Last}";\n// ---cut-start---\n}`} />
 								</div>
 								<pre class="feature-example example-source"><code>{sources.region}</code></pre>
 							</div>
@@ -263,7 +263,7 @@ const sources = {
 							<span class="feature-icon">---cut---</span>
 							<h3>Hidden setup code</h3>
 						</div>
-						<p>Hide boilerplate with <code>// ---cut---</code> or <code>// @hide</code>/<code>// @show</code>. Setup code compiles but doesn't appear in the rendered snippet.</p>
+						<p>Hide boilerplate with <code>// ---cut---</code>, <code>// ---cut-before---</code>, <code>// ---cut-after---</code>, or <code>// ---cut-start---</code>/<code>// ---cut-end---</code>. Setup code compiles but doesn't appear in the rendered snippet.</p>
 						<div class="example-container">
 							<div class="example-tabs">
 								<div class="example-tab-pill"></div>
@@ -580,9 +580,10 @@ glosharp verify samples/ --cache-dir .glosharp-cache`} />
 					</div>
 					<div class="marker-group">
 						<h3>Visibility</h3>
-						<div class="marker"><code>// @hide</code> / <code>// @show</code> <span>Toggle line visibility</span></div>
 						<div class="marker"><code>// ---cut---</code> <span>Hide everything above this line</span></div>
-						<div class="marker"><code>// @above-hidden</code> <span>Alias for ---cut---</span></div>
+						<div class="marker"><code>// ---cut-before---</code> <span>Same as ---cut--- (long form)</span></div>
+						<div class="marker"><code>// ---cut-after---</code> <span>Hide everything below this line</span></div>
+						<div class="marker"><code>// ---cut-start---</code> / <code>// ---cut-end---</code> <span>Hide a section of code</span></div>
 					</div>
 					<div class="marker-group">
 						<h3>Compiler control</h3>

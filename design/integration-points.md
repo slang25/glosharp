@@ -34,9 +34,9 @@ The `^?` and `^|` markers are placed on a comment line. The `^` aligns with the 
 ```csharp
 // @nullable: enable                  // Nullable context
 // @using: System.Text.Json           // Add using (hidden from output)
-// @hide                              // Hide the next line from output
-// @hide-start                        // Hide a block from output
-// @hide-end
+// ---cut-start---                    // Hide a block from output
+// ---cut-end---
+// ---cut-after---                    // Hide everything below from output
 ```
 
 ### Package and framework directives (via file-based apps)

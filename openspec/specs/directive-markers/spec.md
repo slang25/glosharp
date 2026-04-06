@@ -57,7 +57,7 @@ Each highlight entry SHALL contain: `line` (number, 0-based in processed output)
 - **THEN** the highlight entry has `line` as the 0-based processed line number, `character: 0`, `length` equal to the line content length, and `kind: "highlight"`
 
 ### Requirement: Directives work alongside existing markers
-Directive markers SHALL coexist with existing markers (`^?`, `@errors`, `@hide`, etc.) without interference. Position mapping SHALL account for all removed marker lines.
+Directive markers SHALL coexist with existing markers (`^?`, `@errors`, `---cut-start---`/`---cut-end---`, etc.) without interference. Position mapping SHALL account for all removed marker lines.
 
 #### Scenario: Highlight with hover query
 - **WHEN** source contains both `// @highlight` and `//  ^?` markers

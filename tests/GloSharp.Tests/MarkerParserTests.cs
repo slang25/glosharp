@@ -66,21 +66,30 @@ public class MarkerParserTests
     }
 
     [Test]
-    public async Task Parse_HideShow_HidesSection()
+    public async Task Parse_CutStartEnd_HidesSection()
     {
-        var source = "var a = 1;\n// @hide\nvar hidden = 2;\n// @show\nvar b = 3;";
+        var source = "var a = 1;\n// ---cut-start---\nvar hidden = 2;\n// ---cut-end---\nvar b = 3;";
         var result = MarkerParser.Parse(source);
 
         await Assert.That(result.ProcessedCode).IsEqualTo("var a = 1;\nvar b = 3;");
     }
 
     [Test]
-    public async Task Parse_HideWithoutShow_HidesToEnd()
+    public async Task Parse_CutStartWithoutEnd_HidesToEnd()
     {
-        var source = "var a = 1;\n// @hide\nvar hidden = 2;";
+        var source = "var a = 1;\n// ---cut-start---\nvar hidden = 2;";
         var result = MarkerParser.Parse(source);
 
         await Assert.That(result.ProcessedCode).IsEqualTo("var a = 1;");
+    }
+
+    [Test]
+    public async Task Parse_CutAfter_HidesCodeAfter()
+    {
+        var source = "var visible = 1;\n// ---cut-after---\nvar hidden = 2;";
+        var result = MarkerParser.Parse(source);
+
+        await Assert.That(result.ProcessedCode).IsEqualTo("var visible = 1;");
     }
 
     [Test]
@@ -417,41 +426,41 @@ public class MarkerParserTests
         await Assert.That(compilationCode).IsEqualTo("var x = 42;");
     }
 
-    // === @above-hidden directive tests ===
+    // === ---cut-before--- directive tests ===
 
     [Test]
-    public async Task Parse_AboveHidden_HidesCodeBefore()
+    public async Task Parse_CutBefore_HidesCodeBefore()
     {
-        var source = "var setup = 1;\n// @above-hidden\nvar visible = 2;";
+        var source = "var setup = 1;\n// ---cut-before---\nvar visible = 2;";
         var result = MarkerParser.Parse(source);
 
         await Assert.That(result.ProcessedCode).IsEqualTo("var visible = 2;");
     }
 
     [Test]
-    public async Task Parse_AboveHidden_Indented_StillRecognized()
+    public async Task Parse_CutBefore_Indented_StillRecognized()
     {
-        var source = "var setup = 1;\n  // @above-hidden\nvar visible = 2;";
+        var source = "var setup = 1;\n  // ---cut-before---\nvar visible = 2;";
         var result = MarkerParser.Parse(source);
 
         await Assert.That(result.ProcessedCode).IsEqualTo("var visible = 2;");
     }
 
     [Test]
-    public async Task GetCompilationCode_AboveHidden_IncludesHiddenCode()
+    public async Task GetCompilationCode_CutBefore_IncludesHiddenCode()
     {
-        var source = "var setup = 1;\n// @above-hidden\nvar visible = 2;";
+        var source = "var setup = 1;\n// ---cut-before---\nvar visible = 2;";
         var compilationCode = MarkerParser.GetCompilationCode(source);
 
         await Assert.That(compilationCode).Contains("var setup = 1;");
         await Assert.That(compilationCode).Contains("var visible = 2;");
-        await Assert.That(compilationCode).DoesNotContain("@above-hidden");
+        await Assert.That(compilationCode).DoesNotContain("---cut-before---");
     }
 
     [Test]
-    public async Task Parse_CutMarkerStillWorks_AfterAboveHiddenAdded()
+    public async Task Parse_CutMarkerStillWorks_ShortForm()
     {
-        // Verify ---cut--- is still recognized
+        // Verify ---cut--- is still recognized as shorthand for ---cut-before---
         var source = "var setup = 1;\n// ---cut---\nvar visible = 2;";
         var result = MarkerParser.Parse(source);
 
@@ -459,13 +468,46 @@ public class MarkerParserTests
     }
 
     [Test]
-    public async Task Parse_FirstMarkerWins_WhenBothPresent()
+    public async Task Parse_FirstCutBeforeWins_WhenMultiplePresent()
     {
-        var source = "var a = 1;\n// @above-hidden\nvar b = 2;\n// ---cut---\nvar c = 3;";
+        var source = "var a = 1;\n// ---cut-before---\nvar b = 2;\n// ---cut---\nvar c = 3;";
         var result = MarkerParser.Parse(source);
 
-        // The first marker (@above-hidden) wins: it hides everything above it.
+        // The first cut-before marker wins: it hides everything above it.
         // The later ---cut--- is still stripped as a marker line but doesn't move the cut point.
         await Assert.That(result.ProcessedCode).IsEqualTo("var b = 2;\nvar c = 3;");
+    }
+
+    // === ---cut-after--- directive tests ===
+
+    [Test]
+    public async Task GetCompilationCode_CutAfter_IncludesHiddenCode()
+    {
+        var source = "var visible = 1;\n// ---cut-after---\nvar hidden = 2;";
+        var compilationCode = MarkerParser.GetCompilationCode(source);
+
+        await Assert.That(compilationCode).Contains("var visible = 1;");
+        await Assert.That(compilationCode).Contains("var hidden = 2;");
+        await Assert.That(compilationCode).DoesNotContain("---cut-after---");
+    }
+
+    [Test]
+    public async Task Parse_CutBeforeAndCutAfter_ShowsMiddle()
+    {
+        var source = "var a = 1;\n// ---cut-before---\nvar b = 2;\n// ---cut-after---\nvar c = 3;";
+        var result = MarkerParser.Parse(source);
+
+        await Assert.That(result.ProcessedCode).IsEqualTo("var b = 2;");
+    }
+
+    // === Multiple ---cut-start---/---cut-end--- pairs ===
+
+    [Test]
+    public async Task Parse_MultipleCutStartEnd_HidesAllRanges()
+    {
+        var source = "var a = 1;\n// ---cut-start---\nvar hidden1 = 2;\n// ---cut-end---\nvar b = 3;\n// ---cut-start---\nvar hidden2 = 4;\n// ---cut-end---\nvar c = 5;";
+        var result = MarkerParser.Parse(source);
+
+        await Assert.That(result.ProcessedCode).IsEqualTo("var a = 1;\nvar b = 3;\nvar c = 5;");
     }
 }

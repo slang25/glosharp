@@ -59,7 +59,7 @@ All hovers extracted via automatic token walking SHALL have `persistent` set to 
 - **THEN** the hover for `x` has `persistent: false`
 
 ### Requirement: Map auto-hover positions to processed code
-Auto-extracted hover positions SHALL be mapped from compilation-code positions back to processed-code line numbers using the existing line offset map. Hovers for tokens in hidden sections (before `---cut---` or within `@hide`/`@show`) SHALL be excluded.
+Auto-extracted hover positions SHALL be mapped from compilation-code positions back to processed-code line numbers using the existing line offset map. Hovers for tokens in hidden sections (before `---cut---`/`---cut-before---`, after `---cut-after---`, or within `---cut-start---`/`---cut-end---`) SHALL be excluded.
 
 #### Scenario: Position mapping after marker removal
 - **WHEN** source has a `// @highlight` marker on line 1 followed by `var x = 42;` on line 2

@@ -33,26 +33,37 @@ The system SHALL recognize `// @noErrors` to assert that the snippet compiles wi
 - **WHEN** source contains `// @noErrors` but compilation produces an error
 - **THEN** processing fails with an error indicating the unexpected diagnostic
 
-### Requirement: Parse cut markers
-The system SHALL recognize both `// ---cut---` and `// @above-hidden` to split source into visible and hidden sections. Code before the first occurrence of either marker SHALL be hidden from output but included in compilation.
+### Requirement: Parse cut-before markers
+The system SHALL recognize `// ---cut---` and `// ---cut-before---` to split source into visible and hidden sections. Code before the first occurrence of either marker SHALL be hidden from output but included in compilation.
 
-#### Scenario: Setup code hidden by cut
+#### Scenario: Setup code hidden by ---cut---
 - **WHEN** source contains setup code followed by `// ---cut---` followed by display code
 - **THEN** the output `code` contains only the display code, but compilation includes all code
 
-#### Scenario: Setup code hidden by @above-hidden
-- **WHEN** source contains setup code followed by `// @above-hidden` followed by display code
+#### Scenario: Setup code hidden by ---cut-before---
+- **WHEN** source contains setup code followed by `// ---cut-before---` followed by display code
 - **THEN** the output `code` contains only the display code, but compilation includes all code
 
-### Requirement: Parse hide/show directives
-The system SHALL recognize `// @hide` and `// @show` to toggle visibility of code sections. Lines between `// @hide` and `// @show` (or end of file) SHALL be excluded from output but included in compilation.
+### Requirement: Parse cut-after marker
+The system SHALL recognize `// ---cut-after---` to hide all code after the marker from output while including it in compilation.
+
+#### Scenario: Trailing code hidden by ---cut-after---
+- **WHEN** source contains display code followed by `// ---cut-after---` followed by trailing code
+- **THEN** the output `code` contains only the display code, but compilation includes all code
+
+### Requirement: Parse cut-start/cut-end directives
+The system SHALL recognize `// ---cut-start---` and `// ---cut-end---` to toggle visibility of code sections. Lines between `// ---cut-start---` and `// ---cut-end---` (or end of file if unclosed) SHALL be excluded from output but included in compilation. Multiple pairs SHALL be supported.
 
 #### Scenario: Hidden middle section
-- **WHEN** source contains visible code, then `// @hide`, then hidden code, then `// @show`, then more visible code
+- **WHEN** source contains visible code, then `// ---cut-start---`, then hidden code, then `// ---cut-end---`, then more visible code
 - **THEN** the output `code` excludes the hidden section but compilation includes it
 
+#### Scenario: Multiple hidden sections
+- **WHEN** source contains two `// ---cut-start---` / `// ---cut-end---` pairs with visible code between them
+- **THEN** the output `code` excludes both hidden sections but compilation includes all code
+
 ### Requirement: Remove marker lines from output
-The system SHALL remove all marker lines (`^?` comments, `^|` comments, `@errors` directives, `@noErrors`, cut markers, `@hide`/`@show`, `@highlight`/`@focus`/`@diff` directives, `@langVersion` directives, `@nullable` directives) from the processed output code.
+The system SHALL remove all marker lines (`^?` comments, `^|` comments, `@errors` directives, `@noErrors`, cut markers (`---cut---`, `---cut-before---`, `---cut-after---`, `---cut-start---`, `---cut-end---`), `@highlight`/`@focus`/`@diff` directives, `@langVersion` directives, `@nullable` directives) from the processed output code.
 
 #### Scenario: Clean output code
 - **WHEN** source contains markers interspersed with code
