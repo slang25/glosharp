@@ -99,4 +99,6 @@ All examples use the same glosharp marker syntax in C# code:
 | `// @errors: CS0103` | Mark specific errors as expected |
 | `// @nullable: enable` | Enable nullable reference types |
 | `// ---cut---` | Hide code above from output |
-| `// @hide` / `// @show` | Hide/show individual lines |
+| `// ---cut-before---` | Same as `---cut---` (long form) |
+| `// ---cut-after---` | Hide code below from output |
+| `// ---cut-start---` / `// ---cut-end---` | Hide a section of code |

@@ -22,7 +22,7 @@ The `processGloSharpBlocks` function SHALL accept `GloSharpCodeBlock[]` as the f
 - **THEN** the first block uses project `./A.csproj` and the second uses `./B.csproj`
 
 ### Requirement: Skip blocks without markers
-The function SHALL skip code blocks that do not contain glosharp markers (`^?`, `^|`, `@errors:`, `@noErrors`, `---cut---`, `@hide`, `@show`). Skipped blocks SHALL NOT appear in the result map.
+The function SHALL skip code blocks that do not contain glosharp markers (`^?`, `^|`, `@errors:`, `@noErrors`, `---cut---`, `---cut-before---`, `---cut-after---`, `---cut-start---`, `---cut-end---`). Skipped blocks SHALL NOT appear in the result map.
 
 #### Scenario: No markers
 - **WHEN** `processGloSharpBlocks(["var x = 42;", "Console.WriteLine(x);\n// ^?"])` is called
