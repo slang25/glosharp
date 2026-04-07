@@ -49,11 +49,11 @@ public class MarkerParserTests
     }
 
     [Test]
-    public async Task Parse_NoErrors_SetsFlag()
+    public async Task Parse_NoErrors_SetsSuppressAllErrors()
     {
         var source = "// @noErrors\nvar x = 42;";
         var result = MarkerParser.Parse(source);
-        await Assert.That(result.NoErrors).IsTrue();
+        await Assert.That(result.SuppressAllErrors).IsTrue();
     }
 
     [Test]

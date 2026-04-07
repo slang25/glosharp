@@ -37,9 +37,5 @@ The system SHALL support both `@suppressErrors` (block-level) and `@errors` (per
 - **WHEN** source contains `// @suppressErrors: CS0246` and also has `// @errors: CS1002` on a specific line
 - **THEN** CS0246 is suppressed block-wide and CS1002 is expected on that specific line
 
-### Requirement: suppressErrors is incompatible with noErrors
-The system SHALL treat `@suppressErrors` and `@noErrors` as mutually exclusive. If both are present, the system SHALL report an error indicating the conflict.
-
-#### Scenario: Conflicting directives
-- **WHEN** source contains both `// @suppressErrors` and `// @noErrors`
-- **THEN** processing fails with an error indicating that @suppressErrors and @noErrors cannot be used together
+### Requirement: noErrors is an alias for suppressErrors
+The system SHALL treat `@noErrors` as a twoslash-compatible alias for `@suppressErrors`. Both directives MAY be present simultaneously without conflict.

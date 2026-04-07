@@ -23,15 +23,11 @@ The system SHALL recognize `// @errors: NNNN` directives to declare expected com
 - **THEN** the system records both CS1002 and CS0246 as expected on the next code line
 
 ### Requirement: Parse noErrors directive
-The system SHALL recognize `// @noErrors` to assert that the snippet compiles without any diagnostics at error severity.
+The system SHALL recognize `// @noErrors` as a twoslash-compatible alias for `// @suppressErrors`. When present, all error-severity diagnostics SHALL be suppressed from the output.
 
-#### Scenario: Clean compilation assertion
-- **WHEN** source contains `// @noErrors` and compilation produces no errors
-- **THEN** processing succeeds
-
-#### Scenario: Unexpected error with noErrors
-- **WHEN** source contains `// @noErrors` but compilation produces an error
-- **THEN** processing fails with an error indicating the unexpected diagnostic
+#### Scenario: noErrors suppresses errors
+- **WHEN** source contains `// @noErrors` and compilation produces errors
+- **THEN** error-severity diagnostics are suppressed and processing succeeds
 
 ### Requirement: Parse cut-before markers
 The system SHALL recognize `// ---cut---` and `// ---cut-before---` to split source into visible and hidden sections. Code before the first occurrence of either marker SHALL be hidden from output but included in compilation.
