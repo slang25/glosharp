@@ -794,21 +794,6 @@ public class GloSharpProcessor
         MarkerParseResult markers,
         string compilationCode)
     {
-        // Conflict detection: @suppressErrors and @noErrors are mutually exclusive
-        if ((markers.SuppressAllErrors || markers.SuppressedErrorCodes.Count > 0) && markers.NoErrors)
-        {
-            return ([new GloSharpError
-            {
-                Line = 0,
-                Character = 0,
-                Length = 1,
-                Code = "TH0003",
-                Message = "@suppressErrors and @noErrors cannot be used together",
-                Severity = "error",
-                Expected = false,
-            }], false);
-        }
-
         var errors = new List<GloSharpError>();
         var compilationLines = compilationCode.Split('\n');
 
@@ -884,12 +869,6 @@ public class GloSharpProcessor
         }
 
         var compileSucceeded = !hasUnexpectedErrors;
-
-        // If @noErrors is set, any error means failure
-        if (markers.NoErrors && errors.Any(e => e.Severity == "error"))
-        {
-            compileSucceeded = false;
-        }
 
         return (errors, compileSucceeded);
     }

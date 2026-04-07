@@ -14,7 +14,6 @@ public class MarkerParseResult
     public required List<HoverQuery> HoverQueries { get; init; }
     public required List<CompletionQuery> CompletionQueries { get; init; }
     public required List<ErrorExpectation> ErrorExpectations { get; init; }
-    public required bool NoErrors { get; init; }
     public required bool SuppressAllErrors { get; init; }
     public required List<string> SuppressedErrorCodes { get; init; }
     public required List<HiddenRange> HiddenRanges { get; init; }
@@ -93,7 +92,6 @@ public static partial class MarkerParser
         var errorExpectations = new List<ErrorExpectation>();
         var hiddenRanges = new List<HiddenRange>();
         var highlights = new List<HighlightDirective>();
-        var noErrors = false;
         var suppressAllErrors = false;
         var suppressedErrorCodes = new List<string>();
         string? langVersion = null;
@@ -166,10 +164,10 @@ public static partial class MarkerParser
                 continue;
             }
 
-            // @noErrors
+            // @noErrors (twoslash-compatible alias for @suppressErrors)
             if (NoErrorsDirectiveRegex.IsMatch(line))
             {
-                noErrors = true;
+                suppressAllErrors = true;
                 isMarkerLine[i] = true;
                 continue;
             }
@@ -409,7 +407,6 @@ public static partial class MarkerParser
             HoverQueries = remappedQueries,
             CompletionQueries = remappedCompletions,
             ErrorExpectations = remappedErrors,
-            NoErrors = noErrors,
             SuppressAllErrors = suppressAllErrors,
             SuppressedErrorCodes = suppressedErrorCodes,
             HiddenRanges = hiddenRanges,

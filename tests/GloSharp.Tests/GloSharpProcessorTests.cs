@@ -658,13 +658,14 @@ public class GloSharpProcessorTests
     }
 
     [Test]
-    public async Task Process_SuppressErrors_ConflictWithNoErrors_ProducesError()
+    public async Task Process_NoErrors_SuppressesErrors()
     {
-        var source = "// @suppressErrors\n// @noErrors\nvar x = 42;";
+        var source = "// @noErrors\nConsole.WriteLine(undeclared);";
         var result = await _processor.ProcessAsync(source);
 
-        await Assert.That(result.Errors.Any(e => e.Code == "TH0003")).IsTrue();
-        await Assert.That(result.Meta.CompileSucceeded).IsFalse();
+        // @noErrors is a twoslash-compatible alias for @suppressErrors
+        await Assert.That(result.Errors.Any(e => e.Severity == "error")).IsFalse();
+        await Assert.That(result.Meta.CompileSucceeded).IsTrue();
     }
 
     [Test]
