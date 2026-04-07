@@ -1,14 +1,11 @@
-var todos = new List<Todo>
-{
-    new("Learn Glo#", true),
-    new("Build docs", false),
-};
+var scores = new[] { 92, 85, 78, 96, 88 };
 
-var pending = todos.Where(t => !t.Done);
-//^?
+var stats = (
+    Mean: scores.Average(),
+    High: scores.Max(),
+    Low: scores.Min()
+);
+//  ^?
 
 // @highlight
-Console.WriteLine($"Pending: {pending.Count()}");
-// ---cut-start---
-/// <summary>A task with a title and completion status.</summary>
-public record Todo(string Title, bool Done);
+Console.WriteLine($"Average: {stats.Mean:F1}, range {stats.Low}–{stats.High}");
