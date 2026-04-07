@@ -8,15 +8,15 @@ export function createGloSharp(options: GloSharpOptions = {}) {
 
   async function findExecutable(): Promise<{ command: string; prefix?: string[] }> {
     if (options.executable) return { command: options.executable }
-    const found = await which('glosharp-cli')
+    const found = await which('glosharp')
     if (found) return { command: found }
     // Fall back to local dotnet tool
     const dotnet = await which('dotnet')
     if (dotnet && await spawnCheck(dotnet, ['tool', 'list'])) {
-      return { command: dotnet, prefix: ['glosharp-cli'] }
+      return { command: dotnet, prefix: ['glosharp'] }
     }
     throw new Error(
-      'glosharp-cli not found. Install it with: dotnet tool install -g GloSharp.Cli\n' +
+      'glosharp not found. Install it with: dotnet tool install -g GloSharp.Cli\n' +
       'Or as a local tool: dotnet tool install GloSharp.Cli --local --add-source .nupkg/'
     )
   }
@@ -90,7 +90,7 @@ function spawnCheck(command: string, args: string[]): Promise<boolean> {
     let stdout = ''
     child.stdout.on('data', (data: Buffer) => { stdout += data.toString() })
     child.on('error', () => resolve(false))
-    child.on('close', () => resolve(stdout.includes('glosharp-cli')))
+    child.on('close', () => resolve(stdout.includes('glosharp')))
   })
 }
 
@@ -105,12 +105,12 @@ function spawnCli(executable: string, args: string[], stdin?: string): Promise<G
     child.stderr.on('data', (data: Buffer) => { stderr += data.toString() })
 
     child.on('error', (err: Error) => {
-      reject(new Error(`Failed to spawn glosharp-cli: ${err.message}`))
+      reject(new Error(`Failed to spawn glosharp: ${err.message}`))
     })
 
     child.on('close', (code: number | null) => {
       if (code !== 0) {
-        reject(new Error(`glosharp-cli exited with code ${code}:\n${stderr}`))
+        reject(new Error(`glosharp exited with code ${code}:\n${stderr}`))
         return
       }
 
@@ -118,7 +118,7 @@ function spawnCli(executable: string, args: string[], stdin?: string): Promise<G
         const result = JSON.parse(stdout) as GloSharpResult
         resolve(result)
       } catch {
-        reject(new Error(`glosharp-cli produced invalid JSON:\n${stdout}`))
+        reject(new Error(`glosharp produced invalid JSON:\n${stdout}`))
       }
     })
 

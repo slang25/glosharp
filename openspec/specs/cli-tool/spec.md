@@ -48,7 +48,7 @@ The CLI SHALL be packable and installable as a .NET global or local tool via `do
 
 #### Scenario: Global tool install
 - **WHEN** `dotnet tool install -g GloSharp.Cli` is run
-- **THEN** the `glosharp-cli` command becomes available on the PATH
+- **THEN** the `glosharp` command becomes available on the PATH
 
 ### Requirement: Verify command for CI
 The CLI SHALL accept a `verify` command that processes all `.cs` files in a directory and exits non-zero if any have unexpected compilation errors. Before processing, the CLI SHALL load config file defaults and merge them with CLI arguments.

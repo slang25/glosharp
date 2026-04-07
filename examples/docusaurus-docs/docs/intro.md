@@ -21,4 +21,4 @@ Console.WriteLine(message);
 ## Prerequisites
 
 - [.NET 8 SDK](https://dotnet.microsoft.com/download) or later
-- The `glosharp-cli` tool: `dotnet tool install -g GloSharp.Cli`
+- The `glosharp` tool: `dotnet tool install -g GloSharp.Cli`
