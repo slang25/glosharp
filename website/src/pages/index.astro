@@ -13,15 +13,17 @@ import regionSource from '../examples/region.cs?raw'
 import cutSource from '../examples/cut.cs?raw'
 import pkgSource from '../examples/pkg.cs?raw'
 
+const wrapSource = (code: string) => `\`\`\`csharp\n${code.trimEnd()}\n\`\`\``
+
 const sources = {
-  hover: hoverSource.trimEnd(),
-  xmldoc: xmldocSource.trimEnd(),
-  errors: errorsSource.trimEnd(),
-  noErrors: noErrorsSource.trimEnd(),
-  highlight: highlightSource.trimEnd(),
-  region: regionSource.trimEnd(),
-  cut: cutSource.trimEnd(),
-  pkg: pkgSource.trimEnd(),
+  hover: wrapSource(hoverSource),
+  xmldoc: wrapSource(xmldocSource),
+  errors: wrapSource(errorsSource),
+  noErrors: wrapSource(noErrorsSource),
+  highlight: wrapSource(highlightSource),
+  region: wrapSource(regionSource),
+  cut: wrapSource(cutSource),
+  pkg: wrapSource(pkgSource),
 }
 ---
 
@@ -90,7 +92,7 @@ const sources = {
 							<div class="feature-example example-rendered">
 								<Code lang="csharp" code={heroCode} />
 							</div>
-							<pre class="feature-example example-source"><code>{heroSource}</code></pre>
+							<pre class="feature-example example-source"><code>{wrapSource(heroSource)}</code></pre>
 						</div>
 					</div>
 				</div>
