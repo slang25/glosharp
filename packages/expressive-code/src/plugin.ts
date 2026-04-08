@@ -1321,7 +1321,12 @@ class GloSharpCustomTagAnnotation {
       ],
     }
 
-    return [...nodesToTransform, calloutBox]
+    return nodesToTransform.map(node => ({
+      type: 'element' as const,
+      tagName: 'div',
+      properties: { class: 'glosharp-noline' },
+      children: [node, calloutBox],
+    }))
   }
 }
 
