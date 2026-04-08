@@ -43,7 +43,7 @@ The system SHALL produce a `typeAnnotations` list on `GloSharpHover` containing 
 
 #### Scenario: Nested anonymous types
 - **WHEN** hover is extracted for `var x = new { Name = "test", Details = new { Id = 1 } };` targeting `x`
-- **THEN** `typeAnnotations` contains entries for both `'a` (outer type using `'b` for the nested property type) and `'b` (inner type), e.g., `'a is new { string Name, 'b Details }` and `'b is new { int Id }`
+- **THEN** `typeAnnotations` contains entries for both `'a` (outer type using `'b` for the nested property type) and `'b` (inner type), e.g., `[{ name: "'a", expansion: "new { string Name, 'b Details }" }, { name: "'b", expansion: "new { int Id }" }]`
 
 #### Scenario: No anonymous types present
 - **WHEN** hover is extracted for a symbol with no anonymous types (e.g., `int x = 42;`)

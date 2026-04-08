@@ -746,8 +746,8 @@ public class GloSharpProcessor
         var parts = symbol.ToDisplayParts(DisplayFormat);
         var prefix = GetSymbolPrefix(symbol);
 
-        var formatter = new AnonymousTypeFormatter();
         var hasAnonymousType = AnonymousTypeFormatter.FindAnonymousType(symbol) != null;
+        AnonymousTypeFormatter? formatter = hasAnonymousType ? new AnonymousTypeFormatter() : null;
 
         var displayParts = new List<GloSharpDisplayPart>();
         if (prefix != null)
@@ -758,7 +758,7 @@ public class GloSharpProcessor
             displayParts.Add(new GloSharpDisplayPart { Kind = "space", Text = " " });
         }
 
-        if (hasAnonymousType)
+        if (formatter != null)
         {
             displayParts.AddRange(formatter.TransformDisplayParts(parts, symbol));
         }
@@ -775,11 +775,11 @@ public class GloSharpProcessor
         }
 
         var rawDisplayString = symbol.ToDisplayString(DisplayFormat);
-        var text = hasAnonymousType
+        var text = formatter != null
             ? (prefix != null ? $"({prefix}) {formatter.TransformDisplayString(rawDisplayString)}" : formatter.TransformDisplayString(rawDisplayString))
             : (prefix != null ? $"({prefix}) {rawDisplayString}" : rawDisplayString);
 
-        var typeAnnotations = formatter.GetAnnotations();
+        var typeAnnotations = formatter?.GetAnnotations();
 
         int? overloadCount = null;
         if (symbol is IMethodSymbol method)

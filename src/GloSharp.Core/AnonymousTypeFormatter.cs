@@ -97,23 +97,35 @@ public class AnonymousTypeFormatter
             return GetOrAssignPlaceholder(named);
 
         if (type is IArrayTypeSymbol array)
-        {
-            var elementDisplay = FormatPropertyType(array.ElementType);
-            return $"{elementDisplay}[]";
-        }
+            return FormatArrayType(array);
 
         if (type is INamedTypeSymbol generic && generic.IsGenericType)
         {
             var hasAnonymousArg = generic.TypeArguments.Any(a => FindAnonymousTypeInType(a) != null);
             if (hasAnonymousArg)
-            {
-                var name = generic.Name;
-                var args = generic.TypeArguments.Select(FormatPropertyType);
-                return $"{name}<{string.Join(", ", args)}>";
-            }
+                return FormatNamedType(generic);
         }
 
         return type.ToDisplayString(PropertyTypeFormat);
+    }
+
+    private string FormatArrayType(IArrayTypeSymbol array)
+    {
+        var elementDisplay = FormatPropertyType(array.ElementType);
+        var rankSpecifier = "[" + new string(',', array.Rank - 1) + "]";
+        var nullableSuffix = array.NullableAnnotation == NullableAnnotation.Annotated ? "?" : string.Empty;
+        return $"{elementDisplay}{rankSpecifier}{nullableSuffix}";
+    }
+
+    private string FormatNamedType(INamedTypeSymbol named)
+    {
+        var containingTypePrefix = named.ContainingType is null
+            ? string.Empty
+            : $"{FormatNamedType(named.ContainingType)}.";
+
+        var typeArguments = named.TypeArguments.Select(FormatPropertyType);
+        var nullableSuffix = named.NullableAnnotation == NullableAnnotation.Annotated ? "?" : string.Empty;
+        return $"{containingTypePrefix}{named.Name}<{string.Join(", ", typeArguments)}>{nullableSuffix}";
     }
 
     public List<GloSharpDisplayPart> TransformDisplayParts(
@@ -132,18 +144,9 @@ public class AnonymousTypeFormatter
             {
                 var placeholder = GetOrAssignPlaceholder(named);
 
-                // Skip the entire anonymous type inline expansion that Roslyn generates.
-                // Roslyn renders: <anonymous type: Type1 Prop1, Type2 Prop2>
-                // We want to replace the whole thing with the placeholder.
-                if (i + 1 < parts.Count && parts[i + 1].ToString() == " ")
-                {
-                    // This is the className part followed by generic expansion — just emit placeholder
-                    result.Add(new GloSharpDisplayPart { Kind = "className", Text = placeholder });
-                }
-                else
-                {
-                    result.Add(new GloSharpDisplayPart { Kind = "className", Text = placeholder });
-                }
+                // Replace the display part associated with the anonymous type symbol
+                // with its placeholder and continue processing the remaining parts.
+                result.Add(new GloSharpDisplayPart { Kind = "className", Text = placeholder });
                 continue;
             }
 
@@ -211,6 +214,8 @@ public class AnonymousTypeFormatter
 
     public List<GloSharpTypeAnnotation>? GetAnnotations()
     {
-        return _annotations.Count > 0 ? _annotations.ToList() : null;
+        return _annotations.Count > 0
+            ? _annotations.OrderBy(a => a.Name).ToList()
+            : null;
     }
 }

@@ -15,6 +15,7 @@ public class AnonymousTypeFormatterTests
 
         var persistent = result.Hovers.First(h => h.Persistent);
         await Assert.That(persistent.Text).Contains("'a");
+        await Assert.That(persistent.Parts.Any(p => p.Kind == "className" && p.Text == "'a")).IsTrue();
         await Assert.That(persistent.TypeAnnotations).IsNotNull();
         await Assert.That(persistent.TypeAnnotations!.Count).IsGreaterThanOrEqualTo(1);
         await Assert.That(persistent.TypeAnnotations![0].Name).IsEqualTo("'a");

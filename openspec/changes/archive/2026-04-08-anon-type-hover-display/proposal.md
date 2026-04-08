@@ -5,8 +5,7 @@ Anonymous types in C# produce compiler-generated names (e.g., `<>f__AnonymousTyp
 ## What Changes
 
 - Detect anonymous types in hover display parts and replace compiler-generated names with short placeholder labels (`'a`, `'b`, etc.)
-- Append a "Types:" section to hover text that maps each placeholder to its expanded anonymous type shape (e.g., `'a is new { string Name, double[] Readings }`)
-- Add nullability context where relevant (e.g., `'sensors' is not null here.`)
+- Add structured `typeAnnotations` field to hover output mapping each placeholder to its expanded anonymous type shape (e.g., `{ name: "'a", expansion: "new { string Name, double[] Readings }" }`)
 - Apply this formatting consistently across `var` declarations, `new` keyword hovers, and property access on anonymous types
 
 ## Capabilities
