@@ -8,7 +8,7 @@ TypeScript has [twoslash](https://twoslash.netlify.app/), which extracts compile
 
 ## The vision
 
-Run `glosharp-cli` against C# code and get:
+Run `glosharp` against C# code and get:
 - **Hover information** — type signatures, XML doc comments, just like VS/VS Code tooltips
 - **Compile verification** — fail in CI if the code doesn't compile
 - **Structured metadata** — JSON output that integrations can consume

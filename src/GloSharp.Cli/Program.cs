@@ -591,7 +591,7 @@ static int RunInit(string[] args)
 
 static void PrintUsage()
 {
-    Console.Error.WriteLine("Usage: glosharp-cli <command> [options]");
+    Console.Error.WriteLine("Usage: glosharp <command> [options]");
     Console.Error.WriteLine();
     Console.Error.WriteLine("Commands:");
     Console.Error.WriteLine("  process <file>    Process a C# file and output JSON metadata");

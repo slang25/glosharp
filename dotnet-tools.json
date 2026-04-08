@@ -5,7 +5,7 @@
     "glosharp.cli": {
       "version": "0.1.0",
       "commands": [
-        "glosharp-cli"
+        "glosharp"
       ],
       "rollForward": false
     }
