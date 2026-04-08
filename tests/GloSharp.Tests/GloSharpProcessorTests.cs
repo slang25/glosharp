@@ -618,8 +618,8 @@ public class GloSharpProcessorTests
         var source = "// @suppressErrors\nConsole.WriteLine(undeclared);";
         var result = await _processor.ProcessAsync(source);
 
-        // Error-severity diagnostics are suppressed; warnings/info may still appear
-        await Assert.That(result.Errors.Any(e => e.Severity == "error")).IsFalse();
+        // All diagnostics (errors, warnings, info) are suppressed
+        await Assert.That(result.Errors.Count).IsEqualTo(0);
         await Assert.That(result.Meta.CompileSucceeded).IsTrue();
     }
 
@@ -631,8 +631,8 @@ public class GloSharpProcessorTests
 
         // Hovers should still work for resolvable symbols
         await Assert.That(result.Hovers.Any(h => h.TargetText == "x")).IsTrue();
-        // Only error-severity diagnostics are suppressed; warnings/info may remain
-        await Assert.That(result.Errors.Any(e => e.Severity == "error")).IsFalse();
+        // All diagnostics are suppressed
+        await Assert.That(result.Errors.Count).IsEqualTo(0);
     }
 
     [Test]
@@ -675,6 +675,17 @@ public class GloSharpProcessorTests
         var result = await _processor.ProcessAsync(source);
 
         await Assert.That(result.Code).IsEqualTo("var x = 42;");
+    }
+
+    [Test]
+    public async Task Process_SuppressAllErrors_WarningsAlsoSuppressed()
+    {
+        // CS0219 = variable assigned but never used (warning severity)
+        var source = "// @suppressErrors\nvar unused = 42;";
+        var result = await _processor.ProcessAsync(source);
+
+        // Warnings should be suppressed alongside errors
+        await Assert.That(result.Errors.Any(e => e.Severity == "warning")).IsFalse();
     }
 
     // === Type qualification and local function tests ===

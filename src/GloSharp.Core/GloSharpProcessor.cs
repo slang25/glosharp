@@ -828,14 +828,11 @@ public class GloSharpProcessor
 
             var code = diagnostic.Id;
 
-            // Block-level error suppression (only for actual errors, not warnings/info)
-            if (diagnostic.Severity == DiagnosticSeverity.Error)
-            {
-                if (markers.SuppressAllErrors)
-                    continue;
-                if (markers.SuppressedErrorCodes.Contains(code))
-                    continue;
-            }
+            // Block-level diagnostic suppression (errors, warnings, and info)
+            if (markers.SuppressAllErrors)
+                continue;
+            if (markers.SuppressedErrorCodes.Contains(code))
+                continue;
 
             var expected = markers.ErrorExpectations.Any(e =>
                 e.OriginalLine == processedLine && e.Codes.Contains(code));
