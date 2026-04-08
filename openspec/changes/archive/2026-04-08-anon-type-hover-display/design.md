@@ -74,7 +74,7 @@ Recursively detect nested anonymous types within property types and assign them 
 
 ## Risks / Trade-offs
 
-**[Risk] Nested anonymous types create complex expansions** → Mitigation: Recursively assign placeholders. `'a is new { string Name, 'b Details }` with `'b is new { int Id }`. Limit nesting depth to 3 levels.
+**[Risk] Nested anonymous types create complex expansions** → Mitigation: Recursively assign placeholders. `'a is new { string Name, 'b Details }` with `'b is new { int Id }`.
 
 **[Risk] Display part replacement is fragile if Roslyn changes part structure** → Mitigation: Use `IsAnonymousType` for detection rather than text matching. Add defensive checks and fall back to raw display if parts don't match expected patterns.
 
