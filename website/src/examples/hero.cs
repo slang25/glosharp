@@ -1,12 +1,15 @@
 // @noErrors
-var scores = new[] { 92, 85, 78, 96, 88 };
+var sensors = new[]
+{
+    new { Name = "North Tower", Readings = new[] { 18.2, 17.5, 19.1 } },
+    new { Name = "South Tower", Readings = new[] { 22.4, 23.1, 21.8 } },
+};
 
-var stats = (
-    Mean: scores.Average(),
-    High: scores.Max(),
-    Low: scores.Min()
-);
+var warmest = sensors
+    .Select(s => (s.Name, Avg: s.Readings.Average()))
+    .MaxBy(x => x.Avg);
 //  ^?
 
+// @annotate: Compiled and type-checked — stale docs break the build
 // @highlight
-Console.WriteLine($"Average: {stats.Mean:F1}, range {stats.Low}–{stats.High}");
+Console.WriteLine($"{warmest?.Name} — {warmest?.Avg:F1}°C");
