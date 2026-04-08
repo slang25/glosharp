@@ -290,13 +290,17 @@ function buildBaseStyles(): string {
 }
 
 .glosharp-error-message {
-  display: block;
-  padding: 2px 8px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 10px;
   margin-top: 2px;
+  border-radius: 4px;
+  font-size: 0.85em;
+  line-height: 1.4;
   background: var(--glosharp-error-bg, ${styleSettings.errorBackground.dark});
   border-left: 3px solid var(--glosharp-error-underline, ${styleSettings.errorUnderline.dark});
   color: var(--glosharp-error-underline, ${styleSettings.errorUnderline.dark});
-  font-size: 0.85em;
 }
 
 .glosharp-error-message.glosharp-severity-warning {
@@ -309,6 +313,24 @@ function buildBaseStyles(): string {
   background: var(--glosharp-info-bg, ${styleSettings.infoBackground.dark});
   border-left-color: var(--glosharp-info-underline, ${styleSettings.infoUnderline.dark});
   color: var(--glosharp-info-underline, ${styleSettings.infoUnderline.dark});
+}
+
+[data-theme="light"] .glosharp-error-message {
+  background: var(--glosharp-error-bg, ${styleSettings.errorBackground.light});
+  border-left-color: var(--glosharp-error-underline, ${styleSettings.errorUnderline.light});
+  color: var(--glosharp-error-underline, ${styleSettings.errorUnderline.light});
+}
+
+[data-theme="light"] .glosharp-error-message.glosharp-severity-warning {
+  background: var(--glosharp-warning-bg, ${styleSettings.warningBackground.light});
+  border-left-color: var(--glosharp-warning-underline, ${styleSettings.warningUnderline.light});
+  color: var(--glosharp-warning-underline, ${styleSettings.warningUnderline.light});
+}
+
+[data-theme="light"] .glosharp-error-message.glosharp-severity-info {
+  background: var(--glosharp-info-bg, ${styleSettings.infoBackground.light});
+  border-left-color: var(--glosharp-info-underline, ${styleSettings.infoUnderline.light});
+  color: var(--glosharp-info-underline, ${styleSettings.infoUnderline.light});
 }
 
 .glosharp-error-code {
@@ -378,6 +400,11 @@ a.glosharp-error-code:hover {
 .glosharp-diff-remove {
   background: var(--glosharp-diff-remove-bg, ${styleSettings.diffRemoveBackground.dark});
   border-left: 3px solid var(--glosharp-diff-remove-border, ${styleSettings.diffRemoveBorder.dark});
+}
+
+/* Tag wrapper: transparent to layout so callouts align with code */
+.glosharp-tag-wrapper {
+  display: contents;
 }
 
 /* Custom tag callouts */
@@ -1082,7 +1109,45 @@ class GloSharpStaticAnnotation {
   }
 }
 
-// Annotation classes (unchanged)
+// Severity icon paths (reuse tag icons for consistent look)
+const severityIcons: Record<string, string[]> = {
+  error: [
+    'M16 2a14 14 0 1 0 14 14A14 14 0 0 0 16 2zm5.8 18.4L20.4 21.8 16 17.4l-4.4 4.4-1.4-1.4L14.6 16l-4.4-4.4 1.4-1.4L16 14.6l4.4-4.4 1.4 1.4L17.4 16z',
+  ],
+  warning: [
+    'M16.002 3a1 1 0 0 0-.866.5l-13 22.5A1 1 0 0 0 3 27.5h26a1 1 0 0 0 .866-1.5l-13-22.5a1 1 0 0 0-.864-.5zM15 13h2v8h-2zm1 12a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z',
+  ],
+  info: [
+    'M16 2a14 14 0 1 0 14 14A14 14 0 0 0 16 2zm0 6a1.5 1.5 0 1 1-1.5 1.5A1.5 1.5 0 0 1 16 8zm4 16h-8v-2h3v-7h-2v-2h4v9h3z',
+  ],
+}
+
+function buildSeverityIcon(severity: string): HastNode {
+  const iconPaths = severityIcons[severity] ?? severityIcons['error']!
+  return {
+    type: 'element',
+    tagName: 'span',
+    properties: { class: 'glosharp-tag-icon' },
+    children: [{
+      type: 'element',
+      tagName: 'svg',
+      properties: {
+        xmlns: 'http://www.w3.org/2000/svg',
+        viewBox: '0 0 32 32',
+        width: '1rem',
+        height: '1rem',
+        fill: 'currentColor',
+      },
+      children: iconPaths.map(d => ({
+        type: 'element' as const,
+        tagName: 'path',
+        properties: { d },
+        children: [],
+      })),
+    }],
+  }
+}
+
 const CS_CODE_REGEX = /^CS\d+$/
 
 function buildErrorCodeNode(code: string): HastNode {
@@ -1124,18 +1189,28 @@ class GloSharpErrorAnnotation {
   render({ nodesToTransform }: { nodesToTransform: HastNode[] }): HastNode[] {
     const severityClass = `glosharp-severity-${this.error.severity}`
 
-    if (this.isMessageOnly) {
-      return [
-        ...nodesToTransform,
+    const messageBox: HastNode = {
+      type: 'element',
+      tagName: 'div',
+      properties: { class: `glosharp-error-message ${severityClass}` },
+      children: [
+        buildSeverityIcon(this.error.severity),
         {
           type: 'element',
-          tagName: 'div',
-          properties: { class: `glosharp-error-message ${severityClass}` },
+          tagName: 'span',
+          properties: { class: 'glosharp-tag-content' },
           children: [
             buildErrorCodeNode(this.error.code),
             { type: 'text', value: `: ${this.error.message}` },
           ],
         },
+      ],
+    }
+
+    if (this.isMessageOnly) {
+      return [
+        ...nodesToTransform,
+        messageBox,
       ]
     }
 
@@ -1143,18 +1218,7 @@ class GloSharpErrorAnnotation {
       type: 'element' as const,
       tagName: 'span',
       properties: { class: `glosharp-error-underline ${severityClass}` },
-      children: [
-        node,
-        {
-          type: 'element',
-          tagName: 'div',
-          properties: { class: `glosharp-error-message ${severityClass}` },
-          children: [
-            buildErrorCodeNode(this.error.code),
-            { type: 'text', value: `: ${this.error.message}` },
-          ],
-        },
-      ],
+      children: [node, messageBox],
     }))
   }
 }
@@ -1290,7 +1354,7 @@ class GloSharpCustomTagAnnotation {
               xmlns: 'http://www.w3.org/2000/svg',
               viewBox: '0 0 32 32',
               width: '1rem',
-              height: 'auto',
+              height: '1rem',
               fill: 'currentColor',
             },
             children: iconPaths.map(d => ({
@@ -1324,7 +1388,7 @@ class GloSharpCustomTagAnnotation {
     return nodesToTransform.map(node => ({
       type: 'element' as const,
       tagName: 'div',
-      properties: { class: 'glosharp-noline' },
+      properties: { class: 'glosharp-tag-wrapper' },
       children: [node, calloutBox],
     }))
   }
