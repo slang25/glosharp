@@ -665,7 +665,8 @@ public class GloSharpProcessor
                 token.IsKind(SyntaxKind.CharacterLiteralToken) ||
                 token.IsKind(SyntaxKind.InterpolatedStringTextToken) ||
                 token.IsKind(SyntaxKind.InterpolatedStringStartToken) ||
-                token.IsKind(SyntaxKind.InterpolatedStringEndToken))
+                token.IsKind(SyntaxKind.InterpolatedStringEndToken) ||
+                token.IsKind(SyntaxKind.QuestionToken))
                 continue;
 
             // Skip < and > tokens that are part of generic type argument/parameter lists —
@@ -711,7 +712,8 @@ public class GloSharpProcessor
             && token.Parent is not PredefinedTypeSyntax
             && token.Parent is not ThisExpressionSyntax
             && token.Parent is not BaseExpressionSyntax
-            && token.Parent is not ImplicitObjectCreationExpressionSyntax)
+            && token.Parent is not ImplicitObjectCreationExpressionSyntax
+            && token.Parent is not AnonymousObjectCreationExpressionSyntax)
             return null;
 
         var node = GetMeaningfulNode(token);
@@ -973,8 +975,10 @@ public class GloSharpProcessor
                 node is PropertyDeclarationSyntax ||
                 node is ParameterSyntax ||
                 node is MemberAccessExpressionSyntax ||
+                node is MemberBindingExpressionSyntax ||
                 node is InvocationExpressionSyntax ||
-                node is ImplicitObjectCreationExpressionSyntax)
+                node is ImplicitObjectCreationExpressionSyntax ||
+                node is AnonymousObjectCreationExpressionSyntax)
             {
                 return node;
             }

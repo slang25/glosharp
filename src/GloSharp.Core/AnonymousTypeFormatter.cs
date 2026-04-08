@@ -19,7 +19,15 @@ public class AnonymousTypeFormatter
 
     public static INamedTypeSymbol? FindAnonymousType(ISymbol symbol)
     {
-        // Check containing type first — for properties/methods on anonymous types
+        // Check if the symbol itself is an anonymous type (e.g., hovering 'var' resolves to the type)
+        if (symbol is INamedTypeSymbol { IsAnonymousType: true } selfAnon)
+            return selfAnon;
+
+        // Check if the symbol is a type that contains an anonymous type (e.g., anonymous type array)
+        if (symbol is ITypeSymbol typeSymbol)
+            return FindAnonymousTypeInType(typeSymbol);
+
+        // Check containing type — for properties/methods on anonymous types
         if (symbol.ContainingType is { IsAnonymousType: true } containingAnon)
             return containingAnon;
 
@@ -162,6 +170,13 @@ public class AnonymousTypeFormatter
 
     private void CollectAnonymousTypes(ISymbol symbol)
     {
+        // If the symbol itself is a type, collect from it directly
+        if (symbol is ITypeSymbol typeSymbol)
+        {
+            CollectAnonymousTypesFromType(typeSymbol);
+            return;
+        }
+
         if (symbol.ContainingType is { IsAnonymousType: true } containingAnon)
             GetOrAssignPlaceholder(containingAnon);
 
