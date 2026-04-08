@@ -510,4 +510,151 @@ public class MarkerParserTests
 
         await Assert.That(result.ProcessedCode).IsEqualTo("var a = 1;\nvar b = 3;\nvar c = 5;");
     }
+
+    // === Custom tag directive tests ===
+
+    [Test]
+    public async Task Parse_LogTag_ExtractsNameAndText()
+    {
+        var source = "var x = 42;\n// @log: This value is cached";
+        var result = MarkerParser.Parse(source);
+
+        await Assert.That(result.Tags.Count).IsEqualTo(1);
+        await Assert.That(result.Tags[0].Name).IsEqualTo("log");
+        await Assert.That(result.Tags[0].Text).IsEqualTo("This value is cached");
+        await Assert.That(result.Tags[0].TargetOriginalLine).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task Parse_WarnTag_ExtractsNameAndText()
+    {
+        var source = "var x = 42;\n// @warn: This API is deprecated";
+        var result = MarkerParser.Parse(source);
+
+        await Assert.That(result.Tags.Count).IsEqualTo(1);
+        await Assert.That(result.Tags[0].Name).IsEqualTo("warn");
+        await Assert.That(result.Tags[0].Text).IsEqualTo("This API is deprecated");
+    }
+
+    [Test]
+    public async Task Parse_ErrorTag_ExtractsNameAndText()
+    {
+        var source = "var x = 42;\n// @error: This will throw at runtime";
+        var result = MarkerParser.Parse(source);
+
+        await Assert.That(result.Tags.Count).IsEqualTo(1);
+        await Assert.That(result.Tags[0].Name).IsEqualTo("error");
+        await Assert.That(result.Tags[0].Text).IsEqualTo("This will throw at runtime");
+    }
+
+    [Test]
+    public async Task Parse_AnnotateTag_ExtractsNameAndText()
+    {
+        var source = "var x = 42;\n// @annotate: Note the use of pattern matching here";
+        var result = MarkerParser.Parse(source);
+
+        await Assert.That(result.Tags.Count).IsEqualTo(1);
+        await Assert.That(result.Tags[0].Name).IsEqualTo("annotate");
+        await Assert.That(result.Tags[0].Text).IsEqualTo("Note the use of pattern matching here");
+    }
+
+    [Test]
+    public async Task Parse_ErrorTag_DisambiguatedFromErrorsDirective()
+    {
+        var source = "// @errors: CS1002\nvar x = 42\n// @error: This is a callout";
+        var result = MarkerParser.Parse(source);
+
+        await Assert.That(result.ErrorExpectations.Count).IsEqualTo(1);
+        await Assert.That(result.ErrorExpectations[0].Codes).Contains("CS1002");
+        await Assert.That(result.Tags.Count).IsEqualTo(1);
+        await Assert.That(result.Tags[0].Name).IsEqualTo("error");
+        await Assert.That(result.Tags[0].Text).IsEqualTo("This is a callout");
+    }
+
+    [Test]
+    public async Task Parse_BareLogWithoutMessage_IsIgnored()
+    {
+        var source = "var x = 42;\n// @log";
+        var result = MarkerParser.Parse(source);
+
+        await Assert.That(result.Tags.Count).IsEqualTo(0);
+        // The bare @log line is not stripped (it's a regular comment)
+        await Assert.That(result.ProcessedCode).Contains("// @log");
+    }
+
+    [Test]
+    public async Task Parse_TagWithEmptyMessage_IsIgnored()
+    {
+        var source = "var x = 42;\n// @log:   ";
+        var result = MarkerParser.Parse(source);
+
+        // Regex requires non-empty message after colon, so empty message doesn't match
+        await Assert.That(result.Tags.Count).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task Parse_TagStrippedFromOutput()
+    {
+        var source = "var a = 1;\n// @log: message\nvar b = 2;";
+        var result = MarkerParser.Parse(source);
+
+        await Assert.That(result.ProcessedCode).IsEqualTo("var a = 1;\nvar b = 2;");
+    }
+
+    [Test]
+    public async Task Parse_TagCoexistsWithHoverAndHighlight()
+    {
+        var source = "// @highlight\nvar x = 42;\n//  ^?\n// @log: x is set";
+        var result = MarkerParser.Parse(source);
+
+        await Assert.That(result.Highlights.Count).IsEqualTo(1);
+        await Assert.That(result.HoverQueries.Count).IsEqualTo(1);
+        await Assert.That(result.Tags.Count).IsEqualTo(1);
+        await Assert.That(result.Tags[0].TargetOriginalLine).IsEqualTo(0);
+        await Assert.That(result.ProcessedCode).IsEqualTo("var x = 42;");
+    }
+
+    [Test]
+    public async Task Parse_TagAfterCut_CorrectPosition()
+    {
+        var source = "var setup = 1;\n// ---cut---\nvar visible = 2;\n// @annotate: This is visible";
+        var result = MarkerParser.Parse(source);
+
+        await Assert.That(result.ProcessedCode).IsEqualTo("var visible = 2;");
+        await Assert.That(result.Tags.Count).IsEqualTo(1);
+        await Assert.That(result.Tags[0].TargetOriginalLine).IsEqualTo(0); // only visible line
+    }
+
+    [Test]
+    public async Task Parse_MultipleTagsOnSameLine()
+    {
+        var source = "var x = 42;\n// @log: first message\n// @warn: second message";
+        var result = MarkerParser.Parse(source);
+
+        await Assert.That(result.Tags.Count).IsEqualTo(2);
+        await Assert.That(result.Tags[0].Name).IsEqualTo("log");
+        await Assert.That(result.Tags[1].Name).IsEqualTo("warn");
+        // Both target the same preceding code line
+        await Assert.That(result.Tags[0].TargetOriginalLine).IsEqualTo(0);
+        await Assert.That(result.Tags[1].TargetOriginalLine).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task Parse_TagBeforeAnyCode_TargetsLineZero()
+    {
+        var source = "// @log: Entry point\nvar x = 42;";
+        var result = MarkerParser.Parse(source);
+
+        await Assert.That(result.Tags.Count).IsEqualTo(1);
+        await Assert.That(result.Tags[0].TargetOriginalLine).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task GetCompilationCode_ExcludesTagMarkers()
+    {
+        var source = "var a = 1;\n// @log: message\nvar b = 2;\n// @warn: warning\nvar c = 3;";
+        var compilationCode = MarkerParser.GetCompilationCode(source);
+
+        await Assert.That(compilationCode).IsEqualTo("var a = 1;\nvar b = 2;\nvar c = 3;");
+    }
 }
