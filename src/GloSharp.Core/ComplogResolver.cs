@@ -10,7 +10,6 @@ public class ComplogResolutionResult
     public required CSharpCompilationOptions CompilationOptions { get; init; }
     public required CSharpParseOptions ParseOptions { get; init; }
     public required string TargetFramework { get; init; }
-    public required List<PackageReference> Packages { get; init; }
 }
 
 public class ComplogResolver : IDisposable
@@ -58,8 +57,6 @@ public class ComplogResolver : IDisposable
 
         var references = compilation.References.ToList();
 
-        var packages = ExtractPackages(_reader.ReadAllReferenceData(selectedCall));
-
         var targetFramework = selectedCall.TargetFramework ?? "net8.0";
 
         return new ComplogResolutionResult
@@ -68,48 +65,7 @@ public class ComplogResolver : IDisposable
             CompilationOptions = (CSharpCompilationOptions)compilation.Options,
             ParseOptions = (CSharpParseOptions)compilationData.ParseOptions,
             TargetFramework = targetFramework,
-            Packages = packages,
         };
-    }
-
-    internal static List<PackageReference> ExtractPackages(List<ReferenceData> referenceDataList)
-    {
-        var packages = new List<PackageReference>();
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var refData in referenceDataList)
-        {
-            var filePath = refData.FilePath;
-            if (string.IsNullOrEmpty(filePath))
-                continue;
-
-            // NuGet packages live under paths like:
-            // ~/.nuget/packages/<package-id>/<version>/lib/<tfm>/<assembly>.dll
-            var nugetIndex = filePath.IndexOf(".nuget/packages/", StringComparison.OrdinalIgnoreCase);
-            if (nugetIndex < 0)
-                nugetIndex = filePath.IndexOf(".nuget\\packages\\", StringComparison.OrdinalIgnoreCase);
-            if (nugetIndex < 0)
-                continue;
-
-            var afterPackages = filePath[(nugetIndex + ".nuget/packages/".Length)..];
-            var parts = afterPackages.Split('/', '\\');
-            if (parts.Length < 2)
-                continue;
-
-            var packageId = parts[0];
-            var version = parts[1];
-
-            if (seen.Add(packageId))
-            {
-                packages.Add(new PackageReference
-                {
-                    Name = packageId,
-                    Version = version,
-                });
-            }
-        }
-
-        return packages;
     }
 
     public void Dispose()

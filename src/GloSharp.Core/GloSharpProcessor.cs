@@ -305,7 +305,7 @@ public class GloSharpProcessor
 
             return await BuildResult(complogCompilation, tree, markers, compilationCode, globalUsings,
                 complogRefs, resolvedLangVersion, resolvedNullable, resolvedFramework,
-                complogResult.Packages, fileDirectives, originalSourceWithDirectives,
+                [], fileDirectives, originalSourceWithDirectives,
                 options.ComplogPath, resultCache, resultCacheKey);
         }
 
