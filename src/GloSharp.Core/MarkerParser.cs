@@ -263,9 +263,10 @@ public static partial class MarkerParser
             {
                 var tagName = tagMatch.Groups[1].Value;
                 var tagText = tagMatch.Groups[2].Value.Trim();
-                // Tag targets the preceding code line
-                var targetLine = FindPrecedingCodeLine(lines, isMarkerLine, i);
-                tags.Add(new TagDirective(tagName, tagText, targetLine >= 0 ? targetLine : -1));
+                // Preserve the directive's own line index so remapping can resolve
+                // it to the nearest preceding processed line, even if the immediately
+                // preceding original code line is later hidden.
+                tags.Add(new TagDirective(tagName, tagText, i));
                 isMarkerLine[i] = true;
                 continue;
             }
@@ -420,23 +421,14 @@ public static partial class MarkerParser
             }
         }
 
-        // Remap tag directives
+        // Remap tag directives — resolve each tag's original line index to the
+        // nearest preceding processed line. This handles tags after @cut markers
+        // where the immediately preceding code line may be hidden.
         var remappedTags = new List<TagDirective>();
         foreach (var tag in tags)
         {
-            if (tag.TargetOriginalLine < 0)
-            {
-                // Tag before any code line — target line 0
-                remappedTags.Add(new TagDirective(tag.Name, tag.Text, 0));
-            }
-            else
-            {
-                var processedLine = lineMap.IndexOf(tag.TargetOriginalLine);
-                if (processedLine >= 0)
-                {
-                    remappedTags.Add(new TagDirective(tag.Name, tag.Text, processedLine));
-                }
-            }
+            var processedLine = FindPrecedingProcessedLine(lineMap, tag.TargetOriginalLine);
+            remappedTags.Add(new TagDirective(tag.Name, tag.Text, processedLine >= 0 ? processedLine : 0));
         }
 
         return new MarkerParseResult
@@ -516,6 +508,21 @@ public static partial class MarkerParser
                 return i;
         }
         return -1;
+    }
+
+    /// <summary>
+    /// Find the nearest preceding processed line for an original line index.
+    /// Walks backward through lineMap entries to find one at or before the given original line.
+    /// </summary>
+    private static int FindPrecedingProcessedLine(List<int> lineMap, int originalLine)
+    {
+        var best = -1;
+        for (var i = 0; i < lineMap.Count; i++)
+        {
+            if (lineMap[i] <= originalLine)
+                best = i;
+        }
+        return best;
     }
 
     private static int FindNextCodeLine(string[] lines, bool[] isMarkerLine, int fromLine)

@@ -412,10 +412,22 @@ a.glosharp-error-code:hover {
   color: var(--glosharp-tag-log-border, ${styleSettings.tagLogBorder.dark});
 }
 
+[data-theme="light"] .glosharp-tag-log {
+  background: var(--glosharp-tag-log-bg, ${styleSettings.tagLogBackground.light});
+  border-left: 3px solid var(--glosharp-tag-log-border, ${styleSettings.tagLogBorder.light});
+  color: var(--glosharp-tag-log-border, ${styleSettings.tagLogBorder.light});
+}
+
 .glosharp-tag-warn {
   background: var(--glosharp-tag-warn-bg, ${styleSettings.tagWarnBackground.dark});
   border-left: 3px solid var(--glosharp-tag-warn-border, ${styleSettings.tagWarnBorder.dark});
   color: var(--glosharp-tag-warn-border, ${styleSettings.tagWarnBorder.dark});
+}
+
+[data-theme="light"] .glosharp-tag-warn {
+  background: var(--glosharp-tag-warn-bg, ${styleSettings.tagWarnBackground.light});
+  border-left: 3px solid var(--glosharp-tag-warn-border, ${styleSettings.tagWarnBorder.light});
+  color: var(--glosharp-tag-warn-border, ${styleSettings.tagWarnBorder.light});
 }
 
 .glosharp-tag-error {
@@ -424,10 +436,22 @@ a.glosharp-error-code:hover {
   color: var(--glosharp-tag-error-border, ${styleSettings.tagErrorBorder.dark});
 }
 
+[data-theme="light"] .glosharp-tag-error {
+  background: var(--glosharp-tag-error-bg, ${styleSettings.tagErrorBackground.light});
+  border-left: 3px solid var(--glosharp-tag-error-border, ${styleSettings.tagErrorBorder.light});
+  color: var(--glosharp-tag-error-border, ${styleSettings.tagErrorBorder.light});
+}
+
 .glosharp-tag-annotate {
   background: var(--glosharp-tag-annotate-bg, ${styleSettings.tagAnnotateBackground.dark});
   border-left: 3px solid var(--glosharp-tag-annotate-border, ${styleSettings.tagAnnotateBorder.dark});
   color: var(--glosharp-tag-annotate-border, ${styleSettings.tagAnnotateBorder.dark});
+}
+
+[data-theme="light"] .glosharp-tag-annotate {
+  background: var(--glosharp-tag-annotate-bg, ${styleSettings.tagAnnotateBackground.light});
+  border-left: 3px solid var(--glosharp-tag-annotate-border, ${styleSettings.tagAnnotateBorder.light});
+  color: var(--glosharp-tag-annotate-border, ${styleSettings.tagAnnotateBorder.light});
 }
 
 ${partColorRules}
