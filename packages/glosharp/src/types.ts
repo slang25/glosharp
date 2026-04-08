@@ -22,6 +22,11 @@ export interface GloSharpDocComment {
   exceptions?: GloSharpDocException[]
 }
 
+export interface GloSharpTypeAnnotation {
+  name: string
+  expansion: string
+}
+
 export interface GloSharpHover {
   line: number
   character: number
@@ -32,6 +37,7 @@ export interface GloSharpHover {
   symbolKind: string
   targetText: string
   overloadCount?: number
+  typeAnnotations?: GloSharpTypeAnnotation[] | null
   persistent?: boolean
 }
 

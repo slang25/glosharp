@@ -665,7 +665,8 @@ public class GloSharpProcessor
                 token.IsKind(SyntaxKind.CharacterLiteralToken) ||
                 token.IsKind(SyntaxKind.InterpolatedStringTextToken) ||
                 token.IsKind(SyntaxKind.InterpolatedStringStartToken) ||
-                token.IsKind(SyntaxKind.InterpolatedStringEndToken))
+                token.IsKind(SyntaxKind.InterpolatedStringEndToken) ||
+                token.IsKind(SyntaxKind.QuestionToken))
                 continue;
 
             // Skip < and > tokens that are part of generic type argument/parameter lists —
@@ -711,7 +712,8 @@ public class GloSharpProcessor
             && token.Parent is not PredefinedTypeSyntax
             && token.Parent is not ThisExpressionSyntax
             && token.Parent is not BaseExpressionSyntax
-            && token.Parent is not ImplicitObjectCreationExpressionSyntax)
+            && token.Parent is not ImplicitObjectCreationExpressionSyntax
+            && token.Parent is not AnonymousObjectCreationExpressionSyntax)
             return null;
 
         var node = GetMeaningfulNode(token);
@@ -746,6 +748,9 @@ public class GloSharpProcessor
         var parts = symbol.ToDisplayParts(DisplayFormat);
         var prefix = GetSymbolPrefix(symbol);
 
+        var hasAnonymousType = AnonymousTypeFormatter.FindAnonymousType(symbol) != null;
+        AnonymousTypeFormatter? formatter = hasAnonymousType ? new AnonymousTypeFormatter() : null;
+
         var displayParts = new List<GloSharpDisplayPart>();
         if (prefix != null)
         {
@@ -755,18 +760,28 @@ public class GloSharpProcessor
             displayParts.Add(new GloSharpDisplayPart { Kind = "space", Text = " " });
         }
 
-        foreach (var part in parts)
+        if (formatter != null)
         {
-            displayParts.Add(new GloSharpDisplayPart
+            displayParts.AddRange(formatter.TransformDisplayParts(parts, symbol));
+        }
+        else
+        {
+            foreach (var part in parts)
             {
-                Kind = SymbolDisplayPartKindMapping.ToJsonKind(part.Kind),
-                Text = part.ToString(),
-            });
+                displayParts.Add(new GloSharpDisplayPart
+                {
+                    Kind = SymbolDisplayPartKindMapping.ToJsonKind(part.Kind),
+                    Text = part.ToString(),
+                });
+            }
         }
 
-        var text = prefix != null
-            ? $"({prefix}) {symbol.ToDisplayString(DisplayFormat)}"
-            : symbol.ToDisplayString(DisplayFormat);
+        var rawDisplayString = symbol.ToDisplayString(DisplayFormat);
+        var text = formatter != null
+            ? (prefix != null ? $"({prefix}) {formatter.TransformDisplayString(rawDisplayString)}" : formatter.TransformDisplayString(rawDisplayString))
+            : (prefix != null ? $"({prefix}) {rawDisplayString}" : rawDisplayString);
+
+        var typeAnnotations = formatter?.GetAnnotations();
 
         int? overloadCount = null;
         if (symbol is IMethodSymbol method)
@@ -796,6 +811,7 @@ public class GloSharpProcessor
             SymbolKind = SymbolDisplayPartKindMapping.ToSymbolKindString(symbol),
             TargetText = token.Text,
             OverloadCount = overloadCount,
+            TypeAnnotations = typeAnnotations,
             Persistent = persistent,
         };
     }
@@ -959,8 +975,10 @@ public class GloSharpProcessor
                 node is PropertyDeclarationSyntax ||
                 node is ParameterSyntax ||
                 node is MemberAccessExpressionSyntax ||
+                node is MemberBindingExpressionSyntax ||
                 node is InvocationExpressionSyntax ||
-                node is ImplicitObjectCreationExpressionSyntax)
+                node is ImplicitObjectCreationExpressionSyntax ||
+                node is AnonymousObjectCreationExpressionSyntax)
             {
                 return node;
             }
