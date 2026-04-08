@@ -9,6 +9,7 @@ import xmldocSource from '../examples/xmldoc.cs?raw'
 import errorsSource from '../examples/errors.cs?raw'
 import noErrorsSource from '../examples/no-errors.cs?raw'
 import highlightSource from '../examples/highlight.cs?raw'
+import customTagsSource from '../examples/custom-tags.cs?raw'
 import regionSource from '../examples/region.cs?raw'
 import cutSource from '../examples/cut.cs?raw'
 import pkgSource from '../examples/pkg.cs?raw'
@@ -21,6 +22,7 @@ const sources = {
   errors: wrapSource(errorsSource),
   noErrors: wrapSource(noErrorsSource),
   highlight: wrapSource(highlightSource),
+  customTags: wrapSource(customTagsSource),
   region: wrapSource(regionSource),
   cut: wrapSource(cutSource),
   pkg: wrapSource(pkgSource),
@@ -235,6 +237,27 @@ const sources = {
 									<Code lang="csharp" code={`// @suppressErrors\nvar config = LoadConfig();\nvar conn = config.GetConnection();\n// @highlight\nvar db = new DbContext(conn);`} />
 								</div>
 								<pre class="feature-example example-source"><code>{sources.highlight}</code></pre>
+							</div>
+						</div>
+					</div>
+
+					<div class="feature-card">
+						<div class="feature-header">
+							<span class="feature-icon">@log</span>
+							<h3>Custom callouts</h3>
+						</div>
+						<p>Add inline annotations with <code>// @log</code>, <code>// @warn</code>, <code>// @error</code>, and <code>// @annotate</code>. Each renders as a styled callout with a distinctive icon and color.</p>
+						<div class="example-container">
+							<div class="example-tabs">
+								<div class="example-tab-pill"></div>
+								<button class="example-tab active" data-view="result">Result</button>
+								<button class="example-tab" data-view="source">Source</button>
+							</div>
+							<div class="example-content-wrapper">
+								<div class="feature-example example-rendered">
+									<Code lang="csharp" code={`// @suppressErrors\nvar users = GetUsers();\n// @log: Returns cached result after first call\nvar filtered = users.Where(u => u.IsActive);\n// @warn: This allocates — avoid in hot paths\nvar count = filtered.Count();\n// @annotate: Consider using .Any() if you only need a boolean check`} />
+								</div>
+								<pre class="feature-example example-source"><code>{sources.customTags}</code></pre>
 							</div>
 						</div>
 					</div>

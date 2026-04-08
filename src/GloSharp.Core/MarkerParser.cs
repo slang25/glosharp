@@ -6,6 +6,7 @@ public record HoverQuery(int OriginalLine, int Column);
 public record CompletionQuery(int OriginalLine, int Column);
 public record ErrorExpectation(int OriginalLine, List<string> Codes);
 public record HighlightDirective(string Kind, int TargetOriginalLine);
+public record TagDirective(string Name, string Text, int TargetOriginalLine);
 
 public class MarkerParseResult
 {
@@ -18,6 +19,7 @@ public class MarkerParseResult
     public required List<string> SuppressedErrorCodes { get; init; }
     public required List<HiddenRange> HiddenRanges { get; init; }
     public required List<HighlightDirective> Highlights { get; init; }
+    public required List<TagDirective> Tags { get; init; }
     public required int[] LineMap { get; init; } // processedLine -> originalLine
     public string? LangVersion { get; init; }
     public string? Nullable { get; init; }
@@ -41,6 +43,7 @@ public static partial class MarkerParser
     private static readonly Regex DiffDirectiveRegex = DiffDirectivePattern();
     private static readonly Regex LangVersionDirectiveRegex = LangVersionDirectivePattern();
     private static readonly Regex NullableDirectiveRegex = NullableDirectivePattern();
+    private static readonly Regex CustomTagDirectiveRegex = CustomTagDirectivePattern();
 
     [GeneratedRegex(@"^(\s*)//\s*\^(\?)")]
     private static partial Regex HoverMarkerPattern();
@@ -84,6 +87,9 @@ public static partial class MarkerParser
     [GeneratedRegex(@"^\s*//\s*@nullable:\s*(.+?)\s*$")]
     private static partial Regex NullableDirectivePattern();
 
+    [GeneratedRegex(@"^\s*//\s*@(log|warn|error|annotate):\s*(\S.*?)\s*$")]
+    private static partial Regex CustomTagDirectivePattern();
+
     public static MarkerParseResult Parse(string source)
     {
         var lines = source.Split('\n');
@@ -92,6 +98,7 @@ public static partial class MarkerParser
         var errorExpectations = new List<ErrorExpectation>();
         var hiddenRanges = new List<HiddenRange>();
         var highlights = new List<HighlightDirective>();
+        var tags = new List<TagDirective>();
         var suppressAllErrors = false;
         var suppressedErrorCodes = new List<string>();
         string? langVersion = null;
@@ -250,6 +257,19 @@ public static partial class MarkerParser
                 continue;
             }
 
+            // @log: message, @warn: message, @error: message, @annotate: message
+            var tagMatch = CustomTagDirectiveRegex.Match(line);
+            if (tagMatch.Success)
+            {
+                var tagName = tagMatch.Groups[1].Value;
+                var tagText = tagMatch.Groups[2].Value.Trim();
+                // Tag targets the preceding code line
+                var targetLine = FindPrecedingCodeLine(lines, isMarkerLine, i);
+                tags.Add(new TagDirective(tagName, tagText, targetLine >= 0 ? targetLine : -1));
+                isMarkerLine[i] = true;
+                continue;
+            }
+
             // @highlight or @highlight: N or @highlight: N-M
             var highlightMatch = HighlightDirectiveRegex.Match(line);
             if (highlightMatch.Success)
@@ -400,6 +420,25 @@ public static partial class MarkerParser
             }
         }
 
+        // Remap tag directives
+        var remappedTags = new List<TagDirective>();
+        foreach (var tag in tags)
+        {
+            if (tag.TargetOriginalLine < 0)
+            {
+                // Tag before any code line — target line 0
+                remappedTags.Add(new TagDirective(tag.Name, tag.Text, 0));
+            }
+            else
+            {
+                var processedLine = lineMap.IndexOf(tag.TargetOriginalLine);
+                if (processedLine >= 0)
+                {
+                    remappedTags.Add(new TagDirective(tag.Name, tag.Text, processedLine));
+                }
+            }
+        }
+
         return new MarkerParseResult
         {
             ProcessedCode = string.Join('\n', processedLines),
@@ -411,6 +450,7 @@ public static partial class MarkerParser
             SuppressedErrorCodes = suppressedErrorCodes,
             HiddenRanges = hiddenRanges,
             Highlights = remappedHighlights,
+            Tags = remappedTags,
             LineMap = lineMap.ToArray(),
             LangVersion = langVersion,
             Nullable = nullable,
@@ -441,7 +481,8 @@ public static partial class MarkerParser
                 FocusDirectiveRegex.IsMatch(line) ||
                 DiffDirectiveRegex.IsMatch(line) ||
                 LangVersionDirectiveRegex.IsMatch(line) ||
-                NullableDirectiveRegex.IsMatch(line))
+                NullableDirectiveRegex.IsMatch(line) ||
+                CustomTagDirectiveRegex.IsMatch(line))
             {
                 continue;
             }
@@ -498,7 +539,8 @@ public static partial class MarkerParser
                 !FocusDirectiveRegex.IsMatch(line) &&
                 !DiffDirectiveRegex.IsMatch(line) &&
                 !LangVersionDirectiveRegex.IsMatch(line) &&
-                !NullableDirectiveRegex.IsMatch(line))
+                !NullableDirectiveRegex.IsMatch(line) &&
+                !CustomTagDirectiveRegex.IsMatch(line))
             {
                 return i;
             }

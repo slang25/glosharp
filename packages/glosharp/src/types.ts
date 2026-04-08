@@ -76,6 +76,12 @@ export interface GloSharpHighlight {
   kind: 'highlight' | 'focus' | 'add' | 'remove'
 }
 
+export interface GloSharpTag {
+  name: 'log' | 'warn' | 'error' | 'annotate'
+  text: string
+  line: number
+}
+
 export interface GloSharpResult {
   code: string
   original: string
@@ -84,6 +90,7 @@ export interface GloSharpResult {
   errors: GloSharpError[]
   completions: GloSharpCompletion[]
   highlights: GloSharpHighlight[]
+  tags: GloSharpTag[]
   hidden: unknown[]
   meta: GloSharpMeta
 }

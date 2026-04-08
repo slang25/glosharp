@@ -466,6 +466,17 @@ public class GloSharpProcessor
             })
             .ToList();
 
+        // Build tags from parsed directives
+        var tags = markers.Tags
+            .Where(t => t.TargetOriginalLine >= 0 && t.TargetOriginalLine < processedLines.Length)
+            .Select(t => new GloSharpTag
+            {
+                Name = t.Name,
+                Text = t.Text,
+                Line = t.TargetOriginalLine,
+            })
+            .ToList();
+
         var result = new GloSharpResult
         {
             Code = markers.ProcessedCode,
@@ -474,6 +485,7 @@ public class GloSharpProcessor
             Errors = errors,
             Completions = completions,
             Highlights = highlights,
+            Tags = tags,
             Meta = new GloSharpMeta
             {
                 TargetFramework = resolvedFramework,

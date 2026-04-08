@@ -1,4 +1,4 @@
-import { createGloSharp, type GloSharpOptions, type GloSharpResult, type GloSharpHover, type GloSharpError, type GloSharpDisplayPart, type GloSharpCompletion, type GloSharpDocComment, type GloSharpDocParam, type GloSharpDocException, type GloSharpHighlight } from '@glosharp/core'
+import { createGloSharp, type GloSharpOptions, type GloSharpResult, type GloSharpHover, type GloSharpError, type GloSharpDisplayPart, type GloSharpCompletion, type GloSharpDocComment, type GloSharpDocParam, type GloSharpDocException, type GloSharpHighlight, type GloSharpTag } from '@glosharp/core'
 import type { ExpressiveCodeBlock } from '@expressive-code/core'
 
 export interface PluginGloSharpOptions extends GloSharpOptions {
@@ -23,6 +23,14 @@ const styleSettings = {
   diffRemoveBackground: { dark: 'rgba(248, 81, 73, 0.15)', light: 'rgba(248, 81, 73, 0.12)' },
   diffAddBorder: { dark: '#2ea043', light: '#2ea043' },
   diffRemoveBorder: { dark: '#f85149', light: '#f85149' },
+  tagLogBackground: { dark: 'rgba(83, 155, 245, 0.1)', light: 'rgba(9, 105, 218, 0.1)' },
+  tagLogBorder: { dark: '#539bf5', light: '#0969da' },
+  tagWarnBackground: { dark: 'rgba(210, 153, 34, 0.1)', light: 'rgba(154, 103, 0, 0.1)' },
+  tagWarnBorder: { dark: '#d29922', light: '#9a6700' },
+  tagErrorBackground: { dark: 'rgba(244, 71, 71, 0.1)', light: 'rgba(229, 20, 0, 0.1)' },
+  tagErrorBorder: { dark: '#f44747', light: '#e51400' },
+  tagAnnotateBackground: { dark: 'rgba(177, 128, 215, 0.1)', light: 'rgba(139, 90, 230, 0.1)' },
+  tagAnnotateBorder: { dark: '#b180d7', light: '#8b5ae6' },
 }
 
 // Part kind colors (VS Code-like)
@@ -372,6 +380,56 @@ a.glosharp-error-code:hover {
   border-left: 3px solid var(--glosharp-diff-remove-border, ${styleSettings.diffRemoveBorder.dark});
 }
 
+/* Custom tag callouts */
+.glosharp-tag {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 10px;
+  margin-top: 2px;
+  border-radius: 4px;
+  font-size: 0.85em;
+  line-height: 1.4;
+}
+
+.glosharp-tag-icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.glosharp-tag-icon svg {
+  display: block;
+}
+
+.glosharp-tag-title {
+  font-weight: bold;
+  margin-right: 4px;
+}
+
+.glosharp-tag-log {
+  background: var(--glosharp-tag-log-bg, ${styleSettings.tagLogBackground.dark});
+  border-left: 3px solid var(--glosharp-tag-log-border, ${styleSettings.tagLogBorder.dark});
+  color: var(--glosharp-tag-log-border, ${styleSettings.tagLogBorder.dark});
+}
+
+.glosharp-tag-warn {
+  background: var(--glosharp-tag-warn-bg, ${styleSettings.tagWarnBackground.dark});
+  border-left: 3px solid var(--glosharp-tag-warn-border, ${styleSettings.tagWarnBorder.dark});
+  color: var(--glosharp-tag-warn-border, ${styleSettings.tagWarnBorder.dark});
+}
+
+.glosharp-tag-error {
+  background: var(--glosharp-tag-error-bg, ${styleSettings.tagErrorBackground.dark});
+  border-left: 3px solid var(--glosharp-tag-error-border, ${styleSettings.tagErrorBorder.dark});
+  color: var(--glosharp-tag-error-border, ${styleSettings.tagErrorBorder.dark});
+}
+
+.glosharp-tag-annotate {
+  background: var(--glosharp-tag-annotate-bg, ${styleSettings.tagAnnotateBackground.dark});
+  border-left: 3px solid var(--glosharp-tag-annotate-border, ${styleSettings.tagAnnotateBorder.dark});
+  color: var(--glosharp-tag-annotate-border, ${styleSettings.tagAnnotateBorder.dark});
+}
+
 ${partColorRules}
 `
 }
@@ -692,6 +750,15 @@ export function pluginGloSharp(options: PluginGloSharpOptions = {}) {
             if (!focusedLines.has(i)) {
               lines[i].addAnnotation(new GloSharpFocusDimAnnotation())
             }
+          }
+        }
+
+        // Add custom tag annotations
+        if (result.tags) {
+          for (const tag of result.tags) {
+            const line = lines[tag.line]
+            if (!line) continue
+            line.addAnnotation(new GloSharpCustomTagAnnotation(tag))
           }
         }
       },
@@ -1154,6 +1221,83 @@ class GloSharpFocusDimAnnotation {
       properties: { class: 'glosharp-focus-dim' },
       children: [node],
     }))
+  }
+}
+
+// SVG icon paths for custom tag callouts (viewBox 0 0 32 32)
+const tagIcons: Record<string, string[]> = {
+  log: [
+    'M16 2a14 14 0 1 0 14 14A14 14 0 0 0 16 2zm0 6a1.5 1.5 0 1 1-1.5 1.5A1.5 1.5 0 0 1 16 8zm4 16h-8v-2h3v-7h-2v-2h4v9h3z',
+  ],
+  warn: [
+    'M16.002 3a1 1 0 0 0-.866.5l-13 22.5A1 1 0 0 0 3 27.5h26a1 1 0 0 0 .866-1.5l-13-22.5a1 1 0 0 0-.864-.5zM15 13h2v8h-2zm1 12a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z',
+  ],
+  error: [
+    'M16 2a14 14 0 1 0 14 14A14 14 0 0 0 16 2zm5.8 18.4L20.4 21.8 16 17.4l-4.4 4.4-1.4-1.4L14.6 16l-4.4-4.4 1.4-1.4L16 14.6l4.4-4.4 1.4 1.4L17.4 16z',
+  ],
+  annotate: [
+    'M16 3a7 7 0 0 0-7 7c0 2.862 1.727 5.293 4.192 6.352A3.005 3.005 0 0 0 13 17v2a3 3 0 0 0 6 0v-2a3.005 3.005 0 0 0-.192-.648C21.273 15.293 23 12.862 23 10a7 7 0 0 0-7-7zm1 16a1 1 0 0 1-2 0v-2h2zm0-4h-2v-.736l-.434-.16C12.353 13.258 11 11.756 11 10a5 5 0 0 1 10 0c0 1.756-1.353 3.258-3.566 4.104L17 14.264zM13 24h6v2h-6z',
+  ],
+}
+
+class GloSharpCustomTagAnnotation {
+  readonly tag: GloSharpTag
+
+  constructor(tag: GloSharpTag) {
+    this.tag = tag
+  }
+
+  render({ nodesToTransform }: { nodesToTransform: HastNode[] }): HastNode[] {
+    const iconPaths = tagIcons[this.tag.name] ?? tagIcons['log']!
+
+    const calloutBox: HastNode = {
+      type: 'element',
+      tagName: 'div',
+      properties: { class: `glosharp-tag glosharp-tag-${this.tag.name}` },
+      children: [
+        {
+          type: 'element',
+          tagName: 'span',
+          properties: { class: 'glosharp-tag-icon' },
+          children: [{
+            type: 'element',
+            tagName: 'svg',
+            properties: {
+              xmlns: 'http://www.w3.org/2000/svg',
+              viewBox: '0 0 32 32',
+              width: '1rem',
+              height: 'auto',
+              fill: 'currentColor',
+            },
+            children: iconPaths.map(d => ({
+              type: 'element' as const,
+              tagName: 'path',
+              properties: { d },
+              children: [],
+            })),
+          }],
+        },
+        {
+          type: 'element',
+          tagName: 'span',
+          properties: { class: 'glosharp-tag-content' },
+          children: [
+            {
+              type: 'element',
+              tagName: 'span',
+              properties: { class: 'glosharp-tag-title' },
+              children: [{ type: 'text', value: `${this.tag.name}:` }],
+            },
+            {
+              type: 'text',
+              value: ` ${this.tag.text}`,
+            },
+          ],
+        },
+      ],
+    }
+
+    return [...nodesToTransform, calloutBox]
   }
 }
 

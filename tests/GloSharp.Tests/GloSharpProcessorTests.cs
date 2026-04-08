@@ -828,4 +828,64 @@ public class GloSharpProcessorTests
 
         await Assert.That(result.Errors.Any(e => e.Code == "CS8600")).IsTrue();
     }
+
+    // === Custom tag directive integration tests ===
+
+    [Test]
+    public async Task Process_TagDirective_PopulatesTags()
+    {
+        var source = "var x = 42;\n// @log: x is cached";
+        var result = await _processor.ProcessAsync(source);
+
+        await Assert.That(result.Tags.Count).IsEqualTo(1);
+        await Assert.That(result.Tags[0].Name).IsEqualTo("log");
+        await Assert.That(result.Tags[0].Text).IsEqualTo("x is cached");
+        await Assert.That(result.Tags[0].Line).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task Process_TagDirective_PositionAccountsForMarkerRemoval()
+    {
+        var source = "// @highlight\nvar a = 1;\nvar b = 2;\n// @warn: check this";
+        var result = await _processor.ProcessAsync(source);
+
+        await Assert.That(result.Tags.Count).IsEqualTo(1);
+        await Assert.That(result.Tags[0].Line).IsEqualTo(1); // var b = 2; is processed line 1 (highlight removed)
+        await Assert.That(result.Code).IsEqualTo("var a = 1;\nvar b = 2;");
+    }
+
+    [Test]
+    public async Task Process_MultipleTagTypes_AllPopulated()
+    {
+        var source = "var x = 42;\n// @log: info\nvar y = 10;\n// @warn: warning\nvar z = 0;\n// @error: error\n// @annotate: note";
+        var result = await _processor.ProcessAsync(source);
+
+        await Assert.That(result.Tags.Count).IsEqualTo(4);
+        await Assert.That(result.Tags[0].Name).IsEqualTo("log");
+        await Assert.That(result.Tags[1].Name).IsEqualTo("warn");
+        await Assert.That(result.Tags[2].Name).IsEqualTo("error");
+        await Assert.That(result.Tags[3].Name).IsEqualTo("annotate");
+    }
+
+    [Test]
+    public async Task Process_TagsInJsonOutput_IncludesTagsArray()
+    {
+        var source = "var x = 42;\n// @log: cached";
+        var result = await _processor.ProcessAsync(source);
+        var json = JsonOutput.Serialize(result);
+
+        await Assert.That(json).Contains("\"tags\":");
+        await Assert.That(json).Contains("\"name\": \"log\"");
+        await Assert.That(json).Contains("\"text\": \"cached\"");
+    }
+
+    [Test]
+    public async Task Process_NoTags_EmptyArray()
+    {
+        var source = "var x = 42;";
+        var result = await _processor.ProcessAsync(source);
+        var json = JsonOutput.Serialize(result);
+
+        await Assert.That(json).Contains("\"tags\": []");
+    }
 }

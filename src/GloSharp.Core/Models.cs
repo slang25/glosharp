@@ -24,6 +24,7 @@ public class GloSharpResult
     public required List<GloSharpError> Errors { get; init; }
     public List<GloSharpCompletion> Completions { get; init; } = [];
     public List<GloSharpHighlight> Highlights { get; init; } = [];
+    public List<GloSharpTag> Tags { get; init; } = [];
     public List<object> Hidden { get; init; } = [];
     public required GloSharpMeta Meta { get; init; }
 }
@@ -99,6 +100,13 @@ public class GloSharpHighlight
     public required int Character { get; init; }
     public required int Length { get; init; }
     public required string Kind { get; init; }
+}
+
+public class GloSharpTag
+{
+    public required string Name { get; init; }
+    public required string Text { get; init; }
+    public required int Line { get; init; }
 }
 
 public class GloSharpDocComment
