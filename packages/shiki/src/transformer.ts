@@ -155,6 +155,22 @@ function injectHovers(root: HastElement, result: GloSharpResult): void {
         h('code', { class: 'glosharp-popup-code' }, partNodes),
       ]
 
+      if (hover.typeAnnotations && hover.typeAnnotations.length > 0) {
+        const annotationNodes = hover.typeAnnotations.map(a =>
+          h('div', { class: 'glosharp-type-annotation' }, [
+            h('span', { class: 'glosharp-className' }, [hText(a.name)]),
+            hText(' is '),
+            h('span', { class: 'glosharp-type-expansion' }, [hText(a.expansion)]),
+          ])
+        )
+        popupChildren.push(
+          h('div', { class: 'glosharp-popup-types' }, [
+            h('div', { class: 'glosharp-popup-types-header' }, [hText('Types:')]),
+            ...annotationNodes,
+          ])
+        )
+      }
+
       if (hover.docs?.summary) {
         popupChildren.push(
           h('div', { class: 'glosharp-popup-docs' }, [hText(hover.docs.summary)])

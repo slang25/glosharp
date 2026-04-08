@@ -1,4 +1,4 @@
-import { createGloSharp, type GloSharpOptions, type GloSharpResult, type GloSharpHover, type GloSharpError, type GloSharpDisplayPart, type GloSharpCompletion, type GloSharpDocComment, type GloSharpDocParam, type GloSharpDocException, type GloSharpHighlight, type GloSharpTag } from '@glosharp/core'
+import { createGloSharp, type GloSharpOptions, type GloSharpResult, type GloSharpHover, type GloSharpError, type GloSharpDisplayPart, type GloSharpCompletion, type GloSharpDocComment, type GloSharpDocParam, type GloSharpDocException, type GloSharpHighlight, type GloSharpTag, type GloSharpTypeAnnotation } from '@glosharp/core'
 import type { ExpressiveCodeBlock } from '@expressive-code/core'
 
 export interface PluginGloSharpOptions extends GloSharpOptions {
@@ -194,6 +194,22 @@ function buildBaseStyles(): string {
 }
 .glosharp-symbol-icon svg {
   display: block;
+}
+
+.glosharp-popup-types {
+  padding: 4px 12px 6px;
+  border-top: 1px solid var(--glosharp-popup-border, ${styleSettings.popupBorder.dark});
+  font-size: 0.9em;
+  opacity: 0.8;
+}
+
+.glosharp-popup-types-header {
+  font-style: italic;
+  margin-bottom: 2px;
+}
+
+.glosharp-type-annotation {
+  padding-left: 12px;
 }
 
 .glosharp-popup-docs {
@@ -885,11 +901,38 @@ function buildPopupContent(hover: GloSharpHover): HastNode[] {
     children: partNodes,
   }]
 
+  if (hover.typeAnnotations && hover.typeAnnotations.length > 0) {
+    children.push(...renderTypeAnnotations(hover.typeAnnotations))
+  }
+
   if (hover.docs) {
     children.push(...renderDocs(hover.docs))
   }
 
   return children
+}
+
+function renderTypeAnnotations(annotations: GloSharpTypeAnnotation[]): HastNode[] {
+  const items: HastNode[] = annotations.map(a => ({
+    type: 'element' as const,
+    tagName: 'div',
+    properties: { class: 'glosharp-type-annotation' },
+    children: [
+      { type: 'element' as const, tagName: 'span', properties: { class: 'glosharp-className' }, children: [{ type: 'text' as const, value: a.name }] },
+      { type: 'text' as const, value: ' is ' },
+      { type: 'element' as const, tagName: 'span', properties: { class: 'glosharp-type-expansion' }, children: [{ type: 'text' as const, value: a.expansion }] },
+    ],
+  }))
+
+  return [{
+    type: 'element',
+    tagName: 'div',
+    properties: { class: 'glosharp-popup-types' },
+    children: [
+      { type: 'element', tagName: 'div', properties: { class: 'glosharp-popup-types-header' }, children: [{ type: 'text', value: 'Types:' }] },
+      ...items,
+    ],
+  }]
 }
 
 function renderDocs(docs: GloSharpDocComment): HastNode[] {
