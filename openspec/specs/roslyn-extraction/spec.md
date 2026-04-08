@@ -69,11 +69,15 @@ The system SHALL support extracting hover information for all semantically meani
 - **THEN** both produce identical `text`, `parts`, `docs`, and `symbolKind` values
 
 ### Requirement: Extract structured display parts
-The system SHALL use `ISymbol.ToDisplayParts()` to produce an array of display parts, each with a `kind` (mapped from `SymbolDisplayPartKind`) and `text` value.
+The system SHALL use `ISymbol.ToDisplayParts()` to produce an array of display parts, each with a `kind` (mapped from `SymbolDisplayPartKind`) and `text` value. When the display parts contain anonymous type references, the system SHALL post-process the parts to replace compiler-generated type names with placeholder labels and populate the `typeAnnotations` field on the hover result.
 
 #### Scenario: Display parts for typed variable
 - **WHEN** hover is extracted for `string greeting`
 - **THEN** parts include entries with kinds `punctuation`, `text`, `keyword`, `space`, `localName` mapping to Roslyn's `SymbolDisplayPartKind`
+
+#### Scenario: Display parts for anonymous typed variable
+- **WHEN** hover is extracted for `var x = new { Name = "test" };` targeting `x`
+- **THEN** parts contain a placeholder `'a` in place of the compiler-generated anonymous type name, and `typeAnnotations` is populated with the expansion
 
 ### Requirement: Extract compiler diagnostics
 The system SHALL collect all diagnostics from `Compilation.GetDiagnostics()` at error, warning, and info severity levels, with line, character, length, error code, message, and severity. When a diagnostic's source span crosses multiple lines, the system SHALL also extract `endLine` and `endCharacter` from the end of the span's mapped line position.

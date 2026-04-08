@@ -40,6 +40,7 @@ public class GloSharpHover
     public required string SymbolKind { get; init; }
     public required string TargetText { get; init; }
     public int? OverloadCount { get; init; }
+    public List<GloSharpTypeAnnotation>? TypeAnnotations { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public bool Persistent { get; init; }
 }
@@ -107,6 +108,12 @@ public class GloSharpTag
     public required string Name { get; init; }
     public required string Text { get; init; }
     public required int Line { get; init; }
+}
+
+public class GloSharpTypeAnnotation
+{
+    public required string Name { get; init; }
+    public required string Expansion { get; init; }
 }
 
 public class GloSharpDocComment

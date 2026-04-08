@@ -746,6 +746,9 @@ public class GloSharpProcessor
         var parts = symbol.ToDisplayParts(DisplayFormat);
         var prefix = GetSymbolPrefix(symbol);
 
+        var formatter = new AnonymousTypeFormatter();
+        var hasAnonymousType = AnonymousTypeFormatter.FindAnonymousType(symbol) != null;
+
         var displayParts = new List<GloSharpDisplayPart>();
         if (prefix != null)
         {
@@ -755,18 +758,28 @@ public class GloSharpProcessor
             displayParts.Add(new GloSharpDisplayPart { Kind = "space", Text = " " });
         }
 
-        foreach (var part in parts)
+        if (hasAnonymousType)
         {
-            displayParts.Add(new GloSharpDisplayPart
+            displayParts.AddRange(formatter.TransformDisplayParts(parts, symbol));
+        }
+        else
+        {
+            foreach (var part in parts)
             {
-                Kind = SymbolDisplayPartKindMapping.ToJsonKind(part.Kind),
-                Text = part.ToString(),
-            });
+                displayParts.Add(new GloSharpDisplayPart
+                {
+                    Kind = SymbolDisplayPartKindMapping.ToJsonKind(part.Kind),
+                    Text = part.ToString(),
+                });
+            }
         }
 
-        var text = prefix != null
-            ? $"({prefix}) {symbol.ToDisplayString(DisplayFormat)}"
-            : symbol.ToDisplayString(DisplayFormat);
+        var rawDisplayString = symbol.ToDisplayString(DisplayFormat);
+        var text = hasAnonymousType
+            ? (prefix != null ? $"({prefix}) {formatter.TransformDisplayString(rawDisplayString)}" : formatter.TransformDisplayString(rawDisplayString))
+            : (prefix != null ? $"({prefix}) {rawDisplayString}" : rawDisplayString);
+
+        var typeAnnotations = formatter.GetAnnotations();
 
         int? overloadCount = null;
         if (symbol is IMethodSymbol method)
@@ -796,6 +809,7 @@ public class GloSharpProcessor
             SymbolKind = SymbolDisplayPartKindMapping.ToSymbolKindString(symbol),
             TargetText = token.Text,
             OverloadCount = overloadCount,
+            TypeAnnotations = typeAnnotations,
             Persistent = persistent,
         };
     }
