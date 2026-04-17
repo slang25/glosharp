@@ -271,7 +271,7 @@ public class GloSharpProcessor
 
             var complogRefs = _contextCache.GetOrAdd(complogContextKey, () =>
             {
-                using var resolver = ComplogResolver.Open(options.ComplogPath);
+                using var resolver = CompilationContextResolverFactory.Open(options.ComplogPath);
                 complogResult = resolver.Resolve(options.ComplogProject);
                 return complogResult.References;
             });
@@ -279,7 +279,7 @@ public class GloSharpProcessor
             // If complogResult was populated in the factory, use it; otherwise re-resolve for metadata
             if (complogResult == null)
             {
-                using var resolver = ComplogResolver.Open(options.ComplogPath);
+                using var resolver = CompilationContextResolverFactory.Open(options.ComplogPath);
                 complogResult = resolver.Resolve(options.ComplogProject);
             }
 

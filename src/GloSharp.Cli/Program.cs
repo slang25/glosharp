@@ -15,6 +15,7 @@ return command switch
     "verify" => await RunVerify(args[1..]),
     "render" => await RunRender(args[1..]),
     "init" => RunInit(args[1..]),
+    "compact-complog" => RunCompactComplog(args[1..]),
     "--help" or "-h" => PrintUsageAndReturn(),
     _ => PrintUnknownCommand(command),
 };
@@ -589,6 +590,119 @@ static int RunInit(string[] args)
     }
 }
 
+static int RunCompactComplog(string[] args)
+{
+    string? input = null;
+    string? output = null;
+    bool keepAnalyzers = false;
+    bool keepSources = false;
+    bool keepGenerated = false;
+    bool noRefasm = false;
+    int zstdLevel = 19;
+    bool quiet = false;
+
+    for (var i = 0; i < args.Length; i++)
+    {
+        switch (args[i])
+        {
+            case "-o":
+            case "--output" when i + 1 < args.Length:
+                output = args[++i];
+                break;
+            case "--keep-analyzers":
+                keepAnalyzers = true;
+                break;
+            case "--keep-sources":
+                keepSources = true;
+                break;
+            case "--keep-generated":
+                keepGenerated = true;
+                break;
+            case "--no-refasm":
+                noRefasm = true;
+                break;
+            case "--zstd-level" when i + 1 < args.Length:
+                if (!int.TryParse(args[++i], out zstdLevel))
+                {
+                    Console.Error.WriteLine($"Invalid --zstd-level value: {args[i]}");
+                    return 2;
+                }
+                break;
+            case "--quiet":
+                quiet = true;
+                break;
+            default:
+                if (!args[i].StartsWith('-') && input == null)
+                    input = args[i];
+                break;
+        }
+    }
+
+    if (input == null)
+    {
+        Console.Error.WriteLine("compact-complog: missing required <input> argument.");
+        Console.Error.WriteLine("Usage: glosharp compact-complog <input> -o <output.glocontext> [options]");
+        return 2;
+    }
+    if (output == null)
+    {
+        Console.Error.WriteLine("compact-complog: missing required --output (-o) argument.");
+        return 2;
+    }
+
+    var options = new ComplogCompactionOptions
+    {
+        RewriteReferences = !noRefasm,
+        DropAnalyzers = !keepAnalyzers,
+        DropOriginalSources = !keepSources,
+        DropGeneratedSources = !keepGenerated,
+        ZstdLevel = zstdLevel,
+    };
+
+    try
+    {
+        var result = ComplogCompactor.Compact(input, output, options);
+        if (!quiet)
+        {
+            var ratio = result.InputSizeBytes > 0
+                ? (double)result.OutputSizeBytes / result.InputSizeBytes
+                : 0.0;
+            Console.Error.WriteLine($"compact-complog: {input} → {output}");
+            Console.Error.WriteLine($"  input:  {result.InputSizeBytes:N0} bytes");
+            Console.Error.WriteLine($"  output: {result.OutputSizeBytes:N0} bytes ({ratio:P1} of input)");
+            Console.Error.WriteLine($"  references: {result.ReferencesBefore} → {result.ReferencesAfter} unique blobs");
+            Console.Error.WriteLine($"  refasm rewrites: {result.RefasmRewrittenCount}");
+            Console.Error.WriteLine($"  dropped: {result.AnalyzersDropped} analyzers, {result.OriginalSourcesDropped} sources, {result.GeneratedSourcesDropped} generated");
+        }
+        return 0;
+    }
+    catch (FileNotFoundException ex)
+    {
+        Console.Error.WriteLine($"compact-complog: {ex.Message}");
+        return 3;
+    }
+    catch (IOException ex)
+    {
+        Console.Error.WriteLine($"compact-complog: {ex.Message}");
+        return 4;
+    }
+    catch (InvalidOperationException ex) when (ex.Message.Contains("Refasmer", StringComparison.Ordinal))
+    {
+        Console.Error.WriteLine($"compact-complog: {ex.Message}");
+        return 5;
+    }
+    catch (InvalidDataException ex)
+    {
+        Console.Error.WriteLine($"compact-complog: {ex.Message}");
+        return 6;
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"compact-complog: {ex.GetType().Name}: {ex.Message}");
+        return 1;
+    }
+}
+
 static void PrintUsage()
 {
     Console.Error.WriteLine("Usage: glosharp <command> [options]");
@@ -598,6 +712,7 @@ static void PrintUsage()
     Console.Error.WriteLine("  verify <dir>      Verify all .cs files in a directory compile");
     Console.Error.WriteLine("  render <file>     Render a C# file as self-contained HTML");
     Console.Error.WriteLine("  init              Create a glosharp.config.json with defaults");
+    Console.Error.WriteLine("  compact-complog <input> -o <output>  Compact a .complog into a .glocontext");
     Console.Error.WriteLine();
     Console.Error.WriteLine("Options:");
     Console.Error.WriteLine("  --stdin             Read source from stdin");
@@ -614,6 +729,16 @@ static void PrintUsage()
     Console.Error.WriteLine("  --theme <name>      Color theme (github-dark, github-light; default: github-dark)");
     Console.Error.WriteLine("  --standalone        Output a full HTML page instead of a fragment");
     Console.Error.WriteLine("  --output <path>     Write HTML to a file instead of stdout");
+    Console.Error.WriteLine();
+    Console.Error.WriteLine("compact-complog options:");
+    Console.Error.WriteLine("  -o, --output <path>   Output .glocontext file (required)");
+    Console.Error.WriteLine("  --zstd-level <n>      Zstd compression level (default: 19)");
+    Console.Error.WriteLine("  --quiet               Suppress summary output on stderr");
+    Console.Error.WriteLine("  [debug]");
+    Console.Error.WriteLine("  --keep-analyzers      Keep analyzer entries in the payload");
+    Console.Error.WriteLine("  --keep-sources        Keep original source entries");
+    Console.Error.WriteLine("  --keep-generated      Keep generated source entries");
+    Console.Error.WriteLine("  --no-refasm           Skip reference-assembly rewriting");
 }
 
 static int PrintUsageAndReturn() { PrintUsage(); return 0; }

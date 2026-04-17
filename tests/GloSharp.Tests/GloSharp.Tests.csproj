@@ -19,4 +19,10 @@
     <ProjectReference Include="..\..\src\GloSharp.Core\GloSharp.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="fixtures\**" />
+    <EmbeddedResource Remove="fixtures\**" />
+    <None Remove="fixtures\**" />
+  </ItemGroup>
+
 </Project>

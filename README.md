@@ -30,6 +30,23 @@ Run `glosharp` against C# code and get:
 - [Integration points](design/integration-points.md) — Shiki, Expressive Code, standalone renderer
 - [Decisions](design/decisions.md) — key decisions log
 
+## Portable compilation context (`.glocontext`)
+
+`glosharp compact-complog <input.complog> -o <out.glocontext>` compacts a Basic.CompilerLog `.complog` into a small, git-friendly `.glocontext` file that captures just what Glo# needs to resolve types, hovers, and completions.
+
+The compactor:
+
+- rewrites each reference assembly with [JetBrains.Refasmer](https://github.com/JetBrains/Refasmer) so only public API metadata is retained (method bodies, private types, and internals are stripped);
+- drops analyzer DLLs, original source text, and generated source text — they are not needed for symbol-only rendering;
+- deduplicates identical post-refasm references across compilations and stores each one once by SHA-256;
+- writes a `GLOCTX`-magic header followed by a zstd-compressed tar containing a deterministic `manifest.json` plus `refs/<hash>.dll` blobs.
+
+Typical results: a ~7 MB BCL-only complog shrinks to ~1.2 MB, and a ~16 MB ASP.NET complog to under 3 MB. Output is byte-deterministic, so a checked-in `.glocontext` only changes when the underlying compilation context actually changes. The `--complog` flag on `process`, `verify`, and `render` auto-detects either format by magic bytes.
+
+> The zstd codec is provided by [`ZstdSharp.Port`](https://www.nuget.org/packages/ZstdSharp.Port/) today. Once .NET 11 ships, the codec will be swapped for `System.IO.Compression`'s built-in zstd with no format change.
+>
+> The file header reserves baseline id/version slots for a future v2 format that layers `zstd --patch-from` over a shipped baseline artifact. v1 readers **must** reject any file with non-zero baseline fields so that v2 output does not silently resolve to a broken v1 reader.
+
 ## References
 
 - [Annotated links](references/links.md)
