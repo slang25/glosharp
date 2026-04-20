@@ -188,7 +188,7 @@ public static class ComplogCompactor
             using var peReader = new PEReader(new MemoryStream(input, writable: false));
             var mr = peReader.GetMetadataReader();
             var logger = new LoggerBase(new NullRefasmerLogger());
-            return MetadataImporter.MakeRefasm(mr, peReader, logger, new AllowPublic(), false, false);
+            return MetadataImporter.MakeRefasm(mr, peReader, logger, new AllowPublic(omitNonApiMembers: false), omitNonApiMembers: false, makeMock: false, omitReferenceAssemblyAttr: false);
         }
         catch (Exception ex)
         {
