@@ -10,8 +10,9 @@
     "preview": "astro preview"
   },
   "dependencies": {
+    "@astrojs/markdown-remark": "^7.2.0",
     "@glosharp/shiki": "*",
-    "astro": "^5.7.0",
+    "astro": "^7.0.3",
     "@glosharp/core": "*",
     "unist-util-visit": "^5.1.0"
   }
