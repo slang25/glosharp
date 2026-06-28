@@ -586,7 +586,43 @@ function buildPopupJsModule(): string {
   const TIMEOUT_MS = 100;
   let activePopup = null;
   let activeHover = null;
+  let activeEcRoot = null;
+  let activeScrollParent = null;
   let hideTimeout = null;
+
+  // Find the nearest ancestor that scrolls (the EC <pre> scrolls horizontally).
+  function findScrollParent(el) {
+    let node = el.parentElement;
+    while (node && node !== document.body) {
+      const style = getComputedStyle(node);
+      if (/(auto|scroll|overlay)/.test(style.overflowX + ' ' + style.overflowY)) return node;
+      node = node.parentElement;
+    }
+    return null;
+  }
+
+  // Position the popup below its token. Recomputed on every show, scroll and
+  // resize so it tracks the token when the code block is scrolled horizontally.
+  function positionPopup() {
+    if (!activePopup || !activeHover || !activeEcRoot) return;
+
+    const hoverRect = activeHover.getBoundingClientRect();
+    const ecRect = activeEcRoot.getBoundingClientRect();
+    const left = hoverRect.left - ecRect.left;
+    const top = hoverRect.bottom - ecRect.top + 6;
+
+    activePopup.style.left = left + 'px';
+    activePopup.style.top = top + 'px';
+
+    // Hide the popup when its token is scrolled out of the code block's
+    // visible area, so it can't float over unrelated content.
+    if (activeScrollParent) {
+      const clipRect = activeScrollParent.getBoundingClientRect();
+      const tokenCenter = hoverRect.left + hoverRect.width / 2;
+      const visible = tokenCenter >= clipRect.left && tokenCenter <= clipRect.right;
+      activePopup.style.visibility = visible ? 'visible' : 'hidden';
+    }
+  }
 
   function showTooltip(hoverEl) {
     const popup = hoverEl.querySelector('.glosharp-popup-container');
@@ -607,39 +643,42 @@ function buildPopupJsModule(): string {
     // Reparent popup to EC root for overflow
     ecRoot.appendChild(popup);
     popup.style.setProperty('display', 'block', 'important');
+    popup.style.visibility = 'visible';
     // Re-trigger fade-in animation
     popup.style.animation = 'none';
     popup.offsetHeight; // force reflow
     popup.style.animation = '';
 
-    // Position below the token
-    const hoverRect = hoverEl.getBoundingClientRect();
-    const ecRect = ecRoot.getBoundingClientRect();
-    const left = hoverRect.left - ecRect.left;
-    const top = hoverRect.bottom - ecRect.top + 6;
-
-    popup.style.left = left + 'px';
-    popup.style.top = top + 'px';
-
-    // Adjust arrow position
-    const arrow = popup.querySelector(':scope')
-    // Arrow is via ::before, positioned at left:12px by default — that's fine
-
     activePopup = popup;
     activeHover = hoverEl;
+    activeEcRoot = ecRoot;
+    activeScrollParent = findScrollParent(hoverEl);
     popup._glosharpOrigParent = hoverEl;
+
+    // Position below the token (and keep it pinned to the token on scroll)
+    positionPopup();
+    if (activeScrollParent) activeScrollParent.addEventListener('scroll', positionPopup, { passive: true });
+    window.addEventListener('scroll', positionPopup, { passive: true, capture: true });
+    window.addEventListener('resize', positionPopup, { passive: true });
   }
 
   function hideTooltip() {
     if (hideTimeout) { clearTimeout(hideTimeout); hideTimeout = null; }
     if (activePopup) {
+      if (activeScrollParent) activeScrollParent.removeEventListener('scroll', positionPopup);
+      window.removeEventListener('scroll', positionPopup, { capture: true });
+      window.removeEventListener('resize', positionPopup);
+
       activePopup.style.setProperty('display', 'none', 'important');
+      activePopup.style.visibility = '';
       // Reparent back
       if (activePopup._glosharpOrigParent) {
         activePopup._glosharpOrigParent.appendChild(activePopup);
       }
       activePopup = null;
       activeHover = null;
+      activeEcRoot = null;
+      activeScrollParent = null;
     }
   }
 
