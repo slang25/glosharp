@@ -1,0 +1,25 @@
+{
+  "name": "glosharp-rendering-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "fixtures:update": "node scripts/update-fixtures.ts",
+    "fixtures:check": "node scripts/update-fixtures.ts --check",
+    "gallery:build": "node scripts/build-gallery.ts",
+    "gallery:serve": "node scripts/serve-gallery.ts",
+    "test": "playwright test"
+  },
+  "dependencies": {
+    "@glosharp/core": "*",
+    "@glosharp/expressive-code": "*",
+    "@glosharp/shiki": "*"
+  },
+  "devDependencies": {
+    "@fontsource/jetbrains-mono": "^5.2.5",
+    "@playwright/test": "^1.58.1",
+    "@types/node": "^25.3.5",
+    "expressive-code": "^0.44.0",
+    "shiki": "^4.0.1",
+    "typescript": "^5.9.3"
+  }
+}

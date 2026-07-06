@@ -47,6 +47,19 @@ Typical results: a ~7 MB BCL-only complog shrinks to ~1.2 MB, and a ~16 MB ASP.N
 >
 > The file header reserves baseline id/version slots for a future v2 format that layers `zstd --patch-from` over a shipped baseline artifact. v1 readers **must** reject any file with non-zero baseline fields so that v2 output does not silently resolve to a broken v1 reader.
 
+## Testing the web rendering
+
+Browser-level rendering quality (popup positioning, scroll tracking, themes,
+mobile viewports) is verified by the [rendering feedback loop](tests/rendering/README.md):
+committed `GloSharpResult` fixtures feed a deterministic gallery of every
+feature state across both render paths, and a Playwright suite asserts
+geometry/behavior invariants in Chromium and Firefox — no .NET SDK needed.
+
+```sh
+npm run gallery:build -w tests/rendering && npm run gallery:serve -w tests/rendering  # browse it
+npm test -w tests/rendering                                                           # run the invariants
+```
+
 ## References
 
 - [Annotated links](references/links.md)

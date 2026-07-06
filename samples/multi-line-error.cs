@@ -1,0 +1,3 @@
+int total = "hello" +
+    " world" +
+    "!";

@@ -57,3 +57,45 @@ jobs:
 
       - name: E2E tests
         run: npm test --workspace=tests/e2e
+
+      - name: Rendering fixture drift check
+        run: npm run fixtures:check --workspace=tests/rendering
+
+  web-rendering:
+    name: Web Rendering
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # Intentionally no .NET setup: the rendering gallery and its Playwright
+      # suite run entirely from committed fixtures.
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build packages
+        run: |
+          npm run build -w @glosharp/core
+          npm run build -w @glosharp/shiki
+          npm run build -w @glosharp/expressive-code
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium firefox
+        working-directory: tests/rendering
+
+      - name: Rendering invariants
+        run: npm test --workspace=tests/rendering
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            tests/rendering/playwright-report/
+            tests/rendering/test-results/
+          retention-days: 14

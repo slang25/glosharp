@@ -1,0 +1,964 @@
+{
+  "sample": "annotations.cs",
+  "source": "// @noErrors\nvar before = Compute(1);\n// @highlight\nvar highlighted = Compute(2);\nvar after = Compute(3);\n// @diff: +\nvar added = Compute(4);\n// @diff: -\nvar removed = Compute(5);\n\nstatic int Compute(int x) => x * 2;\n",
+  "result": {
+    "code": "var before = Compute(1);\nvar highlighted = Compute(2);\nvar after = Compute(3);\nvar added = Compute(4);\nvar removed = Compute(5);\n\nstatic int Compute(int x) => x * 2;\n",
+    "original": "// @noErrors\nvar before = Compute(1);\n// @highlight\nvar highlighted = Compute(2);\nvar after = Compute(3);\n// @diff: +\nvar added = Compute(4);\n// @diff: -\nvar removed = Compute(5);\n\nstatic int Compute(int x) => x * 2;\n",
+    "lang": "csharp",
+    "hovers": [
+      {
+        "line": 0,
+        "character": 0,
+        "length": 3,
+        "text": "(struct) int",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "struct"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          }
+        ],
+        "docs": {
+          "summary": "Represents a 32-bit signed integer.",
+          "params": [],
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Struct",
+        "targetText": "var"
+      },
+      {
+        "line": 0,
+        "character": 4,
+        "length": 6,
+        "text": "(local variable) int before",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "local variable"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "localName",
+            "text": "before"
+          }
+        ],
+        "symbolKind": "Local",
+        "targetText": "before"
+      },
+      {
+        "line": 0,
+        "character": 13,
+        "length": 7,
+        "text": "(method) int Compute(int x)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "method"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "methodName",
+            "text": "Compute"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "x"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "symbolKind": "Method",
+        "targetText": "Compute"
+      },
+      {
+        "line": 1,
+        "character": 0,
+        "length": 3,
+        "text": "(struct) int",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "struct"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          }
+        ],
+        "docs": {
+          "summary": "Represents a 32-bit signed integer.",
+          "params": [],
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Struct",
+        "targetText": "var"
+      },
+      {
+        "line": 1,
+        "character": 4,
+        "length": 11,
+        "text": "(local variable) int highlighted",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "local variable"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "localName",
+            "text": "highlighted"
+          }
+        ],
+        "symbolKind": "Local",
+        "targetText": "highlighted"
+      },
+      {
+        "line": 1,
+        "character": 18,
+        "length": 7,
+        "text": "(method) int Compute(int x)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "method"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "methodName",
+            "text": "Compute"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "x"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "symbolKind": "Method",
+        "targetText": "Compute"
+      },
+      {
+        "line": 2,
+        "character": 0,
+        "length": 3,
+        "text": "(struct) int",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "struct"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          }
+        ],
+        "docs": {
+          "summary": "Represents a 32-bit signed integer.",
+          "params": [],
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Struct",
+        "targetText": "var"
+      },
+      {
+        "line": 2,
+        "character": 4,
+        "length": 5,
+        "text": "(local variable) int after",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "local variable"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "localName",
+            "text": "after"
+          }
+        ],
+        "symbolKind": "Local",
+        "targetText": "after"
+      },
+      {
+        "line": 2,
+        "character": 12,
+        "length": 7,
+        "text": "(method) int Compute(int x)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "method"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "methodName",
+            "text": "Compute"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "x"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "symbolKind": "Method",
+        "targetText": "Compute"
+      },
+      {
+        "line": 3,
+        "character": 0,
+        "length": 3,
+        "text": "(struct) int",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "struct"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          }
+        ],
+        "docs": {
+          "summary": "Represents a 32-bit signed integer.",
+          "params": [],
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Struct",
+        "targetText": "var"
+      },
+      {
+        "line": 3,
+        "character": 4,
+        "length": 5,
+        "text": "(local variable) int added",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "local variable"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "localName",
+            "text": "added"
+          }
+        ],
+        "symbolKind": "Local",
+        "targetText": "added"
+      },
+      {
+        "line": 3,
+        "character": 12,
+        "length": 7,
+        "text": "(method) int Compute(int x)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "method"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "methodName",
+            "text": "Compute"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "x"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "symbolKind": "Method",
+        "targetText": "Compute"
+      },
+      {
+        "line": 4,
+        "character": 0,
+        "length": 3,
+        "text": "(struct) int",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "struct"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          }
+        ],
+        "docs": {
+          "summary": "Represents a 32-bit signed integer.",
+          "params": [],
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Struct",
+        "targetText": "var"
+      },
+      {
+        "line": 4,
+        "character": 4,
+        "length": 7,
+        "text": "(local variable) int removed",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "local variable"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "localName",
+            "text": "removed"
+          }
+        ],
+        "symbolKind": "Local",
+        "targetText": "removed"
+      },
+      {
+        "line": 4,
+        "character": 14,
+        "length": 7,
+        "text": "(method) int Compute(int x)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "method"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "methodName",
+            "text": "Compute"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "x"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "symbolKind": "Method",
+        "targetText": "Compute"
+      },
+      {
+        "line": 6,
+        "character": 7,
+        "length": 3,
+        "text": "(struct) int",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "struct"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          }
+        ],
+        "docs": {
+          "summary": "Represents a 32-bit signed integer.",
+          "params": [],
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Struct",
+        "targetText": "int"
+      },
+      {
+        "line": 6,
+        "character": 11,
+        "length": 7,
+        "text": "(method) int Compute(int x)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "method"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "methodName",
+            "text": "Compute"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "x"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "symbolKind": "Method",
+        "targetText": "Compute"
+      },
+      {
+        "line": 6,
+        "character": 19,
+        "length": 3,
+        "text": "(struct) int",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "struct"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          }
+        ],
+        "docs": {
+          "summary": "Represents a 32-bit signed integer.",
+          "params": [],
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Struct",
+        "targetText": "int"
+      },
+      {
+        "line": 6,
+        "character": 23,
+        "length": 1,
+        "text": "(parameter) int x",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "parameter"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "x"
+          }
+        ],
+        "symbolKind": "Parameter",
+        "targetText": "x"
+      },
+      {
+        "line": 6,
+        "character": 29,
+        "length": 1,
+        "text": "(parameter) int x",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "parameter"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "x"
+          }
+        ],
+        "symbolKind": "Parameter",
+        "targetText": "x"
+      },
+      {
+        "line": 6,
+        "character": 31,
+        "length": 1,
+        "text": "(method) int Compute(int x)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "method"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "methodName",
+            "text": "Compute"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "x"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "symbolKind": "Method",
+        "targetText": "*"
+      }
+    ],
+    "errors": [],
+    "completions": [],
+    "highlights": [
+      {
+        "line": 1,
+        "character": 0,
+        "length": 29,
+        "kind": "highlight"
+      },
+      {
+        "line": 3,
+        "character": 0,
+        "length": 23,
+        "kind": "add"
+      },
+      {
+        "line": 4,
+        "character": 0,
+        "length": 25,
+        "kind": "remove"
+      }
+    ],
+    "tags": [],
+    "hidden": [],
+    "meta": {
+      "targetFramework": "net8.0",
+      "packages": [],
+      "compileSucceeded": true
+    }
+  }
+}

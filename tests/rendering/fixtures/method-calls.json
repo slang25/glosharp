@@ -1,0 +1,583 @@
+{
+  "sample": "method-calls.cs",
+  "source": "// @noErrors\nvar numbers = new List<int> { 1, 2, 3, 4, 5 };\n//    ^?\nvar sum = numbers.Sum();\n//  ^?\nConsole.WriteLine(sum);\n//        ^?\n",
+  "result": {
+    "code": "var numbers = new List<int> { 1, 2, 3, 4, 5 };\nvar sum = numbers.Sum();\nConsole.WriteLine(sum);\n",
+    "original": "// @noErrors\nvar numbers = new List<int> { 1, 2, 3, 4, 5 };\n//    ^?\nvar sum = numbers.Sum();\n//  ^?\nConsole.WriteLine(sum);\n//        ^?\n",
+    "lang": "csharp",
+    "hovers": [
+      {
+        "line": 0,
+        "character": 4,
+        "length": 7,
+        "text": "(local variable) List<int>? numbers",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "local variable"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "List"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "?"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "localName",
+            "text": "numbers"
+          }
+        ],
+        "symbolKind": "Local",
+        "targetText": "numbers",
+        "persistent": true
+      },
+      {
+        "line": 1,
+        "character": 4,
+        "length": 3,
+        "text": "(local variable) int sum",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "local variable"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "localName",
+            "text": "sum"
+          }
+        ],
+        "symbolKind": "Local",
+        "targetText": "sum",
+        "persistent": true
+      },
+      {
+        "line": 2,
+        "character": 8,
+        "length": 9,
+        "text": "(method) void Console.WriteLine(int value) (+ 17 overloads)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "method"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "void"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "Console"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "methodName",
+            "text": "WriteLine"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "value"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Writes the text representation of the specified 32-bit signed integer value, followed by the current line terminator, to the standard output stream.",
+          "params": [
+            {
+              "name": "value",
+              "text": "The value to write."
+            }
+          ],
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "IOException",
+              "text": "An I/O error occurred."
+            }
+          ]
+        },
+        "symbolKind": "Method",
+        "targetText": "WriteLine",
+        "overloadCount": 18,
+        "persistent": true
+      },
+      {
+        "line": 0,
+        "character": 0,
+        "length": 3,
+        "text": "(class) List<int>",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "class"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "List"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          }
+        ],
+        "docs": {
+          "summary": "Represents a strongly typed list of objects that can be accessed by index. Provides methods to search, sort, and manipulate lists.",
+          "params": [],
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Class",
+        "targetText": "var"
+      },
+      {
+        "line": 0,
+        "character": 18,
+        "length": 4,
+        "text": "(class) List<int>",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "class"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "List"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          }
+        ],
+        "docs": {
+          "summary": "Represents a strongly typed list of objects that can be accessed by index. Provides methods to search, sort, and manipulate lists.",
+          "params": [],
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Class",
+        "targetText": "List"
+      },
+      {
+        "line": 0,
+        "character": 23,
+        "length": 3,
+        "text": "(struct) int",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "struct"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          }
+        ],
+        "docs": {
+          "summary": "Represents a 32-bit signed integer.",
+          "params": [],
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Struct",
+        "targetText": "int"
+      },
+      {
+        "line": 1,
+        "character": 0,
+        "length": 3,
+        "text": "(struct) int",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "struct"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          }
+        ],
+        "docs": {
+          "summary": "Represents a 32-bit signed integer.",
+          "params": [],
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Struct",
+        "targetText": "var"
+      },
+      {
+        "line": 1,
+        "character": 10,
+        "length": 7,
+        "text": "(local variable) List<int>? numbers",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "local variable"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "List"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "?"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "localName",
+            "text": "numbers"
+          }
+        ],
+        "symbolKind": "Local",
+        "targetText": "numbers"
+      },
+      {
+        "line": 1,
+        "character": 18,
+        "length": 3,
+        "text": "(extension) int IEnumerable<int>.Sum() (+ 19 overloads)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "extension"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "interfaceName",
+            "text": "IEnumerable"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "text",
+            "text": "Sum"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Computes the sum of a sequence of Int32 values.",
+          "params": [
+            {
+              "name": "source",
+              "text": "A sequence of Int32 values to calculate the sum of."
+            }
+          ],
+          "returns": "The sum of the values in the sequence.",
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "ArgumentNullException",
+              "text": "source is ."
+            },
+            {
+              "type": "OverflowException",
+              "text": "The sum is larger than MaxValue."
+            }
+          ]
+        },
+        "symbolKind": "Method",
+        "targetText": "Sum",
+        "overloadCount": 20
+      },
+      {
+        "line": 2,
+        "character": 0,
+        "length": 7,
+        "text": "(class) Console",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "class"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "Console"
+          }
+        ],
+        "docs": {
+          "summary": "Represents the standard input, output, and error streams for console applications. This class cannot be inherited.",
+          "params": [],
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Class",
+        "targetText": "Console"
+      },
+      {
+        "line": 2,
+        "character": 18,
+        "length": 3,
+        "text": "(local variable) int sum",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "local variable"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "localName",
+            "text": "sum"
+          }
+        ],
+        "symbolKind": "Local",
+        "targetText": "sum"
+      }
+    ],
+    "errors": [],
+    "completions": [],
+    "highlights": [],
+    "tags": [],
+    "hidden": [],
+    "meta": {
+      "targetFramework": "net8.0",
+      "packages": [],
+      "compileSucceeded": true
+    }
+  }
+}

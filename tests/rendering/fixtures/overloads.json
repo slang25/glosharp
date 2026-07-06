@@ -1,0 +1,265 @@
+{
+  "sample": "overloads.cs",
+  "source": "// @noErrors\nConsole.WriteLine(\"text\");\n//        ^?\nConsole.WriteLine(42);\n//        ^?\n",
+  "result": {
+    "code": "Console.WriteLine(\"text\");\nConsole.WriteLine(42);\n",
+    "original": "// @noErrors\nConsole.WriteLine(\"text\");\n//        ^?\nConsole.WriteLine(42);\n//        ^?\n",
+    "lang": "csharp",
+    "hovers": [
+      {
+        "line": 0,
+        "character": 8,
+        "length": 9,
+        "text": "(method) void Console.WriteLine(string? value) (+ 17 overloads)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "method"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "void"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "Console"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "methodName",
+            "text": "WriteLine"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "?"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "value"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Writes the specified string value, followed by the current line terminator, to the standard output stream.",
+          "params": [
+            {
+              "name": "value",
+              "text": "The value to write."
+            }
+          ],
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "IOException",
+              "text": "An I/O error occurred."
+            }
+          ]
+        },
+        "symbolKind": "Method",
+        "targetText": "WriteLine",
+        "overloadCount": 18,
+        "persistent": true
+      },
+      {
+        "line": 1,
+        "character": 8,
+        "length": 9,
+        "text": "(method) void Console.WriteLine(int value) (+ 17 overloads)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "method"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "void"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "Console"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "methodName",
+            "text": "WriteLine"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "value"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Writes the text representation of the specified 32-bit signed integer value, followed by the current line terminator, to the standard output stream.",
+          "params": [
+            {
+              "name": "value",
+              "text": "The value to write."
+            }
+          ],
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "IOException",
+              "text": "An I/O error occurred."
+            }
+          ]
+        },
+        "symbolKind": "Method",
+        "targetText": "WriteLine",
+        "overloadCount": 18,
+        "persistent": true
+      },
+      {
+        "line": 0,
+        "character": 0,
+        "length": 7,
+        "text": "(class) Console",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "class"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "Console"
+          }
+        ],
+        "docs": {
+          "summary": "Represents the standard input, output, and error streams for console applications. This class cannot be inherited.",
+          "params": [],
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Class",
+        "targetText": "Console"
+      },
+      {
+        "line": 1,
+        "character": 0,
+        "length": 7,
+        "text": "(class) Console",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "class"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "Console"
+          }
+        ],
+        "docs": {
+          "summary": "Represents the standard input, output, and error streams for console applications. This class cannot be inherited.",
+          "params": [],
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Class",
+        "targetText": "Console"
+      }
+    ],
+    "errors": [],
+    "completions": [],
+    "highlights": [],
+    "tags": [],
+    "hidden": [],
+    "meta": {
+      "targetFramework": "net8.0",
+      "packages": [],
+      "compileSucceeded": true
+    }
+  }
+}

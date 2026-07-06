@@ -1,0 +1,133 @@
+{
+  "sample": "error-expectation.cs",
+  "source": "// @errors: CS0103\nConsole.WriteLine(undeclared);\n",
+  "result": {
+    "code": "Console.WriteLine(undeclared);\n",
+    "original": "// @errors: CS0103\nConsole.WriteLine(undeclared);\n",
+    "lang": "csharp",
+    "hovers": [
+      {
+        "line": 0,
+        "character": 0,
+        "length": 7,
+        "text": "(class) Console",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "class"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "Console"
+          }
+        ],
+        "docs": {
+          "summary": "Represents the standard input, output, and error streams for console applications. This class cannot be inherited.",
+          "params": [],
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Class",
+        "targetText": "Console"
+      },
+      {
+        "line": 0,
+        "character": 8,
+        "length": 9,
+        "text": "(method) void Console.WriteLine() (+ 17 overloads)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "method"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "void"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "Console"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "methodName",
+            "text": "WriteLine"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Writes the current line terminator to the standard output stream.",
+          "params": [],
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "IOException",
+              "text": "An I/O error occurred."
+            }
+          ]
+        },
+        "symbolKind": "Method",
+        "targetText": "WriteLine",
+        "overloadCount": 18
+      }
+    ],
+    "errors": [
+      {
+        "line": 0,
+        "character": 18,
+        "length": 10,
+        "code": "CS0103",
+        "message": "The name 'undeclared' does not exist in the current context",
+        "severity": "error",
+        "expected": true
+      }
+    ],
+    "completions": [],
+    "highlights": [],
+    "tags": [],
+    "hidden": [],
+    "meta": {
+      "targetFramework": "net8.0",
+      "packages": [],
+      "compileSucceeded": true
+    }
+  }
+}

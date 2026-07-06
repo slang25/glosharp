@@ -1,0 +1,1289 @@
+{
+  "sample": "xml-docs.cs",
+  "source": "// @noErrors\nvar total = PriceMath.ApplyDiscount(100m, 0.2m);\n//                       ^?\n\n/// <summary>Pricing helpers for order calculations.</summary>\nstatic class PriceMath\n{\n    /// <summary>Computes the discounted price for an order line.</summary>\n    /// <param name=\"price\">Original unit price.</param>\n    /// <param name=\"discount\">Discount fraction between 0 and 1.</param>\n    /// <returns>The price after applying the discount.</returns>\n    /// <exception cref=\"ArgumentOutOfRangeException\">Thrown when the discount is negative.</exception>\n    public static decimal ApplyDiscount(decimal price, decimal discount) =>\n        discount < 0\n            ? throw new ArgumentOutOfRangeException(nameof(discount))\n            : price * (1 - discount);\n}\n",
+  "result": {
+    "code": "var total = PriceMath.ApplyDiscount(100m, 0.2m);\n\n/// <summary>Pricing helpers for order calculations.</summary>\nstatic class PriceMath\n{\n    /// <summary>Computes the discounted price for an order line.</summary>\n    /// <param name=\"price\">Original unit price.</param>\n    /// <param name=\"discount\">Discount fraction between 0 and 1.</param>\n    /// <returns>The price after applying the discount.</returns>\n    /// <exception cref=\"ArgumentOutOfRangeException\">Thrown when the discount is negative.</exception>\n    public static decimal ApplyDiscount(decimal price, decimal discount) =>\n        discount < 0\n            ? throw new ArgumentOutOfRangeException(nameof(discount))\n            : price * (1 - discount);\n}\n",
+    "original": "// @noErrors\nvar total = PriceMath.ApplyDiscount(100m, 0.2m);\n//                       ^?\n\n/// <summary>Pricing helpers for order calculations.</summary>\nstatic class PriceMath\n{\n    /// <summary>Computes the discounted price for an order line.</summary>\n    /// <param name=\"price\">Original unit price.</param>\n    /// <param name=\"discount\">Discount fraction between 0 and 1.</param>\n    /// <returns>The price after applying the discount.</returns>\n    /// <exception cref=\"ArgumentOutOfRangeException\">Thrown when the discount is negative.</exception>\n    public static decimal ApplyDiscount(decimal price, decimal discount) =>\n        discount < 0\n            ? throw new ArgumentOutOfRangeException(nameof(discount))\n            : price * (1 - discount);\n}\n",
+    "lang": "csharp",
+    "hovers": [
+      {
+        "line": 0,
+        "character": 22,
+        "length": 13,
+        "text": "(method) decimal PriceMath.ApplyDiscount(decimal price, decimal discount)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "method"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "decimal"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "PriceMath"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "methodName",
+            "text": "ApplyDiscount"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "keyword",
+            "text": "decimal"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "price"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "decimal"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "discount"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Computes the discounted price for an order line.",
+          "params": [
+            {
+              "name": "price",
+              "text": "Original unit price."
+            },
+            {
+              "name": "discount",
+              "text": "Discount fraction between 0 and 1."
+            }
+          ],
+          "returns": "The price after applying the discount.",
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "ArgumentOutOfRangeException",
+              "text": "Thrown when the discount is negative."
+            }
+          ]
+        },
+        "symbolKind": "Method",
+        "targetText": "ApplyDiscount",
+        "persistent": true
+      },
+      {
+        "line": 0,
+        "character": 0,
+        "length": 3,
+        "text": "(struct) decimal",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "struct"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "decimal"
+          }
+        ],
+        "docs": {
+          "summary": "Represents a decimal floating-point number.",
+          "params": [],
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Struct",
+        "targetText": "var"
+      },
+      {
+        "line": 0,
+        "character": 4,
+        "length": 5,
+        "text": "(local variable) decimal total",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "local variable"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "decimal"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "localName",
+            "text": "total"
+          }
+        ],
+        "symbolKind": "Local",
+        "targetText": "total"
+      },
+      {
+        "line": 0,
+        "character": 12,
+        "length": 9,
+        "text": "(class) PriceMath",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "class"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "PriceMath"
+          }
+        ],
+        "docs": {
+          "summary": "Pricing helpers for order calculations.",
+          "params": [],
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Class",
+        "targetText": "PriceMath"
+      },
+      {
+        "line": 3,
+        "character": 13,
+        "length": 9,
+        "text": "(class) PriceMath",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "class"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "PriceMath"
+          }
+        ],
+        "docs": {
+          "summary": "Pricing helpers for order calculations.",
+          "params": [],
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Class",
+        "targetText": "PriceMath"
+      },
+      {
+        "line": 10,
+        "character": 18,
+        "length": 7,
+        "text": "(struct) decimal",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "struct"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "decimal"
+          }
+        ],
+        "docs": {
+          "summary": "Represents a decimal floating-point number.",
+          "params": [],
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Struct",
+        "targetText": "decimal"
+      },
+      {
+        "line": 10,
+        "character": 26,
+        "length": 13,
+        "text": "(method) decimal PriceMath.ApplyDiscount(decimal price, decimal discount)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "method"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "decimal"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "PriceMath"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "methodName",
+            "text": "ApplyDiscount"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "keyword",
+            "text": "decimal"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "price"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "decimal"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "discount"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Computes the discounted price for an order line.",
+          "params": [
+            {
+              "name": "price",
+              "text": "Original unit price."
+            },
+            {
+              "name": "discount",
+              "text": "Discount fraction between 0 and 1."
+            }
+          ],
+          "returns": "The price after applying the discount.",
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "ArgumentOutOfRangeException",
+              "text": "Thrown when the discount is negative."
+            }
+          ]
+        },
+        "symbolKind": "Method",
+        "targetText": "ApplyDiscount"
+      },
+      {
+        "line": 10,
+        "character": 40,
+        "length": 7,
+        "text": "(struct) decimal",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "struct"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "decimal"
+          }
+        ],
+        "docs": {
+          "summary": "Represents a decimal floating-point number.",
+          "params": [],
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Struct",
+        "targetText": "decimal"
+      },
+      {
+        "line": 10,
+        "character": 48,
+        "length": 5,
+        "text": "(parameter) decimal price",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "parameter"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "decimal"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "price"
+          }
+        ],
+        "symbolKind": "Parameter",
+        "targetText": "price"
+      },
+      {
+        "line": 10,
+        "character": 55,
+        "length": 7,
+        "text": "(struct) decimal",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "struct"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "decimal"
+          }
+        ],
+        "docs": {
+          "summary": "Represents a decimal floating-point number.",
+          "params": [],
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Struct",
+        "targetText": "decimal"
+      },
+      {
+        "line": 10,
+        "character": 63,
+        "length": 8,
+        "text": "(parameter) decimal discount",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "parameter"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "decimal"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "discount"
+          }
+        ],
+        "symbolKind": "Parameter",
+        "targetText": "discount"
+      },
+      {
+        "line": 11,
+        "character": 8,
+        "length": 8,
+        "text": "(parameter) decimal discount",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "parameter"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "decimal"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "discount"
+          }
+        ],
+        "symbolKind": "Parameter",
+        "targetText": "discount"
+      },
+      {
+        "line": 11,
+        "character": 17,
+        "length": 1,
+        "text": "(method) decimal PriceMath.ApplyDiscount(decimal price, decimal discount)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "method"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "decimal"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "PriceMath"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "methodName",
+            "text": "ApplyDiscount"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "keyword",
+            "text": "decimal"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "price"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "decimal"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "discount"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Computes the discounted price for an order line.",
+          "params": [
+            {
+              "name": "price",
+              "text": "Original unit price."
+            },
+            {
+              "name": "discount",
+              "text": "Discount fraction between 0 and 1."
+            }
+          ],
+          "returns": "The price after applying the discount.",
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "ArgumentOutOfRangeException",
+              "text": "Thrown when the discount is negative."
+            }
+          ]
+        },
+        "symbolKind": "Method",
+        "targetText": "<"
+      },
+      {
+        "line": 12,
+        "character": 24,
+        "length": 27,
+        "text": "(class) ArgumentOutOfRangeException",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "class"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "ArgumentOutOfRangeException"
+          }
+        ],
+        "docs": {
+          "summary": "The exception that is thrown when the value of an argument is outside the allowable range of values as defined by the invoked method.",
+          "params": [],
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Class",
+        "targetText": "ArgumentOutOfRangeException"
+      },
+      {
+        "line": 12,
+        "character": 52,
+        "length": 6,
+        "text": "(method) decimal PriceMath.ApplyDiscount(decimal price, decimal discount)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "method"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "decimal"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "PriceMath"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "methodName",
+            "text": "ApplyDiscount"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "keyword",
+            "text": "decimal"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "price"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "decimal"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "discount"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Computes the discounted price for an order line.",
+          "params": [
+            {
+              "name": "price",
+              "text": "Original unit price."
+            },
+            {
+              "name": "discount",
+              "text": "Discount fraction between 0 and 1."
+            }
+          ],
+          "returns": "The price after applying the discount.",
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "ArgumentOutOfRangeException",
+              "text": "Thrown when the discount is negative."
+            }
+          ]
+        },
+        "symbolKind": "Method",
+        "targetText": "nameof"
+      },
+      {
+        "line": 12,
+        "character": 59,
+        "length": 8,
+        "text": "(parameter) decimal discount",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "parameter"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "decimal"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "discount"
+          }
+        ],
+        "symbolKind": "Parameter",
+        "targetText": "discount"
+      },
+      {
+        "line": 13,
+        "character": 12,
+        "length": 1,
+        "text": "(method) decimal PriceMath.ApplyDiscount(decimal price, decimal discount)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "method"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "decimal"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "PriceMath"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "methodName",
+            "text": "ApplyDiscount"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "keyword",
+            "text": "decimal"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "price"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "decimal"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "discount"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Computes the discounted price for an order line.",
+          "params": [
+            {
+              "name": "price",
+              "text": "Original unit price."
+            },
+            {
+              "name": "discount",
+              "text": "Discount fraction between 0 and 1."
+            }
+          ],
+          "returns": "The price after applying the discount.",
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "ArgumentOutOfRangeException",
+              "text": "Thrown when the discount is negative."
+            }
+          ]
+        },
+        "symbolKind": "Method",
+        "targetText": ":"
+      },
+      {
+        "line": 13,
+        "character": 14,
+        "length": 5,
+        "text": "(parameter) decimal price",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "parameter"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "decimal"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "price"
+          }
+        ],
+        "symbolKind": "Parameter",
+        "targetText": "price"
+      },
+      {
+        "line": 13,
+        "character": 20,
+        "length": 1,
+        "text": "(method) decimal PriceMath.ApplyDiscount(decimal price, decimal discount)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "method"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "decimal"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "PriceMath"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "methodName",
+            "text": "ApplyDiscount"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "keyword",
+            "text": "decimal"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "price"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "decimal"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "discount"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Computes the discounted price for an order line.",
+          "params": [
+            {
+              "name": "price",
+              "text": "Original unit price."
+            },
+            {
+              "name": "discount",
+              "text": "Discount fraction between 0 and 1."
+            }
+          ],
+          "returns": "The price after applying the discount.",
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "ArgumentOutOfRangeException",
+              "text": "Thrown when the discount is negative."
+            }
+          ]
+        },
+        "symbolKind": "Method",
+        "targetText": "*"
+      },
+      {
+        "line": 13,
+        "character": 25,
+        "length": 1,
+        "text": "(method) decimal PriceMath.ApplyDiscount(decimal price, decimal discount)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "method"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "decimal"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "PriceMath"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "methodName",
+            "text": "ApplyDiscount"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "keyword",
+            "text": "decimal"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "price"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "decimal"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "discount"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Computes the discounted price for an order line.",
+          "params": [
+            {
+              "name": "price",
+              "text": "Original unit price."
+            },
+            {
+              "name": "discount",
+              "text": "Discount fraction between 0 and 1."
+            }
+          ],
+          "returns": "The price after applying the discount.",
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "ArgumentOutOfRangeException",
+              "text": "Thrown when the discount is negative."
+            }
+          ]
+        },
+        "symbolKind": "Method",
+        "targetText": "-"
+      },
+      {
+        "line": 13,
+        "character": 27,
+        "length": 8,
+        "text": "(parameter) decimal discount",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "parameter"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "decimal"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "discount"
+          }
+        ],
+        "symbolKind": "Parameter",
+        "targetText": "discount"
+      }
+    ],
+    "errors": [],
+    "completions": [],
+    "highlights": [],
+    "tags": [],
+    "hidden": [],
+    "meta": {
+      "targetFramework": "net8.0",
+      "packages": [],
+      "compileSucceeded": true
+    }
+  }
+}

@@ -1,0 +1,1251 @@
+{
+  "sample": "custom-tags.cs",
+  "source": "// @noErrors\nvar users = new[] { \"alice\", \"bob\", \"carol\" };\n// @log: Returns a cached result after the first call\nvar filtered = users.Where(u => u.Length > 3);\n// @warn: This allocates — avoid in hot paths\nvar count = filtered.Count();\n// @error: Throws if the sequence is empty\nvar first = filtered.First();\n// @annotate: Consider using .Any() if you only need a boolean check\n",
+  "result": {
+    "code": "var users = new[] { \"alice\", \"bob\", \"carol\" };\nvar filtered = users.Where(u => u.Length > 3);\nvar count = filtered.Count();\nvar first = filtered.First();\n",
+    "original": "// @noErrors\nvar users = new[] { \"alice\", \"bob\", \"carol\" };\n// @log: Returns a cached result after the first call\nvar filtered = users.Where(u => u.Length > 3);\n// @warn: This allocates — avoid in hot paths\nvar count = filtered.Count();\n// @error: Throws if the sequence is empty\nvar first = filtered.First();\n// @annotate: Consider using .Any() if you only need a boolean check\n",
+    "lang": "csharp",
+    "hovers": [
+      {
+        "line": 0,
+        "character": 0,
+        "length": 3,
+        "text": "string[]",
+        "parts": [
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          }
+        ],
+        "symbolKind": "Unknown",
+        "targetText": "var"
+      },
+      {
+        "line": 0,
+        "character": 4,
+        "length": 5,
+        "text": "(local variable) string[]? users",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "local variable"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "punctuation",
+            "text": "?"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "localName",
+            "text": "users"
+          }
+        ],
+        "symbolKind": "Local",
+        "targetText": "users"
+      },
+      {
+        "line": 0,
+        "character": 15,
+        "length": 1,
+        "text": "(local variable) string[]? users",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "local variable"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "punctuation",
+            "text": "?"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "localName",
+            "text": "users"
+          }
+        ],
+        "symbolKind": "Local",
+        "targetText": "["
+      },
+      {
+        "line": 0,
+        "character": 16,
+        "length": 1,
+        "text": "(local variable) string[]? users",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "local variable"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "punctuation",
+            "text": "?"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "localName",
+            "text": "users"
+          }
+        ],
+        "symbolKind": "Local",
+        "targetText": "]"
+      },
+      {
+        "line": 1,
+        "character": 0,
+        "length": 3,
+        "text": "(interface) IEnumerable<string>",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "interface"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "interfaceName",
+            "text": "IEnumerable"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          }
+        ],
+        "docs": {
+          "summary": "Exposes the enumerator, which supports a simple iteration over a collection of a specified type.",
+          "params": [],
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Interface",
+        "targetText": "var"
+      },
+      {
+        "line": 1,
+        "character": 4,
+        "length": 8,
+        "text": "(local variable) IEnumerable<string>? filtered",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "local variable"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "interfaceName",
+            "text": "IEnumerable"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "?"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "localName",
+            "text": "filtered"
+          }
+        ],
+        "symbolKind": "Local",
+        "targetText": "filtered"
+      },
+      {
+        "line": 1,
+        "character": 15,
+        "length": 5,
+        "text": "(local variable) string[]? users",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "local variable"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "punctuation",
+            "text": "?"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "localName",
+            "text": "users"
+          }
+        ],
+        "symbolKind": "Local",
+        "targetText": "users"
+      },
+      {
+        "line": 1,
+        "character": 21,
+        "length": 5,
+        "text": "(extension) IEnumerable<string> IEnumerable<string>.Where<string>(Func<string, bool> predicate) (+ 1 overloads)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "extension"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "interfaceName",
+            "text": "IEnumerable"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "interfaceName",
+            "text": "IEnumerable"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "text",
+            "text": "Where"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "delegateName",
+            "text": "Func"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "bool"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "predicate"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Filters a sequence of values based on a predicate.",
+          "params": [
+            {
+              "name": "source",
+              "text": "An IEnumerable`1 to filter."
+            },
+            {
+              "name": "predicate",
+              "text": "A function to test each element for a condition."
+            }
+          ],
+          "returns": "An IEnumerable`1 that contains elements from the input sequence that satisfy the condition.",
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "ArgumentNullException",
+              "text": "source or predicate is ."
+            }
+          ]
+        },
+        "symbolKind": "Method",
+        "targetText": "Where",
+        "overloadCount": 2
+      },
+      {
+        "line": 1,
+        "character": 27,
+        "length": 1,
+        "text": "(parameter) string u",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "parameter"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "u"
+          }
+        ],
+        "symbolKind": "Parameter",
+        "targetText": "u"
+      },
+      {
+        "line": 1,
+        "character": 32,
+        "length": 1,
+        "text": "(parameter) string u",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "parameter"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "u"
+          }
+        ],
+        "symbolKind": "Parameter",
+        "targetText": "u"
+      },
+      {
+        "line": 1,
+        "character": 34,
+        "length": 6,
+        "text": "(property) int string.Length",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "property"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "propertyName",
+            "text": "Length"
+          }
+        ],
+        "docs": {
+          "summary": "Gets the number of characters in the current String object.",
+          "params": [],
+          "returns": "The number of characters in the current string.",
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Property",
+        "targetText": "Length"
+      },
+      {
+        "line": 1,
+        "character": 41,
+        "length": 1,
+        "text": "(extension) IEnumerable<string> IEnumerable<string>.Where<string>(Func<string, bool> predicate) (+ 1 overloads)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "extension"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "interfaceName",
+            "text": "IEnumerable"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "interfaceName",
+            "text": "IEnumerable"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "text",
+            "text": "Where"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "delegateName",
+            "text": "Func"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "bool"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "predicate"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Filters a sequence of values based on a predicate.",
+          "params": [
+            {
+              "name": "source",
+              "text": "An IEnumerable`1 to filter."
+            },
+            {
+              "name": "predicate",
+              "text": "A function to test each element for a condition."
+            }
+          ],
+          "returns": "An IEnumerable`1 that contains elements from the input sequence that satisfy the condition.",
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "ArgumentNullException",
+              "text": "source or predicate is ."
+            }
+          ]
+        },
+        "symbolKind": "Method",
+        "targetText": ">",
+        "overloadCount": 2
+      },
+      {
+        "line": 2,
+        "character": 0,
+        "length": 3,
+        "text": "(struct) int",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "struct"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          }
+        ],
+        "docs": {
+          "summary": "Represents a 32-bit signed integer.",
+          "params": [],
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Struct",
+        "targetText": "var"
+      },
+      {
+        "line": 2,
+        "character": 4,
+        "length": 5,
+        "text": "(local variable) int count",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "local variable"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "localName",
+            "text": "count"
+          }
+        ],
+        "symbolKind": "Local",
+        "targetText": "count"
+      },
+      {
+        "line": 2,
+        "character": 12,
+        "length": 8,
+        "text": "(local variable) IEnumerable<string>? filtered",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "local variable"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "interfaceName",
+            "text": "IEnumerable"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "?"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "localName",
+            "text": "filtered"
+          }
+        ],
+        "symbolKind": "Local",
+        "targetText": "filtered"
+      },
+      {
+        "line": 2,
+        "character": 21,
+        "length": 5,
+        "text": "(extension) int IEnumerable<string>.Count<string>() (+ 1 overloads)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "extension"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "interfaceName",
+            "text": "IEnumerable"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "text",
+            "text": "Count"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Returns the number of elements in a sequence.",
+          "params": [
+            {
+              "name": "source",
+              "text": "A sequence that contains elements to be counted."
+            }
+          ],
+          "returns": "The number of elements in the input sequence.",
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "ArgumentNullException",
+              "text": "source is ."
+            },
+            {
+              "type": "OverflowException",
+              "text": "The number of elements in source is larger than MaxValue."
+            }
+          ]
+        },
+        "symbolKind": "Method",
+        "targetText": "Count",
+        "overloadCount": 2
+      },
+      {
+        "line": 3,
+        "character": 0,
+        "length": 3,
+        "text": "(class) string",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "class"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          }
+        ],
+        "docs": {
+          "summary": "Represents text as a sequence of UTF-16 code units.",
+          "params": [],
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Class",
+        "targetText": "var"
+      },
+      {
+        "line": 3,
+        "character": 4,
+        "length": 5,
+        "text": "(local variable) string? first",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "local variable"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "?"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "localName",
+            "text": "first"
+          }
+        ],
+        "symbolKind": "Local",
+        "targetText": "first"
+      },
+      {
+        "line": 3,
+        "character": 12,
+        "length": 8,
+        "text": "(local variable) IEnumerable<string>? filtered",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "local variable"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "interfaceName",
+            "text": "IEnumerable"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "?"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "localName",
+            "text": "filtered"
+          }
+        ],
+        "symbolKind": "Local",
+        "targetText": "filtered"
+      },
+      {
+        "line": 3,
+        "character": 21,
+        "length": 5,
+        "text": "(extension) string IEnumerable<string>.First<string>() (+ 1 overloads)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "extension"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "interfaceName",
+            "text": "IEnumerable"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "text",
+            "text": "First"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Returns the first element of a sequence.",
+          "params": [
+            {
+              "name": "source",
+              "text": "The IEnumerable`1 to return the first element of."
+            }
+          ],
+          "returns": "The first element in the specified sequence.",
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "ArgumentNullException",
+              "text": "source is ."
+            },
+            {
+              "type": "InvalidOperationException",
+              "text": "The source sequence is empty."
+            }
+          ]
+        },
+        "symbolKind": "Method",
+        "targetText": "First",
+        "overloadCount": 2
+      }
+    ],
+    "errors": [],
+    "completions": [],
+    "highlights": [],
+    "tags": [
+      {
+        "name": "log",
+        "text": "Returns a cached result after the first call",
+        "line": 0
+      },
+      {
+        "name": "warn",
+        "text": "This allocates — avoid in hot paths",
+        "line": 1
+      },
+      {
+        "name": "error",
+        "text": "Throws if the sequence is empty",
+        "line": 2
+      },
+      {
+        "name": "annotate",
+        "text": "Consider using .Any() if you only need a boolean check",
+        "line": 3
+      }
+    ],
+    "hidden": [],
+    "meta": {
+      "targetFramework": "net8.0",
+      "packages": [],
+      "compileSucceeded": true
+    }
+  }
+}
