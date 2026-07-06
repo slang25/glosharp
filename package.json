@@ -9,6 +9,7 @@
     "examples/expressive-code",
     "examples/standalone",
     "tests/e2e",
+    "tests/rendering",
     "website"
   ]
 }

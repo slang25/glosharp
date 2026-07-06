@@ -1,0 +1,216 @@
+{
+  "sample": "severities.cs",
+  "source": "int unused = 42;\nConsole.WriteLine(missingVar);\n",
+  "result": {
+    "code": "int unused = 42;\nConsole.WriteLine(missingVar);\n",
+    "original": "int unused = 42;\nConsole.WriteLine(missingVar);\n",
+    "lang": "csharp",
+    "hovers": [
+      {
+        "line": 0,
+        "character": 0,
+        "length": 3,
+        "text": "(struct) int",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "struct"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          }
+        ],
+        "docs": {
+          "summary": "Represents a 32-bit signed integer.",
+          "params": [],
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Struct",
+        "targetText": "int"
+      },
+      {
+        "line": 0,
+        "character": 4,
+        "length": 6,
+        "text": "(local variable) int unused",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "local variable"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "localName",
+            "text": "unused"
+          }
+        ],
+        "symbolKind": "Local",
+        "targetText": "unused"
+      },
+      {
+        "line": 1,
+        "character": 0,
+        "length": 7,
+        "text": "(class) Console",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "class"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "Console"
+          }
+        ],
+        "docs": {
+          "summary": "Represents the standard input, output, and error streams for console applications. This class cannot be inherited.",
+          "params": [],
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Class",
+        "targetText": "Console"
+      },
+      {
+        "line": 1,
+        "character": 8,
+        "length": 9,
+        "text": "(method) void Console.WriteLine() (+ 17 overloads)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "method"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "void"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "Console"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "methodName",
+            "text": "WriteLine"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Writes the current line terminator to the standard output stream.",
+          "params": [],
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "IOException",
+              "text": "An I/O error occurred."
+            }
+          ]
+        },
+        "symbolKind": "Method",
+        "targetText": "WriteLine",
+        "overloadCount": 18
+      }
+    ],
+    "errors": [
+      {
+        "line": 1,
+        "character": 18,
+        "length": 10,
+        "code": "CS0103",
+        "message": "The name 'missingVar' does not exist in the current context",
+        "severity": "error",
+        "expected": false
+      },
+      {
+        "line": 0,
+        "character": 4,
+        "length": 6,
+        "code": "CS0219",
+        "message": "The variable 'unused' is assigned but its value is never used",
+        "severity": "warning",
+        "expected": false
+      }
+    ],
+    "completions": [],
+    "highlights": [],
+    "tags": [],
+    "hidden": [],
+    "meta": {
+      "targetFramework": "net8.0",
+      "packages": [],
+      "compileSucceeded": false
+    }
+  }
+}

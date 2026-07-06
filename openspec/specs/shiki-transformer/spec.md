@@ -12,11 +12,15 @@ The `preprocess` hook SHALL detect code blocks with language `csharp` (or `cs`) 
 - **THEN** the preprocess hook returns the code unchanged
 
 ### Requirement: Inject hover popups in root hook
-The `root` hook SHALL walk the HAST tree, match token positions to hover data from the glosharp result, and wrap target tokens with hover popup elements using CSS anchor positioning.
+The `root` hook SHALL walk the HAST tree, match token positions to hover data from the glosharp result, and wrap target tokens with hover popup elements using CSS anchor positioning. The popup `<div class="glosharp-popup">` SHALL be a child of the `<span class="glosharp-hover">` wrapper (not a sibling), so that `:hover` on the wrapper keeps the popup open while the pointer is over the popup, and so the popup can be positioned relative to the wrapper when anchor positioning is unavailable.
 
 #### Scenario: Token with hover data
 - **WHEN** a token at line 0, character 4 has associated hover data
-- **THEN** the HAST tree contains a `<span class="glosharp-hover">` wrapping the token with `anchor-name: --glosharp-N`, and a sibling `<div class="glosharp-popup">` with `position-anchor: --glosharp-N` containing the formatted hover text
+- **THEN** the HAST tree contains a `<span class="glosharp-hover">` with `anchor-name: --glosharp-N` wrapping the token, containing a child `<div class="glosharp-popup">` with `position-anchor: --glosharp-N` and the formatted hover text
+
+#### Scenario: Pointer moves onto the popup
+- **WHEN** the pointer moves from the hovered token onto its open popup
+- **THEN** the popup remains open, because the popup is inside the wrapper's `:hover` subtree
 
 ### Requirement: Inject error annotations in root hook
 The `root` hook SHALL add error underline elements and error message elements for compiler diagnostics. Underline and message elements SHALL include a severity CSS class (`glosharp-severity-error`, `glosharp-severity-warning`, or `glosharp-severity-info`). Error codes matching `CS\d+` SHALL be rendered as `<a>` elements linking to Microsoft docs. When a diagnostic spans multiple lines, underline elements SHALL be applied to each affected line.
@@ -38,11 +42,15 @@ The `root` hook SHALL add error underline elements and error message elements fo
 - **THEN** underline elements are applied to lines 2, 3, and 4, and the error message appears after line 4
 
 ### Requirement: CSS anchor positioning for popups
-Hover popups SHALL use CSS anchor positioning (`anchor-name`, `position-anchor`, `inset-area: top`) and be shown/hidden via `:hover` CSS pseudo-class. No JavaScript SHALL be required.
+Hover popups SHALL use CSS anchor positioning (`anchor-name`, `position-anchor`, `position-area: top`) and be shown/hidden via `:hover` CSS pseudo-class. No JavaScript SHALL be required. The stylesheet SHALL include an `@supports not` fallback for browsers without CSS Anchor Positioning that positions the popup absolutely relative to its hover wrapper (directly above or below the token), so popups remain usable — degraded positioning is acceptable, a popup detached from its token is not.
 
 #### Scenario: Hover popup visibility
 - **WHEN** the rendered HTML is viewed in a browser
 - **THEN** hovering over a token with hover data shows a popup positioned above the token using CSS anchoring, with no JS execution
+
+#### Scenario: Browser without anchor positioning
+- **WHEN** the rendered HTML is viewed in a browser where `anchor-name` is unsupported (or the anchor properties are stripped)
+- **THEN** hovering the token still shows the popup adjacent to the hover wrapper, within a relaxed positional tolerance
 
 ### Requirement: Render structured parts with syntax highlighting
 Hover popup content SHALL render the display parts array with appropriate CSS classes for each part kind (e.g., `glosharp-keyword`, `glosharp-className`) to enable syntax-highlighted type information.

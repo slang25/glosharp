@@ -1,0 +1,4500 @@
+{
+  "sample": "long-lines.cs",
+  "source": "// @noErrors\nvar connectionString = \"Server=localhost;Database=Products;Trusted_Connection=True;MultipleActiveResultSets=true;Encrypt=False;Application Name=GloSharpGalleryLongLineSample\";\nvar parsedConnectionSettings = connectionString.Split(';').Select(part => part.Trim()).Where(part => part.Length > 0).Select(part => part.Split('=')).ToDictionary(pair => pair[0], pair => pair.Length > 1 ? pair[1] : string.Empty);\n//   ^?\nConsole.WriteLine(parsedConnectionSettings.Count is int veryDescriptiveCountName && veryDescriptiveCountName > 0 ? $\"parsed {veryDescriptiveCountName} settings from the configuration value successfully\" : \"nothing parsed\");\n//                                                       ^?\n",
+  "result": {
+    "code": "var connectionString = \"Server=localhost;Database=Products;Trusted_Connection=True;MultipleActiveResultSets=true;Encrypt=False;Application Name=GloSharpGalleryLongLineSample\";\nvar parsedConnectionSettings = connectionString.Split(';').Select(part => part.Trim()).Where(part => part.Length > 0).Select(part => part.Split('=')).ToDictionary(pair => pair[0], pair => pair.Length > 1 ? pair[1] : string.Empty);\nConsole.WriteLine(parsedConnectionSettings.Count is int veryDescriptiveCountName && veryDescriptiveCountName > 0 ? $\"parsed {veryDescriptiveCountName} settings from the configuration value successfully\" : \"nothing parsed\");\n",
+    "original": "// @noErrors\nvar connectionString = \"Server=localhost;Database=Products;Trusted_Connection=True;MultipleActiveResultSets=true;Encrypt=False;Application Name=GloSharpGalleryLongLineSample\";\nvar parsedConnectionSettings = connectionString.Split(';').Select(part => part.Trim()).Where(part => part.Length > 0).Select(part => part.Split('=')).ToDictionary(pair => pair[0], pair => pair.Length > 1 ? pair[1] : string.Empty);\n//   ^?\nConsole.WriteLine(parsedConnectionSettings.Count is int veryDescriptiveCountName && veryDescriptiveCountName > 0 ? $\"parsed {veryDescriptiveCountName} settings from the configuration value successfully\" : \"nothing parsed\");\n//                                                       ^?\n",
+    "lang": "csharp",
+    "hovers": [
+      {
+        "line": 1,
+        "character": 4,
+        "length": 24,
+        "text": "(local variable) Dictionary<string, string>? parsedConnectionSettings",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "local variable"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "Dictionary"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "?"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "localName",
+            "text": "parsedConnectionSettings"
+          }
+        ],
+        "symbolKind": "Local",
+        "targetText": "parsedConnectionSettings",
+        "persistent": true
+      },
+      {
+        "line": 2,
+        "character": 56,
+        "length": 24,
+        "text": "(method) void Console.WriteLine(string? value) (+ 17 overloads)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "method"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "void"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "Console"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "methodName",
+            "text": "WriteLine"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "?"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "value"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Writes the specified string value, followed by the current line terminator, to the standard output stream.",
+          "params": [
+            {
+              "name": "value",
+              "text": "The value to write."
+            }
+          ],
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "IOException",
+              "text": "An I/O error occurred."
+            }
+          ]
+        },
+        "symbolKind": "Method",
+        "targetText": "veryDescriptiveCountName",
+        "overloadCount": 18,
+        "persistent": true
+      },
+      {
+        "line": 0,
+        "character": 0,
+        "length": 3,
+        "text": "(class) string",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "class"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          }
+        ],
+        "docs": {
+          "summary": "Represents text as a sequence of UTF-16 code units.",
+          "params": [],
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Class",
+        "targetText": "var"
+      },
+      {
+        "line": 0,
+        "character": 4,
+        "length": 16,
+        "text": "(local variable) string? connectionString",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "local variable"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "?"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "localName",
+            "text": "connectionString"
+          }
+        ],
+        "symbolKind": "Local",
+        "targetText": "connectionString"
+      },
+      {
+        "line": 1,
+        "character": 0,
+        "length": 3,
+        "text": "(class) Dictionary<string, string>",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "class"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "Dictionary"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          }
+        ],
+        "docs": {
+          "summary": "Represents a collection of keys and values.",
+          "params": [],
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Class",
+        "targetText": "var"
+      },
+      {
+        "line": 1,
+        "character": 31,
+        "length": 16,
+        "text": "(local variable) string? connectionString",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "local variable"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "?"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "localName",
+            "text": "connectionString"
+          }
+        ],
+        "symbolKind": "Local",
+        "targetText": "connectionString"
+      },
+      {
+        "line": 1,
+        "character": 48,
+        "length": 5,
+        "text": "(method) string[] string.Split(char separator, StringSplitOptions options = StringSplitOptions.None) (+ 9 overloads)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "method"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "methodName",
+            "text": "Split"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "keyword",
+            "text": "char"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "separator"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "enumName",
+            "text": "StringSplitOptions"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "options"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "punctuation",
+            "text": "="
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "enumName",
+            "text": "StringSplitOptions"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "text",
+            "text": "None"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Splits a string into substrings based on a specified delimiting character and, optionally, options.",
+          "params": [
+            {
+              "name": "separator",
+              "text": "A character that delimits the substrings in this string."
+            },
+            {
+              "name": "options",
+              "text": "A bitwise combination of the enumeration values that specifies whether to trim substrings and include empty substrings."
+            }
+          ],
+          "returns": "An array whose elements contain the substrings from this instance that are delimited by separator.",
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Method",
+        "targetText": "Split",
+        "overloadCount": 10
+      },
+      {
+        "line": 1,
+        "character": 59,
+        "length": 6,
+        "text": "(extension) IEnumerable<string> IEnumerable<string>.Select<string, string>(Func<string, string> selector) (+ 1 overloads)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "extension"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "interfaceName",
+            "text": "IEnumerable"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "interfaceName",
+            "text": "IEnumerable"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "text",
+            "text": "Select"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "delegateName",
+            "text": "Func"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "selector"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Projects each element of a sequence into a new form.",
+          "params": [
+            {
+              "name": "source",
+              "text": "A sequence of values to invoke a transform function on."
+            },
+            {
+              "name": "selector",
+              "text": "A transform function to apply to each element."
+            }
+          ],
+          "returns": "An IEnumerable`1 whose elements are the result of invoking the transform function on each element of source.",
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "ArgumentNullException",
+              "text": "source or selector is ."
+            }
+          ]
+        },
+        "symbolKind": "Method",
+        "targetText": "Select",
+        "overloadCount": 2
+      },
+      {
+        "line": 1,
+        "character": 66,
+        "length": 4,
+        "text": "(parameter) string part",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "parameter"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "part"
+          }
+        ],
+        "symbolKind": "Parameter",
+        "targetText": "part"
+      },
+      {
+        "line": 1,
+        "character": 74,
+        "length": 4,
+        "text": "(parameter) string part",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "parameter"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "part"
+          }
+        ],
+        "symbolKind": "Parameter",
+        "targetText": "part"
+      },
+      {
+        "line": 1,
+        "character": 79,
+        "length": 4,
+        "text": "(method) string string.Trim() (+ 2 overloads)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "method"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "methodName",
+            "text": "Trim"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Removes all leading and trailing white-space characters from the current string.",
+          "params": [],
+          "returns": "The string that remains after all white-space characters are removed from the start and end of the current string. If no characters can be trimmed from the current instance, the method returns the current instance unchanged.",
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Method",
+        "targetText": "Trim",
+        "overloadCount": 3
+      },
+      {
+        "line": 1,
+        "character": 87,
+        "length": 5,
+        "text": "(extension) IEnumerable<string> IEnumerable<string>.Where<string>(Func<string, bool> predicate) (+ 1 overloads)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "extension"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "interfaceName",
+            "text": "IEnumerable"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "interfaceName",
+            "text": "IEnumerable"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "text",
+            "text": "Where"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "delegateName",
+            "text": "Func"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "bool"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "predicate"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Filters a sequence of values based on a predicate.",
+          "params": [
+            {
+              "name": "source",
+              "text": "An IEnumerable`1 to filter."
+            },
+            {
+              "name": "predicate",
+              "text": "A function to test each element for a condition."
+            }
+          ],
+          "returns": "An IEnumerable`1 that contains elements from the input sequence that satisfy the condition.",
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "ArgumentNullException",
+              "text": "source or predicate is ."
+            }
+          ]
+        },
+        "symbolKind": "Method",
+        "targetText": "Where",
+        "overloadCount": 2
+      },
+      {
+        "line": 1,
+        "character": 93,
+        "length": 4,
+        "text": "(parameter) string part",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "parameter"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "part"
+          }
+        ],
+        "symbolKind": "Parameter",
+        "targetText": "part"
+      },
+      {
+        "line": 1,
+        "character": 101,
+        "length": 4,
+        "text": "(parameter) string part",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "parameter"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "part"
+          }
+        ],
+        "symbolKind": "Parameter",
+        "targetText": "part"
+      },
+      {
+        "line": 1,
+        "character": 106,
+        "length": 6,
+        "text": "(property) int string.Length",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "property"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "propertyName",
+            "text": "Length"
+          }
+        ],
+        "docs": {
+          "summary": "Gets the number of characters in the current String object.",
+          "params": [],
+          "returns": "The number of characters in the current string.",
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Property",
+        "targetText": "Length"
+      },
+      {
+        "line": 1,
+        "character": 113,
+        "length": 1,
+        "text": "(extension) IEnumerable<string> IEnumerable<string>.Where<string>(Func<string, bool> predicate) (+ 1 overloads)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "extension"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "interfaceName",
+            "text": "IEnumerable"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "interfaceName",
+            "text": "IEnumerable"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "text",
+            "text": "Where"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "delegateName",
+            "text": "Func"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "bool"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "predicate"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Filters a sequence of values based on a predicate.",
+          "params": [
+            {
+              "name": "source",
+              "text": "An IEnumerable`1 to filter."
+            },
+            {
+              "name": "predicate",
+              "text": "A function to test each element for a condition."
+            }
+          ],
+          "returns": "An IEnumerable`1 that contains elements from the input sequence that satisfy the condition.",
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "ArgumentNullException",
+              "text": "source or predicate is ."
+            }
+          ]
+        },
+        "symbolKind": "Method",
+        "targetText": ">",
+        "overloadCount": 2
+      },
+      {
+        "line": 1,
+        "character": 118,
+        "length": 6,
+        "text": "(extension) IEnumerable<string[]> IEnumerable<string>.Select<string, string[]>(Func<string, string[]> selector) (+ 1 overloads)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "extension"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "interfaceName",
+            "text": "IEnumerable"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "interfaceName",
+            "text": "IEnumerable"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "text",
+            "text": "Select"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "delegateName",
+            "text": "Func"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "selector"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Projects each element of a sequence into a new form.",
+          "params": [
+            {
+              "name": "source",
+              "text": "A sequence of values to invoke a transform function on."
+            },
+            {
+              "name": "selector",
+              "text": "A transform function to apply to each element."
+            }
+          ],
+          "returns": "An IEnumerable`1 whose elements are the result of invoking the transform function on each element of source.",
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "ArgumentNullException",
+              "text": "source or selector is ."
+            }
+          ]
+        },
+        "symbolKind": "Method",
+        "targetText": "Select",
+        "overloadCount": 2
+      },
+      {
+        "line": 1,
+        "character": 125,
+        "length": 4,
+        "text": "(parameter) string part",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "parameter"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "part"
+          }
+        ],
+        "symbolKind": "Parameter",
+        "targetText": "part"
+      },
+      {
+        "line": 1,
+        "character": 133,
+        "length": 4,
+        "text": "(parameter) string part",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "parameter"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "part"
+          }
+        ],
+        "symbolKind": "Parameter",
+        "targetText": "part"
+      },
+      {
+        "line": 1,
+        "character": 138,
+        "length": 5,
+        "text": "(method) string[] string.Split(char separator, StringSplitOptions options = StringSplitOptions.None) (+ 9 overloads)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "method"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "methodName",
+            "text": "Split"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "keyword",
+            "text": "char"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "separator"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "enumName",
+            "text": "StringSplitOptions"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "options"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "punctuation",
+            "text": "="
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "enumName",
+            "text": "StringSplitOptions"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "text",
+            "text": "None"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Splits a string into substrings based on a specified delimiting character and, optionally, options.",
+          "params": [
+            {
+              "name": "separator",
+              "text": "A character that delimits the substrings in this string."
+            },
+            {
+              "name": "options",
+              "text": "A bitwise combination of the enumeration values that specifies whether to trim substrings and include empty substrings."
+            }
+          ],
+          "returns": "An array whose elements contain the substrings from this instance that are delimited by separator.",
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Method",
+        "targetText": "Split",
+        "overloadCount": 10
+      },
+      {
+        "line": 1,
+        "character": 150,
+        "length": 12,
+        "text": "(extension) Dictionary<string, string> IEnumerable<string[]>.ToDictionary<string[], string, string>(Func<string[], string> keySelector, Func<string[], string> elementSelector) (+ 7 overloads)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "extension"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "Dictionary"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "interfaceName",
+            "text": "IEnumerable"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "text",
+            "text": "ToDictionary"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "delegateName",
+            "text": "Func"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "keySelector"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "delegateName",
+            "text": "Func"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "elementSelector"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Creates a Dictionary`2 from an IEnumerable`1 according to specified key selector and element selector functions.",
+          "params": [
+            {
+              "name": "source",
+              "text": "An IEnumerable`1 to create a Dictionary`2 from."
+            },
+            {
+              "name": "keySelector",
+              "text": "A function to extract a key from each element."
+            },
+            {
+              "name": "elementSelector",
+              "text": "A transform function to produce a result element value from each element."
+            }
+          ],
+          "returns": "A Dictionary`2 that contains values of type TElement selected from the input sequence.",
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "ArgumentNullException",
+              "text": "source or keySelector or elementSelector is . -or- keySelector produces a key that is ."
+            },
+            {
+              "type": "ArgumentException",
+              "text": "keySelector produces duplicate keys for two elements."
+            }
+          ]
+        },
+        "symbolKind": "Method",
+        "targetText": "ToDictionary",
+        "overloadCount": 8
+      },
+      {
+        "line": 1,
+        "character": 163,
+        "length": 4,
+        "text": "(parameter) string[] pair",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "parameter"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "pair"
+          }
+        ],
+        "symbolKind": "Parameter",
+        "targetText": "pair"
+      },
+      {
+        "line": 1,
+        "character": 171,
+        "length": 4,
+        "text": "(parameter) string[] pair",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "parameter"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "pair"
+          }
+        ],
+        "symbolKind": "Parameter",
+        "targetText": "pair"
+      },
+      {
+        "line": 1,
+        "character": 175,
+        "length": 1,
+        "text": "(extension) Dictionary<string, string> IEnumerable<string[]>.ToDictionary<string[], string, string>(Func<string[], string> keySelector, Func<string[], string> elementSelector) (+ 7 overloads)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "extension"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "Dictionary"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "interfaceName",
+            "text": "IEnumerable"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "text",
+            "text": "ToDictionary"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "delegateName",
+            "text": "Func"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "keySelector"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "delegateName",
+            "text": "Func"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "elementSelector"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Creates a Dictionary`2 from an IEnumerable`1 according to specified key selector and element selector functions.",
+          "params": [
+            {
+              "name": "source",
+              "text": "An IEnumerable`1 to create a Dictionary`2 from."
+            },
+            {
+              "name": "keySelector",
+              "text": "A function to extract a key from each element."
+            },
+            {
+              "name": "elementSelector",
+              "text": "A transform function to produce a result element value from each element."
+            }
+          ],
+          "returns": "A Dictionary`2 that contains values of type TElement selected from the input sequence.",
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "ArgumentNullException",
+              "text": "source or keySelector or elementSelector is . -or- keySelector produces a key that is ."
+            },
+            {
+              "type": "ArgumentException",
+              "text": "keySelector produces duplicate keys for two elements."
+            }
+          ]
+        },
+        "symbolKind": "Method",
+        "targetText": "[",
+        "overloadCount": 8
+      },
+      {
+        "line": 1,
+        "character": 177,
+        "length": 1,
+        "text": "(extension) Dictionary<string, string> IEnumerable<string[]>.ToDictionary<string[], string, string>(Func<string[], string> keySelector, Func<string[], string> elementSelector) (+ 7 overloads)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "extension"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "Dictionary"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "interfaceName",
+            "text": "IEnumerable"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "text",
+            "text": "ToDictionary"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "delegateName",
+            "text": "Func"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "keySelector"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "delegateName",
+            "text": "Func"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "elementSelector"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Creates a Dictionary`2 from an IEnumerable`1 according to specified key selector and element selector functions.",
+          "params": [
+            {
+              "name": "source",
+              "text": "An IEnumerable`1 to create a Dictionary`2 from."
+            },
+            {
+              "name": "keySelector",
+              "text": "A function to extract a key from each element."
+            },
+            {
+              "name": "elementSelector",
+              "text": "A transform function to produce a result element value from each element."
+            }
+          ],
+          "returns": "A Dictionary`2 that contains values of type TElement selected from the input sequence.",
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "ArgumentNullException",
+              "text": "source or keySelector or elementSelector is . -or- keySelector produces a key that is ."
+            },
+            {
+              "type": "ArgumentException",
+              "text": "keySelector produces duplicate keys for two elements."
+            }
+          ]
+        },
+        "symbolKind": "Method",
+        "targetText": "]",
+        "overloadCount": 8
+      },
+      {
+        "line": 1,
+        "character": 180,
+        "length": 4,
+        "text": "(parameter) string[] pair",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "parameter"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "pair"
+          }
+        ],
+        "symbolKind": "Parameter",
+        "targetText": "pair"
+      },
+      {
+        "line": 1,
+        "character": 188,
+        "length": 4,
+        "text": "(parameter) string[] pair",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "parameter"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "pair"
+          }
+        ],
+        "symbolKind": "Parameter",
+        "targetText": "pair"
+      },
+      {
+        "line": 1,
+        "character": 193,
+        "length": 6,
+        "text": "(property) int Array.Length",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "property"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "Array"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "propertyName",
+            "text": "Length"
+          }
+        ],
+        "docs": {
+          "summary": "Gets the total number of elements in all the dimensions of the Array.",
+          "params": [],
+          "returns": "The total number of elements in all the dimensions of the Array; zero if there are no elements in the array.",
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "OverflowException",
+              "text": "The array is multidimensional and contains more than MaxValue elements."
+            }
+          ]
+        },
+        "symbolKind": "Property",
+        "targetText": "Length"
+      },
+      {
+        "line": 1,
+        "character": 200,
+        "length": 1,
+        "text": "(extension) Dictionary<string, string> IEnumerable<string[]>.ToDictionary<string[], string, string>(Func<string[], string> keySelector, Func<string[], string> elementSelector) (+ 7 overloads)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "extension"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "Dictionary"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "interfaceName",
+            "text": "IEnumerable"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "text",
+            "text": "ToDictionary"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "delegateName",
+            "text": "Func"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "keySelector"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "delegateName",
+            "text": "Func"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "elementSelector"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Creates a Dictionary`2 from an IEnumerable`1 according to specified key selector and element selector functions.",
+          "params": [
+            {
+              "name": "source",
+              "text": "An IEnumerable`1 to create a Dictionary`2 from."
+            },
+            {
+              "name": "keySelector",
+              "text": "A function to extract a key from each element."
+            },
+            {
+              "name": "elementSelector",
+              "text": "A transform function to produce a result element value from each element."
+            }
+          ],
+          "returns": "A Dictionary`2 that contains values of type TElement selected from the input sequence.",
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "ArgumentNullException",
+              "text": "source or keySelector or elementSelector is . -or- keySelector produces a key that is ."
+            },
+            {
+              "type": "ArgumentException",
+              "text": "keySelector produces duplicate keys for two elements."
+            }
+          ]
+        },
+        "symbolKind": "Method",
+        "targetText": ">",
+        "overloadCount": 8
+      },
+      {
+        "line": 1,
+        "character": 206,
+        "length": 4,
+        "text": "(parameter) string[] pair",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "parameter"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "pair"
+          }
+        ],
+        "symbolKind": "Parameter",
+        "targetText": "pair"
+      },
+      {
+        "line": 1,
+        "character": 210,
+        "length": 1,
+        "text": "(extension) Dictionary<string, string> IEnumerable<string[]>.ToDictionary<string[], string, string>(Func<string[], string> keySelector, Func<string[], string> elementSelector) (+ 7 overloads)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "extension"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "Dictionary"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "interfaceName",
+            "text": "IEnumerable"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "text",
+            "text": "ToDictionary"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "delegateName",
+            "text": "Func"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "keySelector"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "delegateName",
+            "text": "Func"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "elementSelector"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Creates a Dictionary`2 from an IEnumerable`1 according to specified key selector and element selector functions.",
+          "params": [
+            {
+              "name": "source",
+              "text": "An IEnumerable`1 to create a Dictionary`2 from."
+            },
+            {
+              "name": "keySelector",
+              "text": "A function to extract a key from each element."
+            },
+            {
+              "name": "elementSelector",
+              "text": "A transform function to produce a result element value from each element."
+            }
+          ],
+          "returns": "A Dictionary`2 that contains values of type TElement selected from the input sequence.",
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "ArgumentNullException",
+              "text": "source or keySelector or elementSelector is . -or- keySelector produces a key that is ."
+            },
+            {
+              "type": "ArgumentException",
+              "text": "keySelector produces duplicate keys for two elements."
+            }
+          ]
+        },
+        "symbolKind": "Method",
+        "targetText": "[",
+        "overloadCount": 8
+      },
+      {
+        "line": 1,
+        "character": 212,
+        "length": 1,
+        "text": "(extension) Dictionary<string, string> IEnumerable<string[]>.ToDictionary<string[], string, string>(Func<string[], string> keySelector, Func<string[], string> elementSelector) (+ 7 overloads)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "extension"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "Dictionary"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "interfaceName",
+            "text": "IEnumerable"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "text",
+            "text": "ToDictionary"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "delegateName",
+            "text": "Func"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "keySelector"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "delegateName",
+            "text": "Func"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "elementSelector"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Creates a Dictionary`2 from an IEnumerable`1 according to specified key selector and element selector functions.",
+          "params": [
+            {
+              "name": "source",
+              "text": "An IEnumerable`1 to create a Dictionary`2 from."
+            },
+            {
+              "name": "keySelector",
+              "text": "A function to extract a key from each element."
+            },
+            {
+              "name": "elementSelector",
+              "text": "A transform function to produce a result element value from each element."
+            }
+          ],
+          "returns": "A Dictionary`2 that contains values of type TElement selected from the input sequence.",
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "ArgumentNullException",
+              "text": "source or keySelector or elementSelector is . -or- keySelector produces a key that is ."
+            },
+            {
+              "type": "ArgumentException",
+              "text": "keySelector produces duplicate keys for two elements."
+            }
+          ]
+        },
+        "symbolKind": "Method",
+        "targetText": "]",
+        "overloadCount": 8
+      },
+      {
+        "line": 1,
+        "character": 214,
+        "length": 1,
+        "text": "(extension) Dictionary<string, string> IEnumerable<string[]>.ToDictionary<string[], string, string>(Func<string[], string> keySelector, Func<string[], string> elementSelector) (+ 7 overloads)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "extension"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "Dictionary"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "interfaceName",
+            "text": "IEnumerable"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "text",
+            "text": "ToDictionary"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "delegateName",
+            "text": "Func"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "keySelector"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "delegateName",
+            "text": "Func"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "elementSelector"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Creates a Dictionary`2 from an IEnumerable`1 according to specified key selector and element selector functions.",
+          "params": [
+            {
+              "name": "source",
+              "text": "An IEnumerable`1 to create a Dictionary`2 from."
+            },
+            {
+              "name": "keySelector",
+              "text": "A function to extract a key from each element."
+            },
+            {
+              "name": "elementSelector",
+              "text": "A transform function to produce a result element value from each element."
+            }
+          ],
+          "returns": "A Dictionary`2 that contains values of type TElement selected from the input sequence.",
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "ArgumentNullException",
+              "text": "source or keySelector or elementSelector is . -or- keySelector produces a key that is ."
+            },
+            {
+              "type": "ArgumentException",
+              "text": "keySelector produces duplicate keys for two elements."
+            }
+          ]
+        },
+        "symbolKind": "Method",
+        "targetText": ":",
+        "overloadCount": 8
+      },
+      {
+        "line": 1,
+        "character": 216,
+        "length": 6,
+        "text": "(class) string",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "class"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          }
+        ],
+        "docs": {
+          "summary": "Represents text as a sequence of UTF-16 code units.",
+          "params": [],
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Class",
+        "targetText": "string"
+      },
+      {
+        "line": 1,
+        "character": 223,
+        "length": 5,
+        "text": "(field) string string.Empty",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "field"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "fieldName",
+            "text": "Empty"
+          }
+        ],
+        "docs": {
+          "summary": "Represents the empty string. This field is read-only.",
+          "params": [],
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Field",
+        "targetText": "Empty"
+      },
+      {
+        "line": 2,
+        "character": 0,
+        "length": 7,
+        "text": "(class) Console",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "class"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "Console"
+          }
+        ],
+        "docs": {
+          "summary": "Represents the standard input, output, and error streams for console applications. This class cannot be inherited.",
+          "params": [],
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Class",
+        "targetText": "Console"
+      },
+      {
+        "line": 2,
+        "character": 8,
+        "length": 9,
+        "text": "(method) void Console.WriteLine(string? value) (+ 17 overloads)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "method"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "void"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "Console"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "methodName",
+            "text": "WriteLine"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "?"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "value"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Writes the specified string value, followed by the current line terminator, to the standard output stream.",
+          "params": [
+            {
+              "name": "value",
+              "text": "The value to write."
+            }
+          ],
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "IOException",
+              "text": "An I/O error occurred."
+            }
+          ]
+        },
+        "symbolKind": "Method",
+        "targetText": "WriteLine",
+        "overloadCount": 18
+      },
+      {
+        "line": 2,
+        "character": 18,
+        "length": 24,
+        "text": "(local variable) Dictionary<string, string>? parsedConnectionSettings",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "local variable"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "Dictionary"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "?"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "localName",
+            "text": "parsedConnectionSettings"
+          }
+        ],
+        "symbolKind": "Local",
+        "targetText": "parsedConnectionSettings"
+      },
+      {
+        "line": 2,
+        "character": 43,
+        "length": 5,
+        "text": "(property) int Dictionary<string, string>.Count",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "property"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "Dictionary"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "propertyName",
+            "text": "Count"
+          }
+        ],
+        "docs": {
+          "summary": "Gets the number of key/value pairs contained in the Dictionary`2.",
+          "params": [],
+          "returns": "The number of key/value pairs contained in the Dictionary`2.",
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Property",
+        "targetText": "Count"
+      },
+      {
+        "line": 2,
+        "character": 52,
+        "length": 3,
+        "text": "(struct) int",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "struct"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          }
+        ],
+        "docs": {
+          "summary": "Represents a 32-bit signed integer.",
+          "params": [],
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Struct",
+        "targetText": "int"
+      },
+      {
+        "line": 2,
+        "character": 81,
+        "length": 2,
+        "text": "(method) void Console.WriteLine(string? value) (+ 17 overloads)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "method"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "void"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "Console"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "methodName",
+            "text": "WriteLine"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "?"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "value"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Writes the specified string value, followed by the current line terminator, to the standard output stream.",
+          "params": [
+            {
+              "name": "value",
+              "text": "The value to write."
+            }
+          ],
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "IOException",
+              "text": "An I/O error occurred."
+            }
+          ]
+        },
+        "symbolKind": "Method",
+        "targetText": "&&",
+        "overloadCount": 18
+      },
+      {
+        "line": 2,
+        "character": 84,
+        "length": 24,
+        "text": "(local variable) int veryDescriptiveCountName",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "local variable"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "localName",
+            "text": "veryDescriptiveCountName"
+          }
+        ],
+        "symbolKind": "Local",
+        "targetText": "veryDescriptiveCountName"
+      },
+      {
+        "line": 2,
+        "character": 109,
+        "length": 1,
+        "text": "(method) void Console.WriteLine(string? value) (+ 17 overloads)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "method"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "void"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "Console"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "methodName",
+            "text": "WriteLine"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "?"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "value"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Writes the specified string value, followed by the current line terminator, to the standard output stream.",
+          "params": [
+            {
+              "name": "value",
+              "text": "The value to write."
+            }
+          ],
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "IOException",
+              "text": "An I/O error occurred."
+            }
+          ]
+        },
+        "symbolKind": "Method",
+        "targetText": ">",
+        "overloadCount": 18
+      },
+      {
+        "line": 2,
+        "character": 125,
+        "length": 24,
+        "text": "(local variable) int veryDescriptiveCountName",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "local variable"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "localName",
+            "text": "veryDescriptiveCountName"
+          }
+        ],
+        "symbolKind": "Local",
+        "targetText": "veryDescriptiveCountName"
+      },
+      {
+        "line": 2,
+        "character": 203,
+        "length": 1,
+        "text": "(method) void Console.WriteLine(string? value) (+ 17 overloads)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "method"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "void"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "Console"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "methodName",
+            "text": "WriteLine"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "?"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "value"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Writes the specified string value, followed by the current line terminator, to the standard output stream.",
+          "params": [
+            {
+              "name": "value",
+              "text": "The value to write."
+            }
+          ],
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "IOException",
+              "text": "An I/O error occurred."
+            }
+          ]
+        },
+        "symbolKind": "Method",
+        "targetText": ":",
+        "overloadCount": 18
+      }
+    ],
+    "errors": [],
+    "completions": [],
+    "highlights": [],
+    "tags": [],
+    "hidden": [],
+    "meta": {
+      "targetFramework": "net8.0",
+      "packages": [],
+      "compileSucceeded": true
+    }
+  }
+}

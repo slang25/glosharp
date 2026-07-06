@@ -1,0 +1,175 @@
+{
+  "sample": "nullable.cs",
+  "source": "// @noErrors\nstring? name = null;\n//      ^?\nstring definite = \"hello\";\n//       ^?\n",
+  "result": {
+    "code": "string? name = null;\nstring definite = \"hello\";\n",
+    "original": "// @noErrors\nstring? name = null;\n//      ^?\nstring definite = \"hello\";\n//       ^?\n",
+    "lang": "csharp",
+    "hovers": [
+      {
+        "line": 0,
+        "character": 8,
+        "length": 4,
+        "text": "(local variable) string? name",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "local variable"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "?"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "localName",
+            "text": "name"
+          }
+        ],
+        "symbolKind": "Local",
+        "targetText": "name",
+        "persistent": true
+      },
+      {
+        "line": 1,
+        "character": 7,
+        "length": 8,
+        "text": "(local variable) string definite",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "local variable"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "localName",
+            "text": "definite"
+          }
+        ],
+        "symbolKind": "Local",
+        "targetText": "definite",
+        "persistent": true
+      },
+      {
+        "line": 0,
+        "character": 0,
+        "length": 6,
+        "text": "(class) string",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "class"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          }
+        ],
+        "docs": {
+          "summary": "Represents text as a sequence of UTF-16 code units.",
+          "params": [],
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Class",
+        "targetText": "string"
+      },
+      {
+        "line": 1,
+        "character": 0,
+        "length": 6,
+        "text": "(class) string",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "class"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          }
+        ],
+        "docs": {
+          "summary": "Represents text as a sequence of UTF-16 code units.",
+          "params": [],
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Class",
+        "targetText": "string"
+      }
+    ],
+    "errors": [],
+    "completions": [],
+    "highlights": [],
+    "tags": [],
+    "hidden": [],
+    "meta": {
+      "targetFramework": "net8.0",
+      "packages": [],
+      "compileSucceeded": true
+    }
+  }
+}

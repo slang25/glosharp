@@ -1,0 +1,297 @@
+{
+  "sample": "completions.cs",
+  "source": "// Completion after dot access\nConsole.\n//      ^|\n\n// Completion for string methods\nvar greeting = \"Hello, World!\";\ngreeting.\n//       ^|\n",
+  "result": {
+    "code": "// Completion after dot access\nConsole.\n\n// Completion for string methods\nvar greeting = \"Hello, World!\";\ngreeting.\n",
+    "original": "// Completion after dot access\nConsole.\n//      ^|\n\n// Completion for string methods\nvar greeting = \"Hello, World!\";\ngreeting.\n//       ^|\n",
+    "lang": "csharp",
+    "hovers": [
+      {
+        "line": 1,
+        "character": 0,
+        "length": 7,
+        "text": "(class) Console",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "class"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "Console"
+          }
+        ],
+        "docs": {
+          "summary": "Represents the standard input, output, and error streams for console applications. This class cannot be inherited.",
+          "params": [],
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Class",
+        "targetText": "Console"
+      }
+    ],
+    "errors": [
+      {
+        "line": 5,
+        "character": 9,
+        "length": 1,
+        "code": "CS1001",
+        "message": "Identifier expected",
+        "severity": "error",
+        "expected": false
+      },
+      {
+        "line": 5,
+        "character": 9,
+        "length": 1,
+        "code": "CS1002",
+        "message": "; expected",
+        "severity": "error",
+        "expected": false
+      },
+      {
+        "line": 4,
+        "character": 0,
+        "length": 3,
+        "code": "CS0426",
+        "message": "The type name 'var' does not exist in the type 'Console'",
+        "severity": "error",
+        "expected": false
+      }
+    ],
+    "completions": [
+      {
+        "line": 1,
+        "character": 8,
+        "items": [
+          {
+            "label": "BackgroundColor",
+            "kind": "Property"
+          },
+          {
+            "label": "Beep",
+            "kind": "Method"
+          },
+          {
+            "label": "BufferHeight",
+            "kind": "Property"
+          },
+          {
+            "label": "BufferWidth",
+            "kind": "Property"
+          },
+          {
+            "label": "CancelKeyPress",
+            "kind": "Event"
+          },
+          {
+            "label": "CapsLock",
+            "kind": "Property"
+          },
+          {
+            "label": "Clear",
+            "kind": "Method"
+          },
+          {
+            "label": "CursorLeft",
+            "kind": "Property"
+          },
+          {
+            "label": "CursorSize",
+            "kind": "Property"
+          },
+          {
+            "label": "CursorTop",
+            "kind": "Property"
+          },
+          {
+            "label": "CursorVisible",
+            "kind": "Property"
+          },
+          {
+            "label": "Equals",
+            "kind": "Method"
+          },
+          {
+            "label": "Error",
+            "kind": "Property"
+          },
+          {
+            "label": "ForegroundColor",
+            "kind": "Property"
+          },
+          {
+            "label": "GetCursorPosition",
+            "kind": "Method"
+          },
+          {
+            "label": "In",
+            "kind": "Property"
+          },
+          {
+            "label": "InputEncoding",
+            "kind": "Property"
+          },
+          {
+            "label": "IsErrorRedirected",
+            "kind": "Property"
+          },
+          {
+            "label": "IsInputRedirected",
+            "kind": "Property"
+          },
+          {
+            "label": "IsOutputRedirected",
+            "kind": "Property"
+          },
+          {
+            "label": "KeyAvailable",
+            "kind": "Property"
+          },
+          {
+            "label": "LargestWindowHeight",
+            "kind": "Property"
+          },
+          {
+            "label": "LargestWindowWidth",
+            "kind": "Property"
+          },
+          {
+            "label": "MoveBufferArea",
+            "kind": "Method"
+          },
+          {
+            "label": "NumberLock",
+            "kind": "Property"
+          },
+          {
+            "label": "OpenStandardError",
+            "kind": "Method"
+          },
+          {
+            "label": "OpenStandardInput",
+            "kind": "Method"
+          },
+          {
+            "label": "OpenStandardOutput",
+            "kind": "Method"
+          },
+          {
+            "label": "Out",
+            "kind": "Property"
+          },
+          {
+            "label": "OutputEncoding",
+            "kind": "Property"
+          },
+          {
+            "label": "Read",
+            "kind": "Method"
+          },
+          {
+            "label": "ReadKey",
+            "kind": "Method"
+          },
+          {
+            "label": "ReadLine",
+            "kind": "Method"
+          },
+          {
+            "label": "ReferenceEquals",
+            "kind": "Method"
+          },
+          {
+            "label": "ResetColor",
+            "kind": "Method"
+          },
+          {
+            "label": "SetBufferSize",
+            "kind": "Method"
+          },
+          {
+            "label": "SetCursorPosition",
+            "kind": "Method"
+          },
+          {
+            "label": "SetError",
+            "kind": "Method"
+          },
+          {
+            "label": "SetIn",
+            "kind": "Method"
+          },
+          {
+            "label": "SetOut",
+            "kind": "Method"
+          },
+          {
+            "label": "SetWindowPosition",
+            "kind": "Method"
+          },
+          {
+            "label": "SetWindowSize",
+            "kind": "Method"
+          },
+          {
+            "label": "Title",
+            "kind": "Property"
+          },
+          {
+            "label": "TreatControlCAsInput",
+            "kind": "Property"
+          },
+          {
+            "label": "WindowHeight",
+            "kind": "Property"
+          },
+          {
+            "label": "WindowLeft",
+            "kind": "Property"
+          },
+          {
+            "label": "WindowTop",
+            "kind": "Property"
+          },
+          {
+            "label": "WindowWidth",
+            "kind": "Property"
+          },
+          {
+            "label": "Write",
+            "kind": "Method"
+          },
+          {
+            "label": "WriteLine",
+            "kind": "Method"
+          }
+        ]
+      },
+      {
+        "line": 5,
+        "character": 9,
+        "items": []
+      }
+    ],
+    "highlights": [],
+    "tags": [],
+    "hidden": [],
+    "meta": {
+      "targetFramework": "net8.0",
+      "packages": [],
+      "compileSucceeded": false
+    }
+  }
+}

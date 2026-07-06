@@ -1,0 +1,465 @@
+{
+  "sample": "cut-marker.cs",
+  "source": "using System.Text;\nvar sb = new StringBuilder();\n// ---cut-before---\nsb.Append(\"hello\");\n//   ^?\nsb.Append(\" world\");\nvar result = sb.ToString();\n//    ^?\n",
+  "result": {
+    "code": "sb.Append(\"hello\");\nsb.Append(\" world\");\nvar result = sb.ToString();\n",
+    "original": "using System.Text;\nvar sb = new StringBuilder();\n// ---cut-before---\nsb.Append(\"hello\");\n//   ^?\nsb.Append(\" world\");\nvar result = sb.ToString();\n//    ^?\n",
+    "lang": "csharp",
+    "hovers": [
+      {
+        "line": 0,
+        "character": 3,
+        "length": 6,
+        "text": "(method) StringBuilder StringBuilder.Append(string? value) (+ 25 overloads)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "method"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "StringBuilder"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "StringBuilder"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "methodName",
+            "text": "Append"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "?"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "value"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Appends a copy of the specified string to this instance.",
+          "params": [
+            {
+              "name": "value",
+              "text": "The string to append."
+            }
+          ],
+          "returns": "A reference to this instance after the append operation has completed.",
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "ArgumentOutOfRangeException",
+              "text": "Enlarging the value of this instance would exceed MaxCapacity."
+            }
+          ]
+        },
+        "symbolKind": "Method",
+        "targetText": "Append",
+        "overloadCount": 26,
+        "persistent": true
+      },
+      {
+        "line": 2,
+        "character": 4,
+        "length": 6,
+        "text": "(local variable) string? result",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "local variable"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "?"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "localName",
+            "text": "result"
+          }
+        ],
+        "symbolKind": "Local",
+        "targetText": "result",
+        "persistent": true
+      },
+      {
+        "line": 0,
+        "character": 0,
+        "length": 2,
+        "text": "(local variable) StringBuilder? sb",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "local variable"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "StringBuilder"
+          },
+          {
+            "kind": "punctuation",
+            "text": "?"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "localName",
+            "text": "sb"
+          }
+        ],
+        "symbolKind": "Local",
+        "targetText": "sb"
+      },
+      {
+        "line": 1,
+        "character": 0,
+        "length": 2,
+        "text": "(local variable) StringBuilder? sb",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "local variable"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "StringBuilder"
+          },
+          {
+            "kind": "punctuation",
+            "text": "?"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "localName",
+            "text": "sb"
+          }
+        ],
+        "symbolKind": "Local",
+        "targetText": "sb"
+      },
+      {
+        "line": 1,
+        "character": 3,
+        "length": 6,
+        "text": "(method) StringBuilder StringBuilder.Append(string? value) (+ 25 overloads)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "method"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "StringBuilder"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "StringBuilder"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "methodName",
+            "text": "Append"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "?"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "value"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Appends a copy of the specified string to this instance.",
+          "params": [
+            {
+              "name": "value",
+              "text": "The string to append."
+            }
+          ],
+          "returns": "A reference to this instance after the append operation has completed.",
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "ArgumentOutOfRangeException",
+              "text": "Enlarging the value of this instance would exceed MaxCapacity."
+            }
+          ]
+        },
+        "symbolKind": "Method",
+        "targetText": "Append",
+        "overloadCount": 26
+      },
+      {
+        "line": 2,
+        "character": 0,
+        "length": 3,
+        "text": "(class) string",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "class"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          }
+        ],
+        "docs": {
+          "summary": "Represents text as a sequence of UTF-16 code units.",
+          "params": [],
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Class",
+        "targetText": "var"
+      },
+      {
+        "line": 2,
+        "character": 13,
+        "length": 2,
+        "text": "(local variable) StringBuilder? sb",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "local variable"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "StringBuilder"
+          },
+          {
+            "kind": "punctuation",
+            "text": "?"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "localName",
+            "text": "sb"
+          }
+        ],
+        "symbolKind": "Local",
+        "targetText": "sb"
+      },
+      {
+        "line": 2,
+        "character": 16,
+        "length": 8,
+        "text": "(method) string StringBuilder.ToString() (+ 1 overloads)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "method"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "StringBuilder"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "methodName",
+            "text": "ToString"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Converts the value of this instance to a String.",
+          "params": [],
+          "returns": "A string whose value is the same as this instance.",
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Method",
+        "targetText": "ToString",
+        "overloadCount": 2
+      }
+    ],
+    "errors": [],
+    "completions": [],
+    "highlights": [],
+    "tags": [],
+    "hidden": [],
+    "meta": {
+      "targetFramework": "net8.0",
+      "packages": [],
+      "compileSucceeded": true
+    }
+  }
+}

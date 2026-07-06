@@ -296,19 +296,22 @@ function wrapTokenAtPosition(
       const offsetInToken = targetStart - spanStart
       const tokenText = text
 
-      // If the hover covers the whole token, wrap it directly
+      // If the hover covers the whole token, wrap it directly.
+      // The popup lives inside the hover wrapper so that (a) :hover on the
+      // wrapper keeps it open while the pointer is over the popup, and (b)
+      // the @supports-not fallback can position it relative to the wrapper.
       if (offsetInToken === 0 && length === tokenText.length) {
-        const wrapper = h('span', {
-          class: hoverClass,
-          style: `anchor-name: ${anchorName}`,
-        }, [child])
-
         const popup = h('div', {
           class: 'glosharp-popup',
           style: `position-anchor: ${anchorName}`,
         }, popupChildren)
 
-        line.children.splice(i, 1, wrapper, popup)
+        const wrapper = h('span', {
+          class: hoverClass,
+          style: `anchor-name: ${anchorName}`,
+        }, [child, popup])
+
+        line.children.splice(i, 1, wrapper)
         return
       }
 
@@ -321,17 +324,15 @@ function wrapTokenAtPosition(
       }
 
       const hoverSpan = h('span', { ...props }, [hText(tokenText.slice(offsetInToken, offsetInToken + length))])
-      const wrapper = h('span', {
-        class: 'glosharp-hover',
-        style: `anchor-name: ${anchorName}`,
-      }, [hoverSpan])
-      parts.push(wrapper)
-
       const popup = h('div', {
         class: 'glosharp-popup',
         style: `position-anchor: ${anchorName}`,
       }, popupChildren)
-      parts.push(popup)
+      const wrapper = h('span', {
+        class: 'glosharp-hover',
+        style: `anchor-name: ${anchorName}`,
+      }, [hoverSpan, popup])
+      parts.push(wrapper)
 
       const afterStart = offsetInToken + length
       if (afterStart < tokenText.length) {

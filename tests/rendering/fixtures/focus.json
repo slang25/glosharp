@@ -1,0 +1,1452 @@
+{
+  "sample": "focus.cs",
+  "source": "// @noErrors\nvar numbers = Enumerable.Range(1, 10).ToArray();\n// @focus\nvar evens = numbers.Where(n => n % 2 == 0).ToArray();\nConsole.WriteLine(string.Join(\", \", evens));\n",
+  "result": {
+    "code": "var numbers = Enumerable.Range(1, 10).ToArray();\nvar evens = numbers.Where(n => n % 2 == 0).ToArray();\nConsole.WriteLine(string.Join(\", \", evens));\n",
+    "original": "// @noErrors\nvar numbers = Enumerable.Range(1, 10).ToArray();\n// @focus\nvar evens = numbers.Where(n => n % 2 == 0).ToArray();\nConsole.WriteLine(string.Join(\", \", evens));\n",
+    "lang": "csharp",
+    "hovers": [
+      {
+        "line": 0,
+        "character": 0,
+        "length": 3,
+        "text": "int[]",
+        "parts": [
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          }
+        ],
+        "symbolKind": "Unknown",
+        "targetText": "var"
+      },
+      {
+        "line": 0,
+        "character": 4,
+        "length": 7,
+        "text": "(local variable) int[]? numbers",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "local variable"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "punctuation",
+            "text": "?"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "localName",
+            "text": "numbers"
+          }
+        ],
+        "symbolKind": "Local",
+        "targetText": "numbers"
+      },
+      {
+        "line": 0,
+        "character": 14,
+        "length": 10,
+        "text": "(class) Enumerable",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "class"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "Enumerable"
+          }
+        ],
+        "docs": {
+          "summary": "Provides a set of ( in Visual Basic) methods for querying objects that implement IEnumerable`1.",
+          "params": [],
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Class",
+        "targetText": "Enumerable"
+      },
+      {
+        "line": 0,
+        "character": 25,
+        "length": 5,
+        "text": "(method) IEnumerable<int> Enumerable.Range(int start, int count)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "method"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "interfaceName",
+            "text": "IEnumerable"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "Enumerable"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "methodName",
+            "text": "Range"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "start"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "count"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Generates a sequence of integral numbers within a specified range.",
+          "params": [
+            {
+              "name": "start",
+              "text": "The value of the first integer in the sequence."
+            },
+            {
+              "name": "count",
+              "text": "The number of sequential integers to generate."
+            }
+          ],
+          "returns": "An IEnumerable<Int32> in C# or IEnumerable(Of Int32) in Visual Basic that contains a range of sequential integral numbers.",
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "ArgumentOutOfRangeException",
+              "text": "count is less than 0. -or- start + count -1 is larger than MaxValue."
+            }
+          ]
+        },
+        "symbolKind": "Method",
+        "targetText": "Range"
+      },
+      {
+        "line": 0,
+        "character": 38,
+        "length": 7,
+        "text": "(extension) int[] IEnumerable<int>.ToArray<int>()",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "extension"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "interfaceName",
+            "text": "IEnumerable"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "text",
+            "text": "ToArray"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Creates an array from a IEnumerable`1.",
+          "params": [
+            {
+              "name": "source",
+              "text": "An IEnumerable`1 to create an array from."
+            }
+          ],
+          "returns": "An array that contains the elements from the input sequence.",
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "ArgumentNullException",
+              "text": "source is ."
+            }
+          ]
+        },
+        "symbolKind": "Method",
+        "targetText": "ToArray"
+      },
+      {
+        "line": 1,
+        "character": 0,
+        "length": 3,
+        "text": "int[]",
+        "parts": [
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          }
+        ],
+        "symbolKind": "Unknown",
+        "targetText": "var"
+      },
+      {
+        "line": 1,
+        "character": 4,
+        "length": 5,
+        "text": "(local variable) int[]? evens",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "local variable"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "punctuation",
+            "text": "?"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "localName",
+            "text": "evens"
+          }
+        ],
+        "symbolKind": "Local",
+        "targetText": "evens"
+      },
+      {
+        "line": 1,
+        "character": 12,
+        "length": 7,
+        "text": "(local variable) int[]? numbers",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "local variable"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "punctuation",
+            "text": "?"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "localName",
+            "text": "numbers"
+          }
+        ],
+        "symbolKind": "Local",
+        "targetText": "numbers"
+      },
+      {
+        "line": 1,
+        "character": 20,
+        "length": 5,
+        "text": "(extension) IEnumerable<int> IEnumerable<int>.Where<int>(Func<int, bool> predicate) (+ 1 overloads)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "extension"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "interfaceName",
+            "text": "IEnumerable"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "interfaceName",
+            "text": "IEnumerable"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "text",
+            "text": "Where"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "delegateName",
+            "text": "Func"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "bool"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "predicate"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Filters a sequence of values based on a predicate.",
+          "params": [
+            {
+              "name": "source",
+              "text": "An IEnumerable`1 to filter."
+            },
+            {
+              "name": "predicate",
+              "text": "A function to test each element for a condition."
+            }
+          ],
+          "returns": "An IEnumerable`1 that contains elements from the input sequence that satisfy the condition.",
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "ArgumentNullException",
+              "text": "source or predicate is ."
+            }
+          ]
+        },
+        "symbolKind": "Method",
+        "targetText": "Where",
+        "overloadCount": 2
+      },
+      {
+        "line": 1,
+        "character": 26,
+        "length": 1,
+        "text": "(parameter) int n",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "parameter"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "n"
+          }
+        ],
+        "symbolKind": "Parameter",
+        "targetText": "n"
+      },
+      {
+        "line": 1,
+        "character": 31,
+        "length": 1,
+        "text": "(parameter) int n",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "parameter"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "n"
+          }
+        ],
+        "symbolKind": "Parameter",
+        "targetText": "n"
+      },
+      {
+        "line": 1,
+        "character": 33,
+        "length": 1,
+        "text": "(extension) IEnumerable<int> IEnumerable<int>.Where<int>(Func<int, bool> predicate) (+ 1 overloads)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "extension"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "interfaceName",
+            "text": "IEnumerable"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "interfaceName",
+            "text": "IEnumerable"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "text",
+            "text": "Where"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "delegateName",
+            "text": "Func"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "bool"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "predicate"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Filters a sequence of values based on a predicate.",
+          "params": [
+            {
+              "name": "source",
+              "text": "An IEnumerable`1 to filter."
+            },
+            {
+              "name": "predicate",
+              "text": "A function to test each element for a condition."
+            }
+          ],
+          "returns": "An IEnumerable`1 that contains elements from the input sequence that satisfy the condition.",
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "ArgumentNullException",
+              "text": "source or predicate is ."
+            }
+          ]
+        },
+        "symbolKind": "Method",
+        "targetText": "%",
+        "overloadCount": 2
+      },
+      {
+        "line": 1,
+        "character": 37,
+        "length": 2,
+        "text": "(extension) IEnumerable<int> IEnumerable<int>.Where<int>(Func<int, bool> predicate) (+ 1 overloads)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "extension"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "interfaceName",
+            "text": "IEnumerable"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "interfaceName",
+            "text": "IEnumerable"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "text",
+            "text": "Where"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "delegateName",
+            "text": "Func"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "bool"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "predicate"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Filters a sequence of values based on a predicate.",
+          "params": [
+            {
+              "name": "source",
+              "text": "An IEnumerable`1 to filter."
+            },
+            {
+              "name": "predicate",
+              "text": "A function to test each element for a condition."
+            }
+          ],
+          "returns": "An IEnumerable`1 that contains elements from the input sequence that satisfy the condition.",
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "ArgumentNullException",
+              "text": "source or predicate is ."
+            }
+          ]
+        },
+        "symbolKind": "Method",
+        "targetText": "==",
+        "overloadCount": 2
+      },
+      {
+        "line": 1,
+        "character": 43,
+        "length": 7,
+        "text": "(extension) int[] IEnumerable<int>.ToArray<int>()",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "extension"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "interfaceName",
+            "text": "IEnumerable"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "text",
+            "text": "ToArray"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Creates an array from a IEnumerable`1.",
+          "params": [
+            {
+              "name": "source",
+              "text": "An IEnumerable`1 to create an array from."
+            }
+          ],
+          "returns": "An array that contains the elements from the input sequence.",
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "ArgumentNullException",
+              "text": "source is ."
+            }
+          ]
+        },
+        "symbolKind": "Method",
+        "targetText": "ToArray"
+      },
+      {
+        "line": 2,
+        "character": 0,
+        "length": 7,
+        "text": "(class) Console",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "class"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "Console"
+          }
+        ],
+        "docs": {
+          "summary": "Represents the standard input, output, and error streams for console applications. This class cannot be inherited.",
+          "params": [],
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Class",
+        "targetText": "Console"
+      },
+      {
+        "line": 2,
+        "character": 8,
+        "length": 9,
+        "text": "(method) void Console.WriteLine(string? value) (+ 17 overloads)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "method"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "void"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "Console"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "methodName",
+            "text": "WriteLine"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "?"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "value"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Writes the specified string value, followed by the current line terminator, to the standard output stream.",
+          "params": [
+            {
+              "name": "value",
+              "text": "The value to write."
+            }
+          ],
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "IOException",
+              "text": "An I/O error occurred."
+            }
+          ]
+        },
+        "symbolKind": "Method",
+        "targetText": "WriteLine",
+        "overloadCount": 18
+      },
+      {
+        "line": 2,
+        "character": 18,
+        "length": 6,
+        "text": "(class) string",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "class"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          }
+        ],
+        "docs": {
+          "summary": "Represents text as a sequence of UTF-16 code units.",
+          "params": [],
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Class",
+        "targetText": "string"
+      },
+      {
+        "line": 2,
+        "character": 25,
+        "length": 4,
+        "text": "(method) string string.Join<int>(string? separator, IEnumerable<int> values) (+ 8 overloads)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "method"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "methodName",
+            "text": "Join"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "?"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "separator"
+          },
+          {
+            "kind": "punctuation",
+            "text": ","
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "interfaceName",
+            "text": "IEnumerable"
+          },
+          {
+            "kind": "punctuation",
+            "text": "<"
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "punctuation",
+            "text": ">"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "values"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Concatenates the members of a collection, using the specified separator between each member.",
+          "params": [
+            {
+              "name": "separator",
+              "text": "The string to use as a separator. separator is included in the returned string only if values has more than one element."
+            },
+            {
+              "name": "values",
+              "text": "A collection that contains the objects to concatenate."
+            }
+          ],
+          "returns": "A string that consists of the elements of values delimited by the separator string. -or- Empty if values has no elements.",
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "ArgumentNullException",
+              "text": "values is ."
+            },
+            {
+              "type": "OutOfMemoryException",
+              "text": "The length of the resulting string overflows the maximum allowed length (MaxValue)."
+            }
+          ]
+        },
+        "symbolKind": "Method",
+        "targetText": "Join",
+        "overloadCount": 9
+      },
+      {
+        "line": 2,
+        "character": 36,
+        "length": 5,
+        "text": "(local variable) int[]? evens",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "local variable"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "int"
+          },
+          {
+            "kind": "punctuation",
+            "text": "["
+          },
+          {
+            "kind": "punctuation",
+            "text": "]"
+          },
+          {
+            "kind": "punctuation",
+            "text": "?"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "localName",
+            "text": "evens"
+          }
+        ],
+        "symbolKind": "Local",
+        "targetText": "evens"
+      }
+    ],
+    "errors": [],
+    "completions": [],
+    "highlights": [
+      {
+        "line": 1,
+        "character": 0,
+        "length": 53,
+        "kind": "focus"
+      }
+    ],
+    "tags": [],
+    "hidden": [],
+    "meta": {
+      "targetFramework": "net8.0",
+      "packages": [],
+      "compileSucceeded": true
+    }
+  }
+}
