@@ -33,7 +33,7 @@
 
 - [x] 4.1 Add `web-rendering` job to `.github/workflows/ci.yml`: npm ci, build packages, build gallery, install Playwright browsers, run suite; upload Playwright report/traces as artifacts on failure
 - [x] 4.2 Add `fixtures:check` to the existing `node-build-and-test` job (which already has the .NET SDK)
-- [ ] 4.3 Verify both jobs pass on a PR; confirm the web-rendering job runs without the .NET SDK
+- [x] 4.3 Verify both jobs pass on a PR; confirm the web-rendering job runs without the .NET SDK
 
 ## 5. Docs
 
