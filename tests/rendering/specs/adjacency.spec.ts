@@ -29,10 +29,6 @@ for (const theme of ['dark', 'light'] as const) {
     await expect(popup).toBeVisible()
 
     const anchored = await supportsAnchorPositioning(page)
-    // KNOWN FINDING: without CSS Anchor Positioning there is no functional
-    // fallback in @glosharp/shiki — see fallback.spec.ts.
-    test.fail(!anchored, 'no functional fallback positioning in @glosharp/shiki when CSS Anchor Positioning is unavailable')
-
     const distance = rectDistance(await box(token), await box(popup))
     const tolerance = anchored ? ADJACENCY_TOLERANCE_PX : FALLBACK_ADJACENCY_TOLERANCE_PX
     expect(distance, 'popup adjacent to token').toBeLessThanOrEqual(tolerance)

@@ -22,10 +22,6 @@ test('EC renders warnings in a different color than errors', async ({ page }) =>
 })
 
 test('Shiki renders warnings in a different color than errors', async ({ page }) => {
-  // KNOWN FINDING: @glosharp/shiki's style.css defines only the red error
-  // styling — no .glosharp-severity-warning / -info rules — so warnings render
-  // identical to errors, violating the severity-styling spec.
-  test.fail(true, '@glosharp/shiki style.css lacks severity-specific colors; warnings render red like errors')
   await page.goto('/shiki-dark.html?static')
   const colors = await messageColors(galleryCase(page, 'shiki/severities/dark'))
   expect(colors.warning, 'warning color differs from error color').not.toBe(colors.error)

@@ -110,6 +110,8 @@ function buildBaseStyles(): string {
   word-break: normal !important;
   overflow-wrap: normal !important;
   width: max-content !important;
+  /* Never exceed the viewport: signature and docs sections wrap when constrained */
+  max-width: min(560px, calc(100vw - 24px));
   margin-top: 0.5rem;
   animation: glosharpPopupFadeIn 0.12s ease-out;
 }
@@ -608,8 +610,16 @@ function buildPopupJsModule(): string {
 
     const hoverRect = activeHover.getBoundingClientRect();
     const ecRect = activeEcRoot.getBoundingClientRect();
-    const left = hoverRect.left - ecRect.left;
+    let left = hoverRect.left - ecRect.left;
     const top = hoverRect.bottom - ecRect.top + 6;
+
+    // Clamp horizontally so the popup never extends past the viewport
+    // (the popup is displayed before positioning, so offsetWidth is real).
+    const margin = 8;
+    const popupWidth = activePopup.offsetWidth;
+    const minLeft = margin - ecRect.left;
+    const maxLeft = window.innerWidth - margin - popupWidth - ecRect.left;
+    left = Math.min(Math.max(left, minLeft), Math.max(minLeft, maxLeft));
 
     activePopup.style.left = left + 'px';
     activePopup.style.top = top + 'px';
@@ -1256,15 +1266,20 @@ function buildErrorCodeNode(code: string): HastNode {
 
 class GloSharpErrorAnnotation {
   readonly error: GloSharpError
-  readonly inlineRange: { columnStart: number; columnEnd: number }
+  readonly inlineRange?: { columnStart: number; columnEnd: number }
   readonly isMessageOnly: boolean
 
   constructor(error: GloSharpError, opts?: { messageOnly?: boolean }) {
     this.error = error
     this.isMessageOnly = opts?.messageOnly ?? false
-    this.inlineRange = {
-      columnStart: error.character,
-      columnEnd: error.character + error.length,
+    // Message-only annotations (last line of a multi-line span) are
+    // line-level: EC core requires render output to match input node count,
+    // so the message box is nested inside a wrapper of the line's nodes.
+    if (!this.isMessageOnly) {
+      this.inlineRange = {
+        columnStart: error.character,
+        columnEnd: error.character + error.length,
+      }
     }
   }
 
@@ -1290,31 +1305,34 @@ class GloSharpErrorAnnotation {
     }
 
     if (this.isMessageOnly) {
-      return [
-        ...nodesToTransform,
-        messageBox,
-      ]
+      return nodesToTransform.map(node => ({
+        type: 'element' as const,
+        tagName: 'div',
+        properties: { class: 'glosharp-error-message-wrapper' },
+        children: [node, messageBox],
+      }))
     }
 
+    // Multi-line spans render the message once via the message-only
+    // annotation on the last line; per-line underlines carry no message.
+    const isMultiLine = this.error.endLine != null && this.error.endLine > this.error.line
     return nodesToTransform.map(node => ({
       type: 'element' as const,
       tagName: 'span',
       properties: { class: `glosharp-error-underline ${severityClass}` },
-      children: [node, messageBox],
+      children: isMultiLine ? [node] : [node, messageBox],
     }))
   }
 }
 
 class GloSharpCompletionAnnotation {
   readonly completion: GloSharpCompletion
-  readonly inlineRange: { columnStart: number; columnEnd: number }
 
+  // Line-level annotation (no inlineRange): EC core requires render output to
+  // contain exactly as many nodes as it receives, so the completion list is
+  // nested inside a wrapper of the line's nodes rather than appended.
   constructor(completion: GloSharpCompletion) {
     this.completion = completion
-    this.inlineRange = {
-      columnStart: completion.character,
-      columnEnd: completion.character,
-    }
   }
 
   render({ nodesToTransform }: { nodesToTransform: HastNode[] }): HastNode[] {
@@ -1351,7 +1369,12 @@ class GloSharpCompletionAnnotation {
       children: items,
     }
 
-    return [...nodesToTransform, completionList]
+    return nodesToTransform.map(node => ({
+      type: 'element' as const,
+      tagName: 'div',
+      properties: { class: 'glosharp-completion-wrapper' },
+      children: [node, completionList],
+    }))
   }
 }
 

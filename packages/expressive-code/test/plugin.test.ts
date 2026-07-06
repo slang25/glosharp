@@ -18,14 +18,11 @@ describe('pluginGloSharp', () => {
   it('has baseStyles with CSS', () => {
     const plugin = pluginGloSharp()
     expect(plugin.baseStyles).toContain('.glosharp-hover')
-    expect(plugin.baseStyles).toContain('.glosharp-popup')
-    // anchor-name and position-anchor are set as inline styles on individual elements,
-    // not in the base stylesheet — verify core layout rules instead
-    expect(plugin.baseStyles).toContain('position: fixed')
-    expect(plugin.baseStyles).toContain('position-area: top')
-    expect(plugin.baseStyles).toContain('position-try-fallbacks: flip-block')
-    expect(plugin.baseStyles).toContain('max-height: 40vh')
-    expect(plugin.baseStyles).toContain('overflow-y: auto')
+    expect(plugin.baseStyles).toContain('.glosharp-popup-container')
+    // EC popups are absolutely positioned within the EC root and moved by the
+    // popup JS module (unlike the Shiki path's CSS anchor positioning)
+    expect(plugin.baseStyles).toContain('position: absolute')
+    expect(plugin.baseStyles).toContain('.expressive-code {\n  position: relative;\n}')
   })
 
   it('does not expose styleSettings (styles are in baseStyles)', () => {

@@ -65,25 +65,20 @@ All geometry thresholds are named constants in `specs/helpers.ts`
 (`ADJACENCY_TOLERANCE_PX`, `EC_VERTICAL_GAP_RANGE_PX`, …). They are a
 contract: loosening one is a reviewable decision, never a per-test fudge.
 
-### Known findings (`test.fail`)
+### Known findings (`test.fail` / `KNOWN_ISSUES`)
 
 Assertions that document real, currently-unfixed defects are marked
-`test.fail(…, reason)`. They keep CI green while the defect exists and flag
-loudly ("passed unexpectedly") the moment it is fixed — at which point remove
-the marker. Current findings:
-
-- EC popups are unclamped (`white-space: nowrap`, no max-width, no horizontal
-  clamping) and overflow 390px viewports.
-- `@glosharp/shiki` has no functional positioning fallback when CSS Anchor
-  Positioning is unavailable (`shiki-fallback.html` popups render far from
-  their token).
-- `@glosharp/shiki`'s `style.css` lacks severity-specific colors — warnings
-  render red like errors, violating the severity-styling spec.
-
-Two further defects live in `KNOWN_ISSUES` in `scripts/build-gallery.ts`
-because they crash the EC render outright (zero-width/count-mismatch
-annotations: completion lists and multi-line error messages). Each skip is
+`test.fail(…, reason)` in the specs. They keep CI green while the defect
+exists and flag loudly ("passed unexpectedly") the moment it is fixed — at
+which point remove the marker. Fixtures that crash a render path outright are
+skipped via `KNOWN_ISSUES` in `scripts/build-gallery.ts`, with each skip
 logged at build time so the coverage gap is never silent.
+
+Both lists are currently empty — the five defects found by the loop's first
+run were fixed in the `fix-rendering-defects` change. Two `it.fails` markers
+remain in the package unit tests for open product decisions (whether expected
+`@errors:` diagnostics should render, and per-block `region` overrides being
+incompatible with `--stdin`).
 
 ## Adding coverage
 

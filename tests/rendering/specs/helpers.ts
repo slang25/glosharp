@@ -18,10 +18,11 @@ export const EC_VERTICAL_GAP_RANGE_PX = [4, 18] as const
 export const ADJACENCY_TOLERANCE_PX = 16
 
 /**
- * Relaxed profile for environments without CSS Anchor Positioning: the popup
- * must still show up near its token, not float off elsewhere on the page.
+ * Relaxed profile for environments without CSS Anchor Positioning: the
+ * wrapper-relative fallback puts the popup directly below the token
+ * (nominal gap 4px), so anything beyond this means it detached.
  */
-export const FALLBACK_ADJACENCY_TOLERANCE_PX = 120
+export const FALLBACK_ADJACENCY_TOLERANCE_PX = 32
 
 /** EC hides its popup 100ms after mouseleave; how long we allow on top. */
 export const HIDE_DEADLINE_MS = 1500
@@ -68,9 +69,24 @@ export function expectWithinViewport(b: Box, viewport: { width: number; height: 
   expect(b.y + b.height, `${label}: bottom edge inside viewport`).toBeLessThanOrEqual(viewport.height)
 }
 
-/** Assert the EC popup sits exactly where the plugin's JS is meant to put it. */
-export function expectEcAdjacent(token: Box, popup: Box): void {
-  expect(Math.abs(popup.x - token.x), 'popup left aligned with token').toBeLessThanOrEqual(EC_HORIZONTAL_TOLERANCE_PX)
+/**
+ * Assert the EC popup sits where the plugin's JS is meant to put it: left
+ * aligned with the token, just below it. When a viewport is given, a popup
+ * clamped to a viewport edge is also accepted — but only if the token's
+ * x-range still intersects the popup's (a detached popup cannot pass).
+ */
+export function expectEcAdjacent(token: Box, popup: Box, viewport?: { width: number }): void {
+  const aligned = Math.abs(popup.x - token.x) <= EC_HORIZONTAL_TOLERANCE_PX
+  if (!aligned && viewport) {
+    const CLAMP_MARGIN_PX = 8
+    const atEdge =
+      popup.x <= CLAMP_MARGIN_PX + EC_HORIZONTAL_TOLERANCE_PX ||
+      popup.x + popup.width >= viewport.width - CLAMP_MARGIN_PX - EC_HORIZONTAL_TOLERANCE_PX
+    const overlapsToken = token.x < popup.x + popup.width && token.x + token.width > popup.x
+    expect(atEdge && overlapsToken, 'popup clamped to viewport edge but still spanning its token').toBe(true)
+  } else {
+    expect(aligned, `popup left (${popup.x}) aligned with token left (${token.x})`).toBe(true)
+  }
   const gap = popup.y - (token.y + token.height)
   expect(gap, 'popup sits just below token').toBeGreaterThanOrEqual(EC_VERTICAL_GAP_RANGE_PX[0])
   expect(gap, 'popup sits just below token').toBeLessThanOrEqual(EC_VERTICAL_GAP_RANGE_PX[1])

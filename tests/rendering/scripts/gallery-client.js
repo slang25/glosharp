@@ -34,9 +34,9 @@
       // positioning code runs exactly as it would on a real mouseenter.
       hover.dispatchEvent(new MouseEvent('mouseenter'))
     } else {
-      // Shiki path: popups are CSS :hover gated; force the sibling open.
-      const popup = hover.nextElementSibling
-      if (popup && popup.classList.contains('glosharp-popup')) {
+      // Shiki path: popups are CSS :hover gated; force the child popup open.
+      const popup = hover.querySelector(':scope > .glosharp-popup')
+      if (popup) {
         popup.style.display = 'block'
       }
     }

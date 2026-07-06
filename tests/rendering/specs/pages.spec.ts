@@ -6,8 +6,8 @@ const PAGES = [
   { path: '/shiki-dark.html', minCases: 16 },
   { path: '/shiki-light.html', minCases: 16 },
   { path: '/shiki-fallback.html', minCases: 16 },
-  { path: '/ec-dark.html', minCases: 14 },
-  { path: '/ec-light.html', minCases: 14 },
+  { path: '/ec-dark.html', minCases: 16 },
+  { path: '/ec-light.html', minCases: 16 },
   { path: '/index.html', minCases: 0 },
 ]
 

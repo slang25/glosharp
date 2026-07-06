@@ -6,11 +6,6 @@ import { test, expect, box, rectDistance, shikiHover, shikiVisiblePopup, FALLBAC
 // is acceptable, a popup rendered somewhere unrelated is not.
 
 test('fallback popup still appears near its token on hover', async ({ page }) => {
-  // KNOWN FINDING: @glosharp/shiki's style.css has no `@supports not` fallback
-  // for CSS Anchor Positioning — without anchors the fixed-position popup
-  // renders thousands of pixels from its token. Marked test.fail() so it
-  // flags ("passed unexpectedly") once a real fallback ships.
-  test.fail(true, 'no functional fallback positioning in @glosharp/shiki when CSS Anchor Positioning is unavailable')
   await page.goto('/shiki-fallback.html?static')
   const token = shikiHover(page, 'shiki-fallback/local-variables/dark').first()
   await token.scrollIntoViewIfNeeded()

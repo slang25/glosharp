@@ -42,10 +42,26 @@ pre:hover .glosharp-hover:not(:hover):not(.glosharp-hover-persistent) {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
-/* Show popup on hover */
-.glosharp-hover:hover + .glosharp-popup,
+/* Show popup on hover. The popup is a child of the hover wrapper, so the
+   wrapper's :hover keeps it open while the pointer is over the popup. */
+.glosharp-hover:hover > .glosharp-popup,
 .glosharp-popup:hover {
   display: block;
+}
+
+/* Fallback for browsers without CSS Anchor Positioning: position the popup
+   relative to its hover wrapper, below the token (above the token would be
+   clipped by the scrolling <pre> for first-line tokens). Degraded but always
+   adjacent to the token. */
+@supports not (anchor-name: --a) {
+  .glosharp-popup {
+    position: absolute;
+    position-area: none;
+    top: calc(100% + 4px);
+    left: 0;
+    /* Size to content, not to the (tiny) inline hover wrapper */
+    width: max-content;
+  }
 }
 
 /* Popup code block */
@@ -62,9 +78,17 @@ pre:hover .glosharp-hover:not(:hover):not(.glosharp-hover-persistent) {
   font-style: italic;
 }
 
-/* Error annotations */
+/* Error annotations (severity variants share the EC plugin's palette) */
 .glosharp-error-underline {
   border-bottom: 2px wavy #f44747;
+}
+
+.glosharp-error-underline.glosharp-severity-warning {
+  border-bottom-color: #d29922;
+}
+
+.glosharp-error-underline.glosharp-severity-info {
+  border-bottom-color: #539bf5;
 }
 
 .glosharp-error-message {
@@ -75,6 +99,18 @@ pre:hover .glosharp-hover:not(:hover):not(.glosharp-hover-persistent) {
   border-left: 3px solid #f44747;
   color: #f44747;
   font-size: 0.85em;
+}
+
+.glosharp-error-message.glosharp-severity-warning {
+  background: rgba(210, 153, 34, 0.15);
+  border-left-color: #d29922;
+  color: #d29922;
+}
+
+.glosharp-error-message.glosharp-severity-info {
+  background: rgba(83, 155, 245, 0.15);
+  border-left-color: #539bf5;
+  color: #539bf5;
 }
 
 .glosharp-error-code {

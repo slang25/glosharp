@@ -37,16 +37,7 @@ const THEMES = [
 // Fixtures that cannot currently render through a given path due to known
 // package bugs. Every entry here is a live defect that should have a tracking
 // issue; the build logs each skip so coverage gaps are never silent.
-const KNOWN_ISSUES: Record<string, { path: 'ec' | 'shiki'; reason: string }[]> = {
-  completions: [{
-    path: 'ec',
-    reason: 'GloSharpCompletionAnnotation uses a zero-width inline range but renders a <ul>; EC core rejects render output whose node count differs from input (crashes the EC render)',
-  }],
-  'multi-line-error': [{
-    path: 'ec',
-    reason: 'GloSharpErrorAnnotation with messageOnly returns nodesToTransform plus a message box; EC core rejects render output whose node count differs from input (crashes the EC render)',
-  }],
-}
+const KNOWN_ISSUES: Record<string, { path: 'ec' | 'shiki'; reason: string }[]> = {}
 
 function knownIssue(fixture: string, path: 'ec' | 'shiki'): string | undefined {
   return KNOWN_ISSUES[fixture]?.find(i => i.path === path)?.reason
@@ -137,10 +128,17 @@ async function buildShikiPages(fixtures: Fixture[]): Promise<Record<string, stri
     assertGloSharpRendered(stripped, id)
     darkSections.push(caseSection(id, stripped))
   }
+  // Force-enable the stylesheet's own @supports-not fallback block (in
+  // addition to the stripped inline anchor styles above), so the page shows
+  // exactly what a browser without CSS Anchor Positioning renders.
+  const fallbackCss = styleCss.replace('@supports not (anchor-name: --a)', '@supports (color: red)')
+  if (fallbackCss === styleCss) {
+    throw new Error('shiki style.css no longer contains the @supports-not anchor fallback block')
+  }
   pages['shiki-fallback.html'] = page(
     'GloSharp gallery — Shiki (anchor-positioning fallback)',
     'dark',
-    `<style>\n${styleCss}\n</style>\n<style>\n.glosharp-popup { position-area: none !important; position-try-fallbacks: none !important; }\n</style>`,
+    `<style>\n${fallbackCss}\n</style>`,
     darkSections.join('\n'),
   )
 
