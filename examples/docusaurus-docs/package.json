@@ -16,7 +16,6 @@
     "react-dom": "^19.0.0",
     "@glosharp/core": "*",
     "@glosharp/shiki": "*",
-    "rehype-raw": "^7.0.0",
     "shiki": "^3.0.0",
     "unist-util-visit": "^5.0.0"
   },
