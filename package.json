@@ -1,4 +1,5 @@
 {
+  "name": "glosharp",
   "private": true,
   "workspaces": [
     "packages/glosharp",

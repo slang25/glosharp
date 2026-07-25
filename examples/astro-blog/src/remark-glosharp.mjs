@@ -1,4 +1,5 @@
-import { processGloSharpCode, transformerGloSharpWithResult } from '@glosharp/shiki'
+import { createHash } from 'node:crypto'
+import { processGloSharpBlocks, transformerGloSharpWithResult } from '@glosharp/shiki'
 import { visit } from 'unist-util-visit'
 
 /**
@@ -20,8 +21,18 @@ export function remarkGloSharp() {
       }
     })
 
+    if (codeNodes.length === 0) return
+
+    // One batch call shares a single glosharp instance -- and its result cache --
+    // across every block and processes them concurrently, rather than spawning a
+    // fresh instance per block and awaiting each in turn.
+    const resultMap = await processGloSharpBlocks(codeNodes.map(node => node.value))
+
     for (const node of codeNodes) {
-      const result = await processGloSharpCode(node.value)
+      // Hash the original source: processGloSharpBlocks keys results by the code
+      // it was handed, so this has to happen before node.value is overwritten.
+      const hash = createHash('sha256').update(node.value).digest('hex')
+      const result = resultMap.get(hash)
       if (result) {
         node.value = result.code
         glosharpResults.set(result.code, result)

@@ -1,4 +1,4 @@
-import { processGloSharpCode, type TransformerGloSharpOptions } from '@glosharp/shiki'
+import { processGloSharpBlocks, transformerGloSharpFromMap, type TransformerGloSharpOptions } from '@glosharp/shiki'
 import { codeToHtml } from 'shiki'
 
 /**
@@ -23,17 +23,30 @@ export function remarkGloSharp(options: TransformerGloSharpOptions = {}) {
       }
     })
 
-    for (const node of codeNodes) {
-      const result = await processGloSharpCode(node.value, options)
-      if (!result) continue
+    if (codeNodes.length === 0) return
 
-      // Render with Shiki + glosharp transformer
-      const { transformerGloSharpWithResult } = await import('@glosharp/shiki')
-      const html = await codeToHtml(result.code, {
-        lang: 'csharp',
-        themes: { light: 'github-light', dark: 'github-dark' },
-        transformers: [transformerGloSharpWithResult(result)],
-      })
+    // One batch call shares a single glosharp instance -- and its result cache --
+    // across every block and processes them concurrently, rather than spawning a
+    // fresh instance per block and awaiting each in turn.
+    const resultMap = await processGloSharpBlocks(
+      codeNodes.map((node: any) => node.value),
+      options,
+    )
+
+    // The transformer keeps per-render state, so each concurrent codeToHtml call
+    // needs its own instance reading from the shared result map.
+    const htmls = await Promise.all(
+      codeNodes.map((node: any) =>
+        codeToHtml(node.value, {
+          lang: 'csharp',
+          themes: { light: 'github-light', dark: 'github-dark' },
+          transformers: [transformerGloSharpFromMap(resultMap)],
+        }),
+      ),
+    )
+
+    for (const [i, node] of codeNodes.entries()) {
+      const html = htmls[i]
 
       // Replace the code node with an MDX JSX element (dangerouslySetInnerHTML)
       // so it works with Docusaurus's MDX pipeline without needing rehype-raw
