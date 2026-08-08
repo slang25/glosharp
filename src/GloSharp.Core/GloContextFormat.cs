@@ -6,17 +6,20 @@ namespace GloSharp.Core;
 internal static class GloContextFormat
 {
     public const int HeaderSize = 28;
-    public const byte CurrentVersion = 0x01;
+    public const byte Version1 = 0x01;
+    public const byte Version2 = 0x02;
 
     public static ReadOnlySpan<byte> Magic => "GLOCTX"u8;
 
-    public static void WriteHeader(Span<byte> buffer)
+    public static void WriteHeader(Span<byte> buffer, byte version = Version1)
     {
         if (buffer.Length < HeaderSize)
             throw new ArgumentException($"Header buffer must be at least {HeaderSize} bytes", nameof(buffer));
+        if (version is not (Version1 or Version2))
+            throw new ArgumentOutOfRangeException(nameof(version));
 
         Magic.CopyTo(buffer);
-        buffer[6] = CurrentVersion;
+        buffer[6] = version;
         buffer[7] = 0;
         BinaryPrimitives.WriteUInt64LittleEndian(buffer.Slice(8, 8), 0);
         BinaryPrimitives.WriteUInt32LittleEndian(buffer.Slice(16, 4), 0);
@@ -33,9 +36,9 @@ internal static class GloContextFormat
                 "File is not a .glocontext (missing GLOCTX magic bytes). Expected either a .glocontext (GLOCTX magic) or a .complog (zip archive).");
 
         var version = buffer[6];
-        if (version != CurrentVersion)
+        if (version is not (Version1 or Version2))
             throw new InvalidDataException(
-                $"Unsupported .glocontext format version: 0x{version:X2}. This build supports version 0x{CurrentVersion:X2}.");
+                $"Unsupported .glocontext format version: 0x{version:X2}. This build supports versions 0x{Version1:X2} and 0x{Version2:X2}.");
 
         var flags = buffer[7];
         if (flags != 0)

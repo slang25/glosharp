@@ -11,10 +11,20 @@ public class GloContextFormatTests
         GloContextFormat.WriteHeader(buffer);
         var header = GloContextFormat.ReadHeader(buffer);
 
-        await Assert.That(header.Version).IsEqualTo(GloContextFormat.CurrentVersion);
+        await Assert.That(header.Version).IsEqualTo(GloContextFormat.Version1);
         await Assert.That(header.Flags).IsEqualTo((byte)0);
         await Assert.That(header.BaselineId).IsEqualTo((ulong)0);
         await Assert.That(header.BaselineVersion).IsEqualTo((uint)0);
+    }
+
+    [Test]
+    public async Task WriteHeader_Version2_RoundTrips()
+    {
+        var buffer = new byte[GloContextFormat.HeaderSize];
+        GloContextFormat.WriteHeader(buffer, GloContextFormat.Version2);
+        var header = GloContextFormat.ReadHeader(buffer);
+
+        await Assert.That(header.Version).IsEqualTo(GloContextFormat.Version2);
     }
 
     [Test]

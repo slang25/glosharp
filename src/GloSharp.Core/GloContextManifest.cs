@@ -9,7 +9,17 @@ namespace GloSharp.Core;
 internal sealed class GloContextManifest
 {
     public int Version { get; init; } = 1;
+
+    /// <summary>Targeting packs referenced by pointer entries. Null (omitted) in v1 manifests.</summary>
+    public List<ManifestPack>? Packs { get; init; }
+
     public List<ManifestCompilation> Compilations { get; init; } = new();
+}
+
+internal sealed class ManifestPack
+{
+    public string Id { get; init; } = "";
+    public string Version { get; init; } = "";
 }
 
 internal sealed class ManifestCompilation
@@ -48,12 +58,49 @@ internal sealed class ManifestParseOptions
     public Dictionary<string, string> Features { get; init; } = new();
 }
 
+/// <summary>
+/// Either a blob reference (Blob set) or, in v2 manifests, a pack pointer
+/// (Pack + Path + Sha256 set). Exactly one of the two shapes must be present.
+/// </summary>
 internal sealed class ManifestReference
 {
-    public string Blob { get; init; } = "";
+    public string? Blob { get; init; }
+
+    /// <summary>Index into the manifest's Packs array.</summary>
+    public int? Pack { get; init; }
+
+    /// <summary>Forward-slash path of the file relative to the pack root, e.g. "ref/net10.0/System.Runtime.dll".</summary>
+    public string? Path { get; init; }
+
+    /// <summary>SHA-256 (lowercase hex) of the canonical pack file's bytes.</summary>
+    public string? Sha256 { get; init; }
+
     public string Display { get; init; } = "";
     public List<string> Aliases { get; init; } = new();
     public bool EmbedInteropTypes { get; init; }
+
+    public bool IsPointer => Pack is not null;
+
+    public void Validate(int packCount)
+    {
+        var isBlob = Blob is not null;
+        var isPointer = Pack is not null || Path is not null || Sha256 is not null;
+        if (isBlob == isPointer)
+            throw new InvalidDataException(
+                $"Manifest reference '{Display}' must have exactly one of 'blob' or 'pack'+'path'+'sha256'.");
+        if (isPointer)
+        {
+            if (Pack is null || Path is null || Sha256 is null)
+                throw new InvalidDataException(
+                    $"Manifest pointer reference '{Display}' is missing one of 'pack', 'path', 'sha256'.");
+            if (Pack < 0 || Pack >= packCount)
+                throw new InvalidDataException(
+                    $"Manifest pointer reference '{Display}' has pack index {Pack} outside the packs array (count {packCount}).");
+            if (Path.Contains("..", StringComparison.Ordinal) || System.IO.Path.IsPathRooted(Path))
+                throw new InvalidDataException(
+                    $"Manifest pointer reference '{Display}' has an invalid path '{Path}'.");
+        }
+    }
 }
 
 internal static class ManifestSerializer
