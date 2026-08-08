@@ -32,6 +32,28 @@ internal static class PackContentHasher
             }
         }
 
+        return (ComputeHash(files), files);
+    }
+
+    /// <summary>
+    /// The expansion set of a whole-pack (`packAll`) reference: the DLLs that are
+    /// direct children of <c>ref/&lt;tfm&gt;/</c>, sorted by relative path ordinal.
+    /// The compactor's collapse check and the resolver's expansion both use this,
+    /// so the two can never disagree about what "the whole pack" means.
+    /// </summary>
+    public static List<string> DirectRefDlls(IEnumerable<string> relativePaths, string tfm)
+    {
+        var prefix = $"ref/{tfm}/";
+        return relativePaths
+            .Where(p => p.StartsWith(prefix, StringComparison.Ordinal)
+                && p.IndexOf('/', prefix.Length) < 0
+                && p.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+            .OrderBy(p => p, StringComparer.Ordinal)
+            .ToList();
+    }
+
+    private static string ComputeHash(Dictionary<string, byte[]> files)
+    {
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         foreach (var relative in files.Keys.OrderBy(p => p, StringComparer.Ordinal))
         {
@@ -39,6 +61,6 @@ internal static class PackContentHasher
             hash.AppendData(stackalloc byte[] { 0 });
             hash.AppendData(SHA256.HashData(files[relative]));
         }
-        return (Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant(), files);
+        return Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant();
     }
 }

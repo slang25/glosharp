@@ -48,7 +48,15 @@
 - [x] 8.3 Resolver verifies each pack once and serves pointed files from the verified snapshot; reject packs without a valid hash
 - [x] 8.4 Tests: hasher determinism/order-independence/tamper detection, pack hash mismatch, missing pointed file, hashless pack rejection
 
-## 9. Documentation
+## 9. Whole-pack references (packAll)
 
-- [x] 9.1 README: pointer mode, first-open pack acquisition, `--self-contained`, offline guidance
-- [x] 9.2 Update format description: v2 layout, pointer entry schema, pack acquisition chain
+- [x] 9.1 Third manifest reference shape `{packAll, tfm}`; three-way exclusivity validation
+- [x] 9.2 `PackContentHasher.DirectRefDlls` as the single shared definition of the expansion set
+- [x] 9.3 Compactor collapse (`CollapseWholePackReferences`): exact-coverage + default-properties check, first-pointer position, per compilation
+- [x] 9.4 Resolver expansion from the verified pack snapshot; absent-tfm error
+- [x] 9.5 Tests: collapse full/partial/aliased, expansion order, unknown tfm, pointer+packAll malformed entry (BclOnly 2.5 KB → 766 bytes)
+
+## 10. Documentation
+
+- [x] 10.1 README: pointer mode, first-open pack acquisition, `--self-contained`, offline guidance
+- [x] 10.2 Update format description: v2 layout, pointer entry schema, pack acquisition chain

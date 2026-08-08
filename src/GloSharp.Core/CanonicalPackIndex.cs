@@ -19,10 +19,17 @@ internal sealed class CanonicalPackIndex
     /// <summary>Content hash over the pack's ref DLLs (see <see cref="PackContentHasher"/>).</summary>
     public string ContentHash { get; private init; } = "";
 
+    /// <summary>Relative paths of every ref DLL in the pack, sorted ordinal.</summary>
+    public IReadOnlyList<string> RelativePaths { get; private init; } = Array.Empty<string>();
+
     public static CanonicalPackIndex Build(string packRoot)
     {
         var (contentHash, files) = PackContentHasher.HashRefDlls(packRoot);
-        var index = new CanonicalPackIndex { ContentHash = contentHash };
+        var index = new CanonicalPackIndex
+        {
+            ContentHash = contentHash,
+            RelativePaths = files.Keys.OrderBy(p => p, StringComparer.Ordinal).ToList(),
+        };
 
         foreach (var relative in files.Keys.OrderBy(p => p, StringComparer.Ordinal))
         {

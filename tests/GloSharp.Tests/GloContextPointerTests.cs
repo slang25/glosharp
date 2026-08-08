@@ -457,6 +457,195 @@ public class GloContextPointerTests
         finally { if (Directory.Exists(tempDir)) Directory.Delete(tempDir, recursive: true); }
     }
 
+    // ---------- Whole-pack (packAll) references ----------
+
+    private static (List<PackIdentity> Order, Dictionary<PackIdentity, CanonicalPackIndex?> Indexes, string PackDir)
+        BuildFakePack(string tempDir, params string[] dllNames)
+    {
+        var packDir = Path.Combine(tempDir, "microsoft.netcore.app.ref", "10.0.9");
+        Directory.CreateDirectory(Path.Combine(packDir, "ref", "net10.0"));
+        foreach (var name in dllNames)
+        {
+            var lib = CompileAssembly($"public class {name.Replace(".", "")} {{ }}", name);
+            File.WriteAllBytes(Path.Combine(packDir, "ref", "net10.0", $"{name}.dll"), lib);
+        }
+        var identity = new PackIdentity("microsoft.netcore.app.ref", "10.0.9");
+        var indexes = new Dictionary<PackIdentity, CanonicalPackIndex?>
+        {
+            [identity] = CanonicalPackIndex.Build(packDir),
+        };
+        return (new List<PackIdentity> { identity }, indexes, packDir);
+    }
+
+    private static ManifestReference Pointer(int pack, string path) =>
+        new() { Pack = pack, Path = path, Display = path[(path.LastIndexOf('/') + 1)..] };
+
+    [Test]
+    public async Task Collapse_FullCoverage_BecomesSinglePackAllEntry()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"collapse-{Guid.NewGuid():N}");
+        try
+        {
+            var (order, indexes, _) = BuildFakePack(tempDir, "Alpha", "Beta");
+            var refs = new List<ManifestReference>
+            {
+                Pointer(0, "ref/net10.0/Alpha.dll"),
+                Pointer(0, "ref/net10.0/Beta.dll"),
+                new() { Blob = new string('a', 64), Display = "Lib.dll" },
+            };
+
+            var collapsed = ComplogCompactor.CollapseWholePackReferences(refs, order, indexes);
+
+            await Assert.That(collapsed.Count).IsEqualTo(2);
+            await Assert.That(collapsed[0].PackAll).IsEqualTo(0);
+            await Assert.That(collapsed[0].Tfm).IsEqualTo("net10.0");
+            await Assert.That(collapsed[1].Blob).IsNotNull();
+        }
+        finally { if (Directory.Exists(tempDir)) Directory.Delete(tempDir, recursive: true); }
+    }
+
+    [Test]
+    public async Task Collapse_PartialCoverage_KeepsExplicitPointers()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"collapse-{Guid.NewGuid():N}");
+        try
+        {
+            var (order, indexes, _) = BuildFakePack(tempDir, "Alpha", "Beta");
+            var refs = new List<ManifestReference> { Pointer(0, "ref/net10.0/Alpha.dll") };
+
+            var collapsed = ComplogCompactor.CollapseWholePackReferences(refs, order, indexes);
+
+            await Assert.That(collapsed.Count).IsEqualTo(1);
+            await Assert.That(collapsed[0].IsPointer).IsTrue();
+            await Assert.That(collapsed[0].IsPackAll).IsFalse();
+        }
+        finally { if (Directory.Exists(tempDir)) Directory.Delete(tempDir, recursive: true); }
+    }
+
+    [Test]
+    public async Task Collapse_AliasedReference_KeepsExplicitPointers()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"collapse-{Guid.NewGuid():N}");
+        try
+        {
+            var (order, indexes, _) = BuildFakePack(tempDir, "Alpha", "Beta");
+            var refs = new List<ManifestReference>
+            {
+                Pointer(0, "ref/net10.0/Alpha.dll"),
+                new()
+                {
+                    Pack = 0,
+                    Path = "ref/net10.0/Beta.dll",
+                    Display = "Beta.dll",
+                    Aliases = new List<string> { "beta" },
+                },
+            };
+
+            var collapsed = ComplogCompactor.CollapseWholePackReferences(refs, order, indexes);
+
+            await Assert.That(collapsed.Count).IsEqualTo(2);
+            await Assert.That(collapsed.All(r => r.IsPointer)).IsTrue();
+        }
+        finally { if (Directory.Exists(tempDir)) Directory.Delete(tempDir, recursive: true); }
+    }
+
+    [Test]
+    public async Task Resolver_PackAll_ExpandsToSortedPackContents()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"packall-{Guid.NewGuid():N}");
+        try
+        {
+            var packsRoot = Path.Combine(tempDir, "packs");
+            var (_, _, packDir) = BuildFakePack(packsRoot, "Zeta", "Alpha");
+
+            var ctxPath = Path.Combine(tempDir, "test.glocontext");
+            WriteV2GloContext(
+                ctxPath,
+                new List<ManifestPack>
+                {
+                    new()
+                    {
+                        Id = "microsoft.netcore.app.ref",
+                        Version = "10.0.9",
+                        Sha256 = PackContentHasher.HashRefDlls(packDir).ContentHash,
+                    },
+                },
+                new List<ManifestReference>
+                {
+                    new() { PackAll = 0, Tfm = "net10.0" },
+                });
+
+            var packResolver = new ReferencePackResolver(
+                new IPackSource[] { new DirectoryPackSource(packsRoot, "test packs") });
+            using var resolver = GloContextResolver.Open(ctxPath, packResolver);
+            var result = resolver.Resolve();
+
+            await Assert.That(result.References.Count).IsEqualTo(2);
+            await Assert.That(result.References[0].Display).Contains("Alpha.dll");
+            await Assert.That(result.References[1].Display).Contains("Zeta.dll");
+        }
+        finally { if (Directory.Exists(tempDir)) Directory.Delete(tempDir, recursive: true); }
+    }
+
+    [Test]
+    public async Task Resolver_PackAll_UnknownTfm_Throws()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"packall-{Guid.NewGuid():N}");
+        try
+        {
+            var packsRoot = Path.Combine(tempDir, "packs");
+            var (_, _, packDir) = BuildFakePack(packsRoot, "Alpha");
+
+            var ctxPath = Path.Combine(tempDir, "test.glocontext");
+            WriteV2GloContext(
+                ctxPath,
+                new List<ManifestPack>
+                {
+                    new()
+                    {
+                        Id = "microsoft.netcore.app.ref",
+                        Version = "10.0.9",
+                        Sha256 = PackContentHasher.HashRefDlls(packDir).ContentHash,
+                    },
+                },
+                new List<ManifestReference>
+                {
+                    new() { PackAll = 0, Tfm = "net9.0" },
+                });
+
+            var packResolver = new ReferencePackResolver(
+                new IPackSource[] { new DirectoryPackSource(packsRoot, "test packs") });
+            var ex = Assert.Throws<InvalidDataException>(() => GloContextResolver.Open(ctxPath, packResolver));
+            await Assert.That(ex.Message).Contains("no ref assemblies under 'ref/net9.0/'");
+        }
+        finally { if (Directory.Exists(tempDir)) Directory.Delete(tempDir, recursive: true); }
+    }
+
+    [Test]
+    public async Task Resolver_MalformedReference_PointerAndPackAll_Throws()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"packallbad-{Guid.NewGuid():N}");
+        try
+        {
+            Directory.CreateDirectory(tempDir);
+            var ctxPath = Path.Combine(tempDir, "test.glocontext");
+            WriteV2GloContext(
+                ctxPath,
+                new List<ManifestPack>
+                {
+                    new() { Id = "microsoft.netcore.app.ref", Version = "10.0.9", Sha256 = new string('0', 64) },
+                },
+                new List<ManifestReference>
+                {
+                    new() { Pack = 0, Path = "ref/net10.0/A.dll", PackAll = 0, Tfm = "net10.0" },
+                });
+
+            var ex = Assert.Throws<InvalidDataException>(() => GloContextResolver.Open(ctxPath));
+            await Assert.That(ex.Message).Contains("exactly one of");
+        }
+        finally { if (Directory.Exists(tempDir)) Directory.Delete(tempDir, recursive: true); }
+    }
+
     // ---------- Refasm regressions ----------
 
     [Test]

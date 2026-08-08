@@ -45,6 +45,18 @@ public sealed class GloContextResolver : IDisposable
             {
                 r.Validate(packs.Count);
 
+                if (r.IsPackAll)
+                {
+                    foreach (var (display, fileBytes) in pointerReader.ExpandAll(r.PackAll!.Value, r.Tfm!))
+                    {
+                        references.Add(MetadataReference.CreateFromImage(
+                            fileBytes,
+                            properties: new MetadataReferenceProperties(kind: MetadataImageKind.Assembly),
+                            filePath: display));
+                    }
+                    continue;
+                }
+
                 byte[] bytes;
                 if (r.IsPointer)
                 {
@@ -180,6 +192,27 @@ public sealed class GloContextResolver : IDisposable
                     $"Targeting pack '{_packs[packIndex].Id}/{_packs[packIndex].Version}' is missing file '{r.Path}' referenced by this .glocontext.");
 
             return bytes;
+        }
+
+        /// <summary>
+        /// Expands a whole-pack reference: every direct-child DLL of ref/&lt;tfm&gt;/ in
+        /// the verified pack, sorted by path — the mirror of the compactor's collapse check.
+        /// </summary>
+        public IEnumerable<(string Display, byte[] Bytes)> ExpandAll(int packIndex, string tfm)
+        {
+            if (!_verifiedFilesByIndex.TryGetValue(packIndex, out var files))
+            {
+                files = AcquireAndVerify(packIndex);
+                _verifiedFilesByIndex[packIndex] = files;
+            }
+
+            var paths = PackContentHasher.DirectRefDlls(files.Keys, tfm);
+            if (paths.Count == 0)
+                throw new InvalidDataException(
+                    $"Targeting pack '{_packs[packIndex].Id}/{_packs[packIndex].Version}' has no ref assemblies under 'ref/{tfm}/'.");
+
+            foreach (var path in paths)
+                yield return (path.Substring(path.LastIndexOf('/') + 1), files[path]);
         }
 
         private Dictionary<string, byte[]> AcquireAndVerify(int packIndex)

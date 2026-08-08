@@ -173,9 +173,10 @@ public static class ComplogCompactor
 
         foreach (var (manifestCompilation, refs) in compilations)
         {
+            var references = new List<ManifestReference>(refs.Count);
             foreach (var (entry, occurrence) in refs)
             {
-                manifestCompilation.References.Add(new ManifestReference
+                references.Add(new ManifestReference
                 {
                     Blob = entry.BlobHash,
                     Pack = entry.Pack is not null ? packToIndex[entry.Pack] : null,
@@ -185,6 +186,9 @@ public static class ComplogCompactor
                     EmbedInteropTypes = occurrence.EmbedInteropTypes,
                 });
             }
+
+            manifestCompilation.References.AddRange(
+                CollapseWholePackReferences(references, usedPacks, packIndexes));
             manifest.Compilations.Add(manifestCompilation);
         }
 
@@ -214,6 +218,69 @@ public static class ComplogCompactor
             OriginalSourcesDropped = originalSourcesDropped,
             GeneratedSourcesDropped = generatedSourcesDropped,
         };
+    }
+
+    /// <summary>
+    /// Collapses a compilation's pointer references into whole-pack (`packAll`) entries
+    /// where that is exactly true: the compilation's pointers into a pack cover every
+    /// direct-child DLL of one ref/&lt;tfm&gt;/ directory, all with default aliases and
+    /// embedInteropTypes. Anything less keeps the explicit pointer list. The collapsed
+    /// entry takes the position of the pack's first pointer.
+    /// </summary>
+    internal static List<ManifestReference> CollapseWholePackReferences(
+        List<ManifestReference> references,
+        IReadOnlyList<PackIdentity> packOrder,
+        IReadOnlyDictionary<PackIdentity, CanonicalPackIndex?> packIndexes)
+    {
+        var collapsiblePacks = new Dictionary<int, string>(); // pack index -> tfm
+        foreach (var packIndex in references.Where(r => r.IsPointer).Select(r => r.Pack!.Value).Distinct())
+        {
+            var pointers = references.Where(r => r.Pack == packIndex).ToList();
+            if (pointers.Any(p => p.Aliases.Count > 0 || p.EmbedInteropTypes))
+                continue;
+
+            var tfms = pointers.Select(p => TfmOfDirectRefDll(p.Path!)).Distinct().ToList();
+            if (tfms.Count != 1 || tfms[0] is not { } tfm)
+                continue;
+
+            var index = packIndexes[packOrder[packIndex]];
+            if (index is null)
+                continue;
+
+            var packSet = PackContentHasher.DirectRefDlls(index.RelativePaths, tfm);
+            var pointerSet = pointers.Select(p => p.Path!).ToHashSet(StringComparer.Ordinal);
+            if (pointerSet.Count == pointers.Count && pointerSet.SetEquals(packSet))
+                collapsiblePacks[packIndex] = tfm;
+        }
+
+        if (collapsiblePacks.Count == 0)
+            return references;
+
+        var result = new List<ManifestReference>(references.Count);
+        var emitted = new HashSet<int>();
+        foreach (var r in references)
+        {
+            if (r.IsPointer && collapsiblePacks.TryGetValue(r.Pack!.Value, out var tfm))
+            {
+                if (emitted.Add(r.Pack.Value))
+                    result.Add(new ManifestReference { PackAll = r.Pack.Value, Tfm = tfm });
+            }
+            else
+            {
+                result.Add(r);
+            }
+        }
+        return result;
+    }
+
+    private static string? TfmOfDirectRefDll(string path)
+    {
+        // Matches exactly ref/<tfm>/<file>.dll (a direct child).
+        var segments = path.Split('/');
+        if (segments.Length != 3 || segments[0] != "ref" ||
+            !segments[2].EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+            return null;
+        return segments[1];
     }
 
     /// <summary>A deduped reference: either an embedded blob or a pack pointer.</summary>
