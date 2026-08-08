@@ -16,31 +16,28 @@ internal sealed class CanonicalPackIndex
     private readonly Dictionary<Guid, Entry> _byMvid = new();
     private readonly Dictionary<(string Name, Version Version), Entry> _byNameVersion = new();
 
+    /// <summary>Content hash over the pack's ref DLLs (see <see cref="PackContentHasher"/>).</summary>
+    public string ContentHash { get; private init; } = "";
+
     public static CanonicalPackIndex Build(string packRoot)
     {
-        var index = new CanonicalPackIndex();
-        var refRoot = Path.Combine(packRoot, "ref");
-        if (!Directory.Exists(refRoot))
-            return index;
+        var (contentHash, files) = PackContentHasher.HashRefDlls(packRoot);
+        var index = new CanonicalPackIndex { ContentHash = contentHash };
 
-        var files = Directory.EnumerateFiles(refRoot, "*.dll", SearchOption.AllDirectories)
-            .OrderBy(f => f, StringComparer.Ordinal);
-        foreach (var file in files)
+        foreach (var relative in files.Keys.OrderBy(p => p, StringComparer.Ordinal))
         {
-            byte[] bytes;
+            var bytes = files[relative];
             Guid mvid;
             Version? asmVersion;
             try
             {
-                bytes = File.ReadAllBytes(file);
                 (mvid, asmVersion) = ReadIdentity(bytes);
             }
-            catch (Exception ex) when (ex is IOException or BadImageFormatException or InvalidOperationException)
+            catch (Exception ex) when (ex is BadImageFormatException or InvalidOperationException)
             {
                 continue;
             }
 
-            var relative = Path.GetRelativePath(packRoot, file).Replace('\\', '/');
             var entry = new Entry(
                 relative,
                 Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant(),
@@ -51,7 +48,7 @@ internal sealed class CanonicalPackIndex
             index._byMvid.TryAdd(mvid, entry);
             if (asmVersion != null)
                 index._byNameVersion.TryAdd(
-                    (Path.GetFileName(file).ToLowerInvariant(), asmVersion), entry);
+                    (Path.GetFileName(relative).ToLowerInvariant(), asmVersion), entry);
         }
         return index;
     }

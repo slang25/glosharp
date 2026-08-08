@@ -41,7 +41,14 @@
 - [x] 7.2 Size assertion: MultiProject fixture compacts to under 100 KB with pointers when packs are available
 - [x] 7.3 Run full test suite (`dotnet run --project tests/GloSharp.Tests/`)
 
-## 8. Documentation
+## 8. Pack-level content hash (manifest slimming)
 
-- [x] 8.1 README: pointer mode, first-open pack acquisition, `--self-contained`, offline guidance
-- [x] 8.2 Update format description: v2 layout, pointer entry schema, pack acquisition chain
+- [x] 8.1 Add `PackContentHasher` (SHA-256 over sorted ref/**/*.dll: path + 0x00 + file hash); share between compactor and resolver
+- [x] 8.2 Move verification from per-file `sha256` on pointer entries to `packs[].sha256`; pointers become `{pack, path}` (BclOnly 8.9 KB → 2.5 KB)
+- [x] 8.3 Resolver verifies each pack once and serves pointed files from the verified snapshot; reject packs without a valid hash
+- [x] 8.4 Tests: hasher determinism/order-independence/tamper detection, pack hash mismatch, missing pointed file, hashless pack rejection
+
+## 9. Documentation
+
+- [x] 9.1 README: pointer mode, first-open pack acquisition, `--self-contained`, offline guidance
+- [x] 9.2 Update format description: v2 layout, pointer entry schema, pack acquisition chain

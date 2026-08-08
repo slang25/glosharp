@@ -162,7 +162,12 @@ public static class ComplogCompactor
         {
             Version = usedPacks.Count > 0 ? 2 : 1,
             Packs = usedPacks.Count > 0
-                ? usedPacks.Select(p => new ManifestPack { Id = p.Id, Version = p.Version }).ToList()
+                ? usedPacks.Select(p => new ManifestPack
+                {
+                    Id = p.Id,
+                    Version = p.Version,
+                    Sha256 = packIndexes[p]!.ContentHash,
+                }).ToList()
                 : null,
         };
 
@@ -175,7 +180,6 @@ public static class ComplogCompactor
                     Blob = entry.BlobHash,
                     Pack = entry.Pack is not null ? packToIndex[entry.Pack] : null,
                     Path = entry.PackRelativePath,
-                    Sha256 = entry.CanonicalSha256,
                     Display = occurrence.Display,
                     Aliases = occurrence.Aliases,
                     EmbedInteropTypes = occurrence.EmbedInteropTypes,
@@ -218,7 +222,6 @@ public static class ComplogCompactor
         public string? BlobHash { get; init; }
         public PackIdentity? Pack { get; init; }
         public string? PackRelativePath { get; init; }
-        public string? CanonicalSha256 { get; init; }
     }
 
     private static ResolvedReference ResolveReference(
@@ -257,7 +260,6 @@ public static class ComplogCompactor
                     {
                         Pack = origin.Pack,
                         PackRelativePath = match.RelativePath,
-                        CanonicalSha256 = match.Sha256,
                     };
                 }
 

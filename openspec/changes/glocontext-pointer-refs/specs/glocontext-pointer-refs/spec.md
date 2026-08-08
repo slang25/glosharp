@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: GloContext file format v2 with pointer references
-A `.glocontext` whose manifest contains at least one pointer reference SHALL use format version `0x02` in the header byte 6. The v2 manifest SHALL carry `"version": 2`, a top-level `packs` array of `{id, version}` objects (sorted by id then version, ids and versions lowercase), and reference entries that are either blob references (`blob` key, as in v1) or pointer references (`pack` index into `packs`, `path` relative to the pack root using forward slashes, and `sha256` of the canonical file bytes). A reference entry SHALL contain exactly one of `blob` or `pack`; readers MUST reject entries with both or neither. Compactions that produce no pointer references SHALL emit format v1 unchanged.
+A `.glocontext` whose manifest contains at least one pointer reference SHALL use format version `0x02` in the header byte 6. The v2 manifest SHALL carry `"version": 2`, a top-level `packs` array of `{id, version, sha256}` objects (sorted by id then version, ids and versions lowercase; `sha256` is a content hash over the pack's `ref/**/*.dll` files — per file sorted by forward-slash relative path ordinal: UTF-8 path, a zero byte, then the file's SHA-256), and reference entries that are either blob references (`blob` key, as in v1) or pointer references (`pack` index into `packs` and `path` relative to the pack root using forward slashes). Pointer entries SHALL NOT carry per-file hashes — verification is per pack (per-file hash entropy dominated the compressed manifest at ~73% of its bytes). A reference entry SHALL contain exactly one of `blob` or `pack`; readers MUST reject entries with both or neither. Compactions that produce no pointer references SHALL emit format v1 unchanged.
 
 #### Scenario: v2 header written when pointers present
 - **WHEN** compaction canonicalizes at least one framework reference to a pointer
@@ -20,7 +20,7 @@ A `.glocontext` whose manifest contains at least one pointer reference SHALL use
 - **THEN** the two output files are byte-identical
 
 ### Requirement: Framework references canonicalized to pack pointers by default
-During compaction, a reference SHALL be considered a framework-pack candidate only when its origin path in the complog lies under a recognized targeting-pack layout (`packs/<PackId>/<Version>/ref/<tfm>/…` or `<global-packages>/<packid>/<version>/ref/<tfm>/…`), yielding the exact pack id and version used by the build. For each candidate, the compactor SHALL acquire the canonical NuGet-channel pack (per the reference-pack-acquisition capability) and match the reference against the pack's `ref/**/*.dll` files in this order: (1) raw SHA-256 equality, (2) MVID equality, (3) file name plus assembly version equality. A matched reference SHALL be written as a pointer carrying the SHA-256 of the canonical pack file's bytes; its bytes SHALL NOT be embedded in the tar. Unmatched candidates and all non-candidates SHALL follow the v1 refasm-and-embed path.
+During compaction, a reference SHALL be considered a framework-pack candidate only when its origin path in the complog lies under a recognized targeting-pack layout (`packs/<PackId>/<Version>/ref/<tfm>/…` or `<global-packages>/<packid>/<version>/ref/<tfm>/…`), yielding the exact pack id and version used by the build. For each candidate, the compactor SHALL acquire the canonical NuGet-channel pack (per the reference-pack-acquisition capability) and match the reference against the pack's `ref/**/*.dll` files in this order: (1) raw SHA-256 equality, (2) MVID equality, (3) file name plus assembly version equality. A matched reference SHALL be written as a pointer (`pack` + `path` only); its bytes SHALL NOT be embedded in the tar, and the pack's manifest entry SHALL record the content hash of the canonical pack's ref DLLs. Unmatched candidates and all non-candidates SHALL follow the v1 refasm-and-embed path.
 
 #### Scenario: Framework references become pointers
 - **WHEN** a complog whose references originate from an installed SDK targeting pack is compacted with default options
@@ -28,7 +28,7 @@ During compaction, a reference SHALL be considered a framework-pack candidate on
 
 #### Scenario: MVID match despite signing differences
 - **WHEN** the build consumed an installed-SDK pack file whose bytes differ from the NuGet-channel file only by signing/timestamp (same MVID)
-- **THEN** the reference is canonicalized to a pointer whose `sha256` is the hash of the NuGet-channel bytes
+- **THEN** the reference is canonicalized to a pointer at the NuGet-channel file's path, covered by the pack's recorded content hash
 
 #### Scenario: Name-and-version fallback for channel-rebuilt facades
 - **WHEN** a pack-origin reference matches no canonical file by hash or MVID but exactly one canonical file shares its file name and assembly version
@@ -50,15 +50,19 @@ During compaction, a reference SHALL be considered a framework-pack candidate on
 - **THEN** the output embeds all references as blobs and uses format v1
 
 ### Requirement: Resolver materializes pointer references from packs
-`GloContextResolver` SHALL accept format v1 and v2 files. For v2 pointer references it SHALL acquire the referenced packs (per reference-pack-acquisition), read each pointed file, verify its SHA-256 against the manifest's `sha256`, and materialize a `MetadataReference` from the verified bytes, preserving order, display names, aliases, and `embedInteropTypes` exactly as for blob references.
+`GloContextResolver` SHALL accept format v1 and v2 files. For v2 pointer references it SHALL acquire each referenced pack (per reference-pack-acquisition) once, verify the pack's content hash over its `ref/**/*.dll` files against the manifest pack entry's `sha256`, and materialize `MetadataReference`s for pointed files from the verified snapshot, preserving order, display names, aliases, and `embedInteropTypes` exactly as for blob references. A manifest pack entry without a valid content hash SHALL be rejected.
 
 #### Scenario: v2 file resolves with packs available locally
 - **WHEN** a v2 `.glocontext` is opened on a machine whose NuGet global packages folder contains the referenced packs
 - **THEN** `Resolve()` returns references materialized from the pack files with no network access
 
-#### Scenario: Hash mismatch fails loudly
-- **WHEN** a pointed pack file's SHA-256 does not equal the manifest's `sha256`
-- **THEN** `Open`/`Resolve` throws `InvalidDataException` naming the file, the pack id and version, and both hash values
+#### Scenario: Content hash mismatch fails loudly
+- **WHEN** an acquired pack's content hash does not equal the manifest pack entry's `sha256`
+- **THEN** `Open`/`Resolve` throws `InvalidDataException` naming the pack id and version, its location, and both hash values
+
+#### Scenario: Pointed file absent from verified pack
+- **WHEN** a pointer's `path` does not exist in the verified pack contents
+- **THEN** `Open`/`Resolve` throws `InvalidDataException` naming the pack and the missing path
 
 #### Scenario: Missing pack produces actionable error
 - **WHEN** a referenced pack cannot be acquired from any source

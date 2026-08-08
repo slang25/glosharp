@@ -181,21 +181,29 @@ public class GloContextPointerTests
         {
             var lib = CompileAssembly("public class Widget { }", "Widget");
             var packsRoot = Path.Combine(tempDir, "packs");
-            var dll = Path.Combine(packsRoot, "microsoft.netcore.app.ref", "10.0.9", "ref", "net10.0", "Widget.dll");
+            var packDir = Path.Combine(packsRoot, "microsoft.netcore.app.ref", "10.0.9");
+            var dll = Path.Combine(packDir, "ref", "net10.0", "Widget.dll");
             Directory.CreateDirectory(Path.GetDirectoryName(dll)!);
             File.WriteAllBytes(dll, lib);
 
             var ctxPath = Path.Combine(tempDir, "test.glocontext");
             WriteV2GloContext(
                 ctxPath,
-                new List<ManifestPack> { new() { Id = "microsoft.netcore.app.ref", Version = "10.0.9" } },
+                new List<ManifestPack>
+                {
+                    new()
+                    {
+                        Id = "microsoft.netcore.app.ref",
+                        Version = "10.0.9",
+                        Sha256 = PackContentHasher.HashRefDlls(packDir).ContentHash,
+                    },
+                },
                 new List<ManifestReference>
                 {
                     new()
                     {
                         Pack = 0,
                         Path = "ref/net10.0/Widget.dll",
-                        Sha256 = Sha(lib),
                         Display = "Widget.dll",
                     },
                 });
@@ -226,14 +234,21 @@ public class GloContextPointerTests
             var ctxPath = Path.Combine(tempDir, "test.glocontext");
             WriteV2GloContext(
                 ctxPath,
-                new List<ManifestPack> { new() { Id = "microsoft.netcore.app.ref", Version = "10.0.9" } },
+                new List<ManifestPack>
+                {
+                    new()
+                    {
+                        Id = "microsoft.netcore.app.ref",
+                        Version = "10.0.9",
+                        Sha256 = new string('0', 64),
+                    },
+                },
                 new List<ManifestReference>
                 {
                     new()
                     {
                         Pack = 0,
                         Path = "ref/net10.0/Widget.dll",
-                        Sha256 = new string('0', 64),
                         Display = "Widget.dll",
                     },
                 });
@@ -241,8 +256,7 @@ public class GloContextPointerTests
             var packResolver = new ReferencePackResolver(
                 new IPackSource[] { new DirectoryPackSource(packsRoot, "test packs") });
             var ex = Assert.Throws<InvalidDataException>(() => GloContextResolver.Open(ctxPath, packResolver));
-            await Assert.That(ex.Message).Contains("Hash mismatch");
-            await Assert.That(ex.Message).Contains("ref/net10.0/Widget.dll");
+            await Assert.That(ex.Message).Contains("Content hash mismatch");
             await Assert.That(ex.Message).Contains("microsoft.netcore.app.ref/10.0.9");
         }
         finally { if (Directory.Exists(tempDir)) Directory.Delete(tempDir, recursive: true); }
@@ -258,14 +272,16 @@ public class GloContextPointerTests
             var ctxPath = Path.Combine(tempDir, "test.glocontext");
             WriteV2GloContext(
                 ctxPath,
-                new List<ManifestPack> { new() { Id = "microsoft.netcore.app.ref", Version = "10.0.9" } },
+                new List<ManifestPack>
+                {
+                    new() { Id = "microsoft.netcore.app.ref", Version = "10.0.9", Sha256 = new string('0', 64) },
+                },
                 new List<ManifestReference>
                 {
                     new()
                     {
                         Pack = 0,
                         Path = "ref/net10.0/Widget.dll",
-                        Sha256 = new string('0', 64),
                         Display = "Widget.dll",
                     },
                 });
@@ -281,6 +297,106 @@ public class GloContextPointerTests
     }
 
     [Test]
+    public async Task Resolver_V2Pointer_FileMissingFromVerifiedPack_Throws()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"v2gone-{Guid.NewGuid():N}");
+        try
+        {
+            var lib = CompileAssembly("public class Widget { }", "Widget");
+            var packsRoot = Path.Combine(tempDir, "packs");
+            var packDir = Path.Combine(packsRoot, "microsoft.netcore.app.ref", "10.0.9");
+            var dll = Path.Combine(packDir, "ref", "net10.0", "Widget.dll");
+            Directory.CreateDirectory(Path.GetDirectoryName(dll)!);
+            File.WriteAllBytes(dll, lib);
+
+            var ctxPath = Path.Combine(tempDir, "test.glocontext");
+            WriteV2GloContext(
+                ctxPath,
+                new List<ManifestPack>
+                {
+                    new()
+                    {
+                        Id = "microsoft.netcore.app.ref",
+                        Version = "10.0.9",
+                        Sha256 = PackContentHasher.HashRefDlls(packDir).ContentHash,
+                    },
+                },
+                new List<ManifestReference>
+                {
+                    // Points at a file that is not part of the (correctly hashed) pack contents.
+                    new()
+                    {
+                        Pack = 0,
+                        Path = "ref/net10.0/Other.dll",
+                        Display = "Other.dll",
+                    },
+                });
+
+            var packResolver = new ReferencePackResolver(
+                new IPackSource[] { new DirectoryPackSource(packsRoot, "test packs") });
+            var ex = Assert.Throws<InvalidDataException>(() => GloContextResolver.Open(ctxPath, packResolver));
+            await Assert.That(ex.Message).Contains("missing file 'ref/net10.0/Other.dll'");
+        }
+        finally { if (Directory.Exists(tempDir)) Directory.Delete(tempDir, recursive: true); }
+    }
+
+    [Test]
+    public async Task Resolver_V2Pack_WithoutContentHash_Throws()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"v2nohash-{Guid.NewGuid():N}");
+        try
+        {
+            Directory.CreateDirectory(tempDir);
+            var ctxPath = Path.Combine(tempDir, "test.glocontext");
+            WriteV2GloContext(
+                ctxPath,
+                new List<ManifestPack>
+                {
+                    new() { Id = "microsoft.netcore.app.ref", Version = "10.0.9" },
+                },
+                new List<ManifestReference>
+                {
+                    new() { Pack = 0, Path = "ref/net10.0/Widget.dll", Display = "Widget.dll" },
+                });
+
+            var ex = Assert.Throws<InvalidDataException>(() => GloContextResolver.Open(ctxPath));
+            await Assert.That(ex.Message).Contains("missing a valid content hash");
+        }
+        finally { if (Directory.Exists(tempDir)) Directory.Delete(tempDir, recursive: true); }
+    }
+
+    [Test]
+    public async Task PackContentHasher_IsDeterministicAndOrderIndependent()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"pch-{Guid.NewGuid():N}");
+        try
+        {
+            var a = CompileAssembly("public class A { }", "A");
+            var b = CompileAssembly("public class B { }", "B");
+
+            var pack1 = Path.Combine(tempDir, "pack1");
+            var pack2 = Path.Combine(tempDir, "pack2");
+            foreach (var (root, order) in new[] { (pack1, new[] { "A", "B" }), (pack2, new[] { "B", "A" }) })
+            {
+                Directory.CreateDirectory(Path.Combine(root, "ref", "net10.0"));
+                foreach (var name in order)
+                    File.WriteAllBytes(
+                        Path.Combine(root, "ref", "net10.0", $"{name}.dll"), name == "A" ? a : b);
+            }
+
+            var h1 = PackContentHasher.HashRefDlls(pack1).ContentHash;
+            var h2 = PackContentHasher.HashRefDlls(pack2).ContentHash;
+            await Assert.That(h1).IsEqualTo(h2);
+            await Assert.That(h1.Length).IsEqualTo(64);
+
+            // Changing any file's bytes changes the hash.
+            File.WriteAllBytes(Path.Combine(pack2, "ref", "net10.0", "A.dll"), b);
+            await Assert.That(PackContentHasher.HashRefDlls(pack2).ContentHash).IsNotEqualTo(h1);
+        }
+        finally { if (Directory.Exists(tempDir)) Directory.Delete(tempDir, recursive: true); }
+    }
+
+    [Test]
     public async Task Resolver_MalformedReference_BothBlobAndPointer_Throws()
     {
         var tempDir = Path.Combine(Path.GetTempPath(), $"v2bad-{Guid.NewGuid():N}");
@@ -290,7 +406,10 @@ public class GloContextPointerTests
             var ctxPath = Path.Combine(tempDir, "test.glocontext");
             WriteV2GloContext(
                 ctxPath,
-                new List<ManifestPack> { new() { Id = "microsoft.netcore.app.ref", Version = "10.0.9" } },
+                new List<ManifestPack>
+                {
+                    new() { Id = "microsoft.netcore.app.ref", Version = "10.0.9", Sha256 = new string('0', 64) },
+                },
                 new List<ManifestReference>
                 {
                     new()
@@ -298,7 +417,6 @@ public class GloContextPointerTests
                         Blob = new string('a', 64),
                         Pack = 0,
                         Path = "ref/net10.0/Widget.dll",
-                        Sha256 = new string('0', 64),
                         Display = "Widget.dll",
                     },
                 });
@@ -319,14 +437,16 @@ public class GloContextPointerTests
             var ctxPath = Path.Combine(tempDir, "test.glocontext");
             WriteV2GloContext(
                 ctxPath,
-                new List<ManifestPack> { new() { Id = "microsoft.netcore.app.ref", Version = "10.0.9" } },
+                new List<ManifestPack>
+                {
+                    new() { Id = "microsoft.netcore.app.ref", Version = "10.0.9", Sha256 = new string('0', 64) },
+                },
                 new List<ManifestReference>
                 {
                     new()
                     {
                         Pack = 0,
                         Path = "ref/../../../etc/evil.dll",
-                        Sha256 = new string('0', 64),
                         Display = "evil.dll",
                     },
                 });

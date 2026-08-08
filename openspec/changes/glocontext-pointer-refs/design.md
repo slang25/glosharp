@@ -46,7 +46,8 @@ Matched → pointer entry `{pack, path, sha256(canonical bytes)}`; canonical byt
 
 ### 3. Format: header version 0x02 when pointers present; v1 for self-contained
 
-- Manifest gains `"version": 2`, a top-level `"packs": [{"id", "version"}]` array (sorted), and reference entries become a union: blob refs keep `{"blob", ...}`; pointer refs are `{"pack": <index>, "path", "sha256", ...}` (exactly one of `blob`/`pack` present; readers reject entries with both/neither).
+- Manifest gains `"version": 2`, a top-level `"packs": [{"id", "version", "sha256"}]` array (sorted), and reference entries become a union: blob refs keep `{"blob", ...}`; pointer refs are `{"pack": <index>, "path", ...}` (exactly one of `blob`/`pack` present; readers reject entries with both/neither).
+- Verification is **per pack, not per file**: `packs[].sha256` is a content hash over the pack's `ref/**/*.dll` (per file sorted by relative path: UTF-8 path + 0x00 + file SHA-256). Measured on the BclOnly fixture, 167 per-file sha256 fields were 73% of the compressed manifest (8.7 KB → 2.3 KB when dropped) — pure hash entropy that compression cannot touch, and redundant since every pointer targets the same verified pack. One hash per pack keeps the identical trust model (the resolver verifies exactly the bytes it will read) at ~32 bytes of entropy per pack instead of per file.
 - Writer emits header `FormatVersion 0x02` iff any pointer exists; `--self-contained` output is exactly today's v1 (older readers keep working on it).
 - v2 readers accept v1 and v2. v1 readers already reject v2 via the existing version check — loud, actionable failure.
 - Baseline header slots remain zero/reserved (patch-from stays a possible v3).
@@ -61,7 +62,7 @@ New `ReferencePackResolver` in `GloSharp.Core` used by both compactor (canonical
 
 The chain is an ordered `IReadOnlyList<IPackSource>`; tests inject a directory-backed source, so CI never touches the network. The installed SDK `packs/` directory is deliberately **not** a source: its bytes are non-canonical (different signing/builds), so hash verification would fail.
 
-Consumer verifies `sha256` of every pointed file at open time (~50 ms for a full pack; done per open, no verification cache in this change). Mismatch → `InvalidDataException` naming the file, the pack, and both hashes.
+Consumer verifies each pack's content hash once at open time (~50 ms for a full pack — same work as per-file verification since typical pointer sets cover the whole pack; no verification cache in this change) and serves pointer reads from the verified snapshot. Mismatch → `InvalidDataException` naming the pack, its location, and both hashes.
 
 ### 5. Failure modes are explicit
 

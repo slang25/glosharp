@@ -150,14 +150,15 @@ public sealed class GloContextResolver : IDisposable
     }
 
     /// <summary>
-    /// Reads and verifies pointer references from targeting packs. Pack contents are
-    /// cached per pack; every pointed file's SHA-256 is verified against the manifest.
+    /// Reads pointer references from targeting packs. Each pack is acquired and verified
+    /// once — its content hash over ref/**/*.dll must match the manifest's recorded
+    /// hash — after which pointer reads are served from the verified snapshot.
     /// </summary>
     private sealed class PointerReader
     {
         private readonly List<ManifestPack> _packs;
         private readonly ReferencePackResolver _resolver;
-        private readonly Dictionary<int, string> _rootsByIndex = new();
+        private readonly Dictionary<int, Dictionary<string, byte[]>> _verifiedFilesByIndex = new();
 
         public PointerReader(List<ManifestPack> packs, ReferencePackResolver? resolver)
         {
@@ -168,27 +169,35 @@ public sealed class GloContextResolver : IDisposable
         public byte[] Read(ManifestReference r)
         {
             var packIndex = r.Pack!.Value;
-            if (!_rootsByIndex.TryGetValue(packIndex, out var root))
+            if (!_verifiedFilesByIndex.TryGetValue(packIndex, out var files))
             {
-                var pack = _packs[packIndex];
-                root = _resolver.Locate(new PackIdentity(pack.Id, pack.Version));
-                _rootsByIndex[packIndex] = root;
+                files = AcquireAndVerify(packIndex);
+                _verifiedFilesByIndex[packIndex] = files;
             }
 
-            var filePath = System.IO.Path.Combine(root, r.Path!.Replace('/', System.IO.Path.DirectorySeparatorChar));
-            if (!File.Exists(filePath))
+            if (!files.TryGetValue(r.Path!, out var bytes))
                 throw new InvalidDataException(
                     $"Targeting pack '{_packs[packIndex].Id}/{_packs[packIndex].Version}' is missing file '{r.Path}' referenced by this .glocontext.");
 
-            var bytes = File.ReadAllBytes(filePath);
-            var actual = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes)).ToLowerInvariant();
-            if (!actual.Equals(r.Sha256, StringComparison.OrdinalIgnoreCase))
+            return bytes;
+        }
+
+        private Dictionary<string, byte[]> AcquireAndVerify(int packIndex)
+        {
+            var pack = _packs[packIndex];
+            if (pack.Sha256.Length != 64)
                 throw new InvalidDataException(
-                    $"Hash mismatch for '{r.Path}' in targeting pack '{_packs[packIndex].Id}/{_packs[packIndex].Version}': " +
-                    $"manifest expects {r.Sha256}, actual file is {actual}. " +
+                    $"Manifest pack '{pack.Id}/{pack.Version}' is missing a valid content hash.");
+
+            var root = _resolver.Locate(new PackIdentity(pack.Id, pack.Version));
+            var (contentHash, files) = PackContentHasher.HashRefDlls(root);
+            if (!contentHash.Equals(pack.Sha256, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException(
+                    $"Content hash mismatch for targeting pack '{pack.Id}/{pack.Version}' at '{root}': " +
+                    $"manifest expects {pack.Sha256}, actual contents hash to {contentHash}. " +
                     "The pack contents do not match what this .glocontext was created against.");
 
-            return bytes;
+            return files;
         }
     }
 

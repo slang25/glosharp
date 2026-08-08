@@ -36,15 +36,15 @@ Run `glosharp` against C# code and get:
 
 The compactor:
 
-- replaces framework reference assemblies with *pointers* into their NuGet targeting packs (`microsoft.netcore.app.ref`, `microsoft.aspnetcore.app.ref`, …) — a pointer records the pack, the file path inside it, and a SHA-256 of the canonical bytes, so nothing framework-shaped is stored in the file at all;
+- replaces framework reference assemblies with *pointers* into their NuGet targeting packs (`microsoft.netcore.app.ref`, `microsoft.aspnetcore.app.ref`, …) — a pointer records just the pack and the file path inside it, and each pack carries a single content hash over its ref assemblies, so nothing framework-shaped (and no per-file hash entropy) is stored in the file at all;
 - rewrites the remaining (NuGet/library) reference assemblies with [JetBrains.Refasmer](https://github.com/JetBrains/Refasmer) so only public API metadata is retained (method bodies, private types, and internals are stripped);
 - drops analyzer DLLs, original source text, and generated source text — they are not needed for symbol-only rendering;
 - deduplicates identical post-refasm references across compilations and stores each one once by SHA-256;
 - writes a `GLOCTX`-magic header followed by a zstd-compressed tar containing a deterministic `manifest.json` plus `refs/<hash>.dll` blobs.
 
-Typical results: a ~6 MB BCL-only complog shrinks to **~9 KB**, and a ~15 MB ASP.NET + EF complog to **~460 KB**. Output is byte-deterministic, so a checked-in `.glocontext` only changes when the underlying compilation context actually changes. The `--complog` flag on `process`, `verify`, and `render` auto-detects either format by magic bytes.
+Typical results: a ~6 MB BCL-only complog shrinks to **~2.5 KB**, and a ~15 MB ASP.NET + EF complog to **~450 KB**. Output is byte-deterministic, so a checked-in `.glocontext` only changes when the underlying compilation context actually changes. The `--complog` flag on `process`, `verify`, and `render` auto-detects either format by magic bytes.
 
-When a pointer-bearing (format v2) `.glocontext` is opened, the referenced packs are located through: the NuGet global packages folder (`NUGET_PACKAGES` or `~/.nuget/packages`), then a glosharp-managed cache (`GLOSHARP_CACHE_DIR` or the platform local-app-data dir), then a one-time ~7 MB download per pack from nuget.org (cached thereafter). Every pointed file is verified against its recorded SHA-256 before use. On a machine that has ever restored a project targeting the same framework, resolution needs no network at all.
+When a pointer-bearing (format v2) `.glocontext` is opened, the referenced packs are located through: the NuGet global packages folder (`NUGET_PACKAGES` or `~/.nuget/packages`), then a glosharp-managed cache (`GLOSHARP_CACHE_DIR` or the platform local-app-data dir), then a one-time ~7 MB download per pack from nuget.org (cached thereafter). Each pack's contents are verified once against its recorded content hash before any pointed file is used. On a machine that has ever restored a project targeting the same framework, resolution needs no network at all.
 
 Because the same pack version can ship byte-different files across distribution channels (the installed SDK's copies differ from nuget.org's in signing, and some facades are separate builds), the compactor *canonicalizes*: each framework reference is matched to the nuget.org-channel file (by content hash, then MVID, then file name + assembly version) and the pointer records those canonical bytes. Producer and consumer therefore agree byte-for-byte regardless of which SDK produced the complog.
 
