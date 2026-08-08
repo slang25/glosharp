@@ -9,7 +9,23 @@ namespace GloSharp.Core;
 internal sealed class GloContextManifest
 {
     public int Version { get; init; } = 1;
+
+    /// <summary>Targeting packs referenced by pointer entries. Null (omitted) in v1 manifests.</summary>
+    public List<ManifestPack>? Packs { get; init; }
+
     public List<ManifestCompilation> Compilations { get; init; } = new();
+}
+
+internal sealed class ManifestPack
+{
+    public string Id { get; init; } = "";
+    public string Version { get; init; } = "";
+
+    /// <summary>
+    /// Content hash over the pack's ref/**/*.dll files (see <see cref="PackContentHasher"/>).
+    /// Verified once per pack at resolve time; individual pointers carry no hash.
+    /// </summary>
+    public string Sha256 { get; init; } = "";
 }
 
 internal sealed class ManifestCompilation
@@ -48,12 +64,70 @@ internal sealed class ManifestParseOptions
     public Dictionary<string, string> Features { get; init; } = new();
 }
 
+/// <summary>
+/// One of three shapes: a blob reference (Blob set), a pack pointer (Pack + Path set),
+/// or — when a compilation references a targeting pack's entire ref set with default
+/// properties — a whole-pack reference (PackAll + Tfm set) that expands to every
+/// <c>ref/&lt;tfm&gt;/*.dll</c> in the verified pack, sorted by file name.
+/// Exactly one shape must be present. No entry carries a per-file hash —
+/// verification is per pack via <see cref="ManifestPack.Sha256"/>.
+/// </summary>
 internal sealed class ManifestReference
 {
-    public string Blob { get; init; } = "";
+    public string? Blob { get; init; }
+
+    /// <summary>Index into the manifest's Packs array (single-file pointer).</summary>
+    public int? Pack { get; init; }
+
+    /// <summary>Forward-slash path of the file relative to the pack root, e.g. "ref/net10.0/System.Runtime.dll".</summary>
+    public string? Path { get; init; }
+
+    /// <summary>Index into the manifest's Packs array (whole-pack reference).</summary>
+    public int? PackAll { get; init; }
+
+    /// <summary>Target framework directory of a whole-pack reference, e.g. "net10.0".</summary>
+    public string? Tfm { get; init; }
+
     public string Display { get; init; } = "";
     public List<string> Aliases { get; init; } = new();
     public bool EmbedInteropTypes { get; init; }
+
+    public bool IsPointer => Pack is not null;
+    public bool IsPackAll => PackAll is not null;
+
+    public void Validate(int packCount)
+    {
+        var isBlob = Blob is not null;
+        var isPointer = Pack is not null || Path is not null;
+        var isPackAll = PackAll is not null || Tfm is not null;
+        if ((isBlob ? 1 : 0) + (isPointer ? 1 : 0) + (isPackAll ? 1 : 0) != 1)
+            throw new InvalidDataException(
+                $"Manifest reference '{Display}' must have exactly one of 'blob', 'pack'+'path', or 'packAll'+'tfm'.");
+        if (isPointer)
+        {
+            if (Pack is null || Path is null)
+                throw new InvalidDataException(
+                    $"Manifest pointer reference '{Display}' is missing 'pack' or 'path'.");
+            if (Pack < 0 || Pack >= packCount)
+                throw new InvalidDataException(
+                    $"Manifest pointer reference '{Display}' has pack index {Pack} outside the packs array (count {packCount}).");
+            if (Path.Contains("..", StringComparison.Ordinal) || System.IO.Path.IsPathRooted(Path))
+                throw new InvalidDataException(
+                    $"Manifest pointer reference '{Display}' has an invalid path '{Path}'.");
+        }
+        if (isPackAll)
+        {
+            if (PackAll is null || string.IsNullOrEmpty(Tfm))
+                throw new InvalidDataException(
+                    "Manifest whole-pack reference is missing 'packAll' or 'tfm'.");
+            if (PackAll < 0 || PackAll >= packCount)
+                throw new InvalidDataException(
+                    $"Manifest whole-pack reference has pack index {PackAll} outside the packs array (count {packCount}).");
+            if (Tfm.Contains('/') || Tfm.Contains('\\') || Tfm.Contains("..", StringComparison.Ordinal))
+                throw new InvalidDataException(
+                    $"Manifest whole-pack reference has an invalid tfm '{Tfm}'.");
+        }
+    }
 }
 
 internal static class ManifestSerializer

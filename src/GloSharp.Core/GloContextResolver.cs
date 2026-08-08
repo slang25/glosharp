@@ -13,7 +13,7 @@ public sealed class GloContextResolver : IDisposable
         _compilations = compilations;
     }
 
-    public static GloContextResolver Open(string path)
+    public static GloContextResolver Open(string path, ReferencePackResolver? packResolver = null)
     {
         if (!File.Exists(path))
             throw new FileNotFoundException($".glocontext file not found: {path}", path);
@@ -23,12 +23,30 @@ public sealed class GloContextResolver : IDisposable
             throw new InvalidDataException(
                 $"File '{path}' is smaller than the minimum .glocontext header size.");
 
-        GloContextFormat.ReadHeader(allBytes.AsSpan(0, GloContextFormat.HeaderSize));
+        var header = GloContextFormat.ReadHeader(allBytes.AsSpan(0, GloContextFormat.HeaderSize));
 
         var compressed = allBytes.AsSpan(GloContextFormat.HeaderSize);
         var tarBytes = ZstdSharpCodec.Instance.Decompress(compressed);
 
         var (manifest, blobs) = ReadTar(tarBytes);
+
+        if (manifest.Version is not (1 or 2))
+            throw new InvalidDataException(
+                $".glocontext manifest version {manifest.Version} is not supported by this reader (supported: 1, 2).");
+
+        // The header version is the file's advertised contract, so it has to agree with the
+        // manifest: otherwise a file labelled v1 — which v1 readers accept and which promises
+        // to be self-contained — could still carry pointers and trigger pack acquisition.
+        if (manifest.Version != header.Version)
+            throw new InvalidDataException(
+                $".glocontext header format version {header.Version} does not match manifest version {manifest.Version}.");
+
+        var packs = manifest.Packs ?? new List<ManifestPack>();
+        if (manifest.Version == 1 && packs.Count > 0)
+            throw new InvalidDataException(
+                "A v1 .glocontext must be self-contained but declares targeting packs; " +
+                "pointer references require format version 2.");
+        var pointerReader = new PointerReader(packs, packResolver);
 
         var compilations = new List<GloContextCompilation>(manifest.Compilations.Count);
         foreach (var mc in manifest.Compilations)
@@ -36,9 +54,35 @@ public sealed class GloContextResolver : IDisposable
             var references = new List<MetadataReference>(mc.References.Count);
             foreach (var r in mc.References)
             {
-                if (!blobs.TryGetValue(r.Blob, out var bytes))
+                r.Validate(packs.Count);
+
+                if (manifest.Version == 1 && (r.IsPointer || r.IsPackAll))
+                    throw new InvalidDataException(
+                        $"A v1 .glocontext must embed every reference, but '{r.Display}' is a targeting-pack " +
+                        "pointer; pointer references require format version 2.");
+
+                if (r.IsPackAll)
+                {
+                    foreach (var (display, fileBytes) in pointerReader.ExpandAll(r.PackAll!.Value, r.Tfm!))
+                    {
+                        references.Add(MetadataReference.CreateFromImage(
+                            fileBytes,
+                            properties: new MetadataReferenceProperties(kind: MetadataImageKind.Assembly),
+                            filePath: display));
+                    }
+                    continue;
+                }
+
+                byte[] bytes;
+                if (r.IsPointer)
+                {
+                    bytes = pointerReader.Read(r);
+                }
+                else if (!blobs.TryGetValue(r.Blob!, out bytes!))
+                {
                     throw new InvalidDataException(
                         $".glocontext references missing blob '{r.Blob}' for '{r.Display}'.");
+                }
 
                 var reference = MetadataReference.CreateFromImage(
                     bytes,
@@ -131,6 +175,85 @@ public sealed class GloContextResolver : IDisposable
             throw new InvalidDataException(".glocontext is missing manifest.json");
 
         return (manifest, blobs);
+    }
+
+    /// <summary>
+    /// Reads pointer references from targeting packs. Each pack is acquired and verified
+    /// once — its content hash over ref/**/*.dll must match the manifest's recorded
+    /// hash — after which pointer reads are served from the verified snapshot.
+    /// </summary>
+    private sealed class PointerReader
+    {
+        private readonly List<ManifestPack> _packs;
+        private readonly ReferencePackResolver _resolver;
+        private readonly Dictionary<int, Dictionary<string, byte[]>> _verifiedFilesByIndex = new();
+
+        public PointerReader(List<ManifestPack> packs, ReferencePackResolver? resolver)
+        {
+            _packs = packs;
+            _resolver = resolver ?? ReferencePackResolver.CreateDefault();
+        }
+
+        public byte[] Read(ManifestReference r)
+        {
+            var packIndex = r.Pack!.Value;
+            if (!_verifiedFilesByIndex.TryGetValue(packIndex, out var files))
+            {
+                files = AcquireAndVerify(packIndex);
+                _verifiedFilesByIndex[packIndex] = files;
+            }
+
+            if (!files.TryGetValue(r.Path!, out var bytes))
+                throw new InvalidDataException(
+                    $"Targeting pack '{_packs[packIndex].Id}/{_packs[packIndex].Version}' is missing file '{r.Path}' referenced by this .glocontext.");
+
+            return bytes;
+        }
+
+        /// <summary>
+        /// Expands a whole-pack reference: every direct-child DLL of ref/&lt;tfm&gt;/ in
+        /// the verified pack, sorted by path — the mirror of the compactor's collapse check.
+        /// </summary>
+        public IEnumerable<(string Display, byte[] Bytes)> ExpandAll(int packIndex, string tfm)
+        {
+            if (!_verifiedFilesByIndex.TryGetValue(packIndex, out var files))
+            {
+                files = AcquireAndVerify(packIndex);
+                _verifiedFilesByIndex[packIndex] = files;
+            }
+
+            var paths = PackContentHasher.DirectRefDlls(files.Keys, tfm);
+            if (paths.Count == 0)
+                throw new InvalidDataException(
+                    $"Targeting pack '{_packs[packIndex].Id}/{_packs[packIndex].Version}' has no ref assemblies under 'ref/{tfm}/'.");
+
+            foreach (var path in paths)
+                yield return (path.Substring(path.LastIndexOf('/') + 1), files[path]);
+        }
+
+        private Dictionary<string, byte[]> AcquireAndVerify(int packIndex)
+        {
+            var pack = _packs[packIndex];
+            if (pack.Sha256.Length != 64)
+                throw new InvalidDataException(
+                    $"Manifest pack '{pack.Id}/{pack.Version}' is missing a valid content hash.");
+
+            // Manifest ids/versions are untrusted and end up in filesystem paths.
+            var identity = PackIdentity.TryCreate(pack.Id, pack.Version)
+                ?? throw new InvalidDataException(
+                    $"Manifest pack entry {packIndex} has an invalid id or version " +
+                    $"('{pack.Id}' / '{pack.Version}'): both must be non-empty single path segments.");
+
+            var root = _resolver.Locate(identity);
+            var (contentHash, files) = PackContentHasher.HashRefDlls(root);
+            if (!contentHash.Equals(pack.Sha256, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException(
+                    $"Content hash mismatch for targeting pack '{pack.Id}/{pack.Version}' at '{root}': " +
+                    $"manifest expects {pack.Sha256}, actual contents hash to {contentHash}. " +
+                    "The pack contents do not match what this .glocontext was created against.");
+
+            return files;
+        }
     }
 
     private sealed class GloContextCompilation

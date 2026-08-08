@@ -598,6 +598,7 @@ static int RunCompactComplog(string[] args)
     bool keepSources = false;
     bool keepGenerated = false;
     bool noRefasm = false;
+    bool selfContained = false;
     int zstdLevel = 19;
     bool quiet = false;
 
@@ -620,6 +621,9 @@ static int RunCompactComplog(string[] args)
                 break;
             case "--no-refasm":
                 noRefasm = true;
+                break;
+            case "--self-contained":
+                selfContained = true;
                 break;
             case "--zstd-level" when i + 1 < args.Length:
                 if (!int.TryParse(args[++i], out zstdLevel))
@@ -656,6 +660,7 @@ static int RunCompactComplog(string[] args)
         DropAnalyzers = !keepAnalyzers,
         DropOriginalSources = !keepSources,
         DropGeneratedSources = !keepGenerated,
+        SelfContained = selfContained,
         ZstdLevel = zstdLevel,
     };
 
@@ -672,7 +677,13 @@ static int RunCompactComplog(string[] args)
             Console.Error.WriteLine($"  output: {result.OutputSizeBytes:N0} bytes ({ratio:P1} of input)");
             Console.Error.WriteLine($"  references: {result.ReferencesBefore} → {result.ReferencesAfter} unique blobs");
             Console.Error.WriteLine($"  refasm rewrites: {result.RefasmRewrittenCount}");
+            var packList = result.PointerPacks.Count > 0
+                ? string.Join(", ", result.PointerPacks)
+                : "none";
+            Console.Error.WriteLine($"  pointers: {result.PointersCreated} (packs: {packList})");
             Console.Error.WriteLine($"  dropped: {result.AnalyzersDropped} analyzers, {result.OriginalSourcesDropped} sources, {result.GeneratedSourcesDropped} generated");
+            foreach (var warning in result.Warnings)
+                Console.Error.WriteLine($"  warning: {warning}");
         }
         return 0;
     }
@@ -732,6 +743,8 @@ static void PrintUsage()
     Console.Error.WriteLine();
     Console.Error.WriteLine("compact-complog options:");
     Console.Error.WriteLine("  -o, --output <path>   Output .glocontext file (required)");
+    Console.Error.WriteLine("  --self-contained      Embed all references (no targeting-pack pointers);");
+    Console.Error.WriteLine("                        use for artifacts that must resolve offline without pack downloads");
     Console.Error.WriteLine("  --zstd-level <n>      Zstd compression level (default: 19)");
     Console.Error.WriteLine("  --quiet               Suppress summary output on stderr");
     Console.Error.WriteLine("  [debug]");

@@ -36,16 +36,23 @@ Run `glosharp` against C# code and get:
 
 The compactor:
 
-- rewrites each reference assembly with [JetBrains.Refasmer](https://github.com/JetBrains/Refasmer) so only public API metadata is retained (method bodies, private types, and internals are stripped);
+- replaces framework reference assemblies with *pointers* into their NuGet targeting packs (`microsoft.netcore.app.ref`, `microsoft.aspnetcore.app.ref`, …) — each pack carries a single content hash over its ref assemblies, and when a compilation references a pack's entire ref set (the normal SDK behavior) the whole list collapses to one `packAll` entry, so nothing framework-shaped is stored in the file at all;
+- rewrites the remaining (NuGet/library) reference assemblies with [JetBrains.Refasmer](https://github.com/JetBrains/Refasmer) so only public API metadata is retained (method bodies, private types, and internals are stripped);
 - drops analyzer DLLs, original source text, and generated source text — they are not needed for symbol-only rendering;
 - deduplicates identical post-refasm references across compilations and stores each one once by SHA-256;
 - writes a `GLOCTX`-magic header followed by a zstd-compressed tar containing a deterministic `manifest.json` plus `refs/<hash>.dll` blobs.
 
-Typical results: a ~7 MB BCL-only complog shrinks to ~1.2 MB, and a ~16 MB ASP.NET complog to under 3 MB. Output is byte-deterministic, so a checked-in `.glocontext` only changes when the underlying compilation context actually changes. The `--complog` flag on `process`, `verify`, and `render` auto-detects either format by magic bytes.
+Typical results: a ~6 MB BCL-only complog shrinks to **under 1 KB**, and a ~15 MB ASP.NET + EF complog to **~450 KB** (the remainder being refasmed NuGet references). Output is byte-deterministic, so a checked-in `.glocontext` only changes when the underlying compilation context actually changes. The `--complog` flag on `process`, `verify`, and `render` auto-detects either format by magic bytes.
+
+When a pointer-bearing (format v2) `.glocontext` is opened, the referenced packs are located through: the NuGet global packages folder (`NUGET_PACKAGES` or `~/.nuget/packages`), then a glosharp-managed cache (`GLOSHARP_CACHE_DIR` or the platform local-app-data dir), then a one-time ~7 MB download per pack from nuget.org (cached thereafter). Each pack's contents are verified once against its recorded content hash before any pointed file is used. On a machine that has ever restored a project targeting the same framework, resolution needs no network at all.
+
+Because the same pack version can ship byte-different files across distribution channels (the installed SDK's copies differ from nuget.org's in signing, and some facades are separate builds), the compactor *canonicalizes*: each framework reference is matched to the nuget.org-channel file (by content hash, then MVID, then file name + assembly version) and the pointer records those canonical bytes. Producer and consumer therefore agree byte-for-byte regardless of which SDK produced the complog.
+
+For artifacts that must resolve fully offline with no pack acquisition, pass `--self-contained` — every reference is embedded as a blob (format v1), at the cost of the old ~1–3 MB sizes. If the canonical packs cannot be acquired at compact time, the compactor warns and falls back to embedding those references.
 
 > The zstd codec is provided by [`ZstdSharp.Port`](https://www.nuget.org/packages/ZstdSharp.Port/) today. Once .NET 11 ships, the codec will be swapped for `System.IO.Compression`'s built-in zstd with no format change.
 >
-> The file header reserves baseline id/version slots for a future v2 format that layers `zstd --patch-from` over a shipped baseline artifact. v1 readers **must** reject any file with non-zero baseline fields so that v2 output does not silently resolve to a broken v1 reader.
+> The file header reserves baseline id/version slots for a possible future format that layers `zstd --patch-from` over a shipped baseline artifact. Readers **must** reject any file with non-zero baseline fields so such output does not silently resolve on an older reader.
 
 ## Testing the web rendering
 

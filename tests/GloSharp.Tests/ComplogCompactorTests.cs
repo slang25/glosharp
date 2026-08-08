@@ -144,6 +144,53 @@ public class ComplogCompactorTests
     }
 
     [Test]
+    public async Task Compact_MultiProject_PointerMode_ProducesSmallerV2File()
+    {
+        var input = ComplogFixture.GetOrBuildMultiProjectComplog();
+
+        var tempDir = Path.Combine(Path.GetTempPath(), $"glocontext-ptr-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            var pointered = Path.Combine(tempDir, "pointered.glocontext");
+            var selfContained = Path.Combine(tempDir, "self.glocontext");
+            var rPtr = ComplogCompactor.Compact(input, pointered, new ComplogCompactionOptions());
+            var rSelf = ComplogCompactor.Compact(input, selfContained,
+                new ComplogCompactionOptions { SelfContained = true });
+
+            await Assert.That(rSelf.PointersCreated).IsEqualTo(0);
+            await Assert.That(ReadVersionByte(selfContained)).IsEqualTo(GloContextFormat.Version1);
+
+            if (rPtr.PointersCreated == 0)
+            {
+                // Canonical packs unavailable on this machine — the fallback must have
+                // produced a self-contained-equivalent artifact and said why.
+                await Assert.That(rPtr.Warnings.Count).IsGreaterThan(0);
+                await Assert.That(ReadVersionByte(pointered)).IsEqualTo(GloContextFormat.Version1);
+                return;
+            }
+
+            await Assert.That(ReadVersionByte(pointered)).IsEqualTo(GloContextFormat.Version2);
+            await Assert.That(rPtr.PointerPacks.Count).IsGreaterThan(0);
+            await Assert.That(rPtr.OutputSizeBytes).IsLessThan(rSelf.OutputSizeBytes);
+            await Assert.That(rPtr.OutputSizeBytes).IsLessThan(100L * 1024);
+
+            using var resolver = GloContextResolver.Open(pointered);
+            var resolved = resolver.Resolve();
+            await Assert.That(resolved.References.Count).IsGreaterThan(0);
+        }
+        finally { Directory.Delete(tempDir, recursive: true); }
+    }
+
+    private static byte ReadVersionByte(string path)
+    {
+        using var fs = File.OpenRead(path);
+        var header = new byte[GloContextFormat.HeaderSize];
+        _ = fs.Read(header);
+        return header[6];
+    }
+
+    [Test]
     public async Task Compact_NoRefasm_YieldsLargerOutput()
     {
         var fixture = TryFixture("BclOnly.complog");
@@ -153,11 +200,13 @@ public class ComplogCompactorTests
         Directory.CreateDirectory(tempDir);
         try
         {
+            // Self-contained so every reference is embedded and refasm behavior is observable.
             var withRefasm = Path.Combine(tempDir, "with.glocontext");
             var withoutRefasm = Path.Combine(tempDir, "without.glocontext");
-            var r1 = ComplogCompactor.Compact(fixture, withRefasm, new ComplogCompactionOptions());
+            var r1 = ComplogCompactor.Compact(fixture, withRefasm,
+                new ComplogCompactionOptions { SelfContained = true });
             var r2 = ComplogCompactor.Compact(fixture, withoutRefasm,
-                new ComplogCompactionOptions { RewriteReferences = false });
+                new ComplogCompactionOptions { SelfContained = true, RewriteReferences = false });
 
             await Assert.That(r1.RefasmRewrittenCount).IsGreaterThan(0);
             await Assert.That(r2.RefasmRewrittenCount).IsEqualTo(0);
