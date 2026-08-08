@@ -11,9 +11,9 @@
 ## Goals / Non-Goals
 
 **Goals:**
-- `.glocontext` v2: framework refs as `{pack, path, sha256}` pointers, canonicalized to nuget.org-channel bytes; ~6× smaller artifacts.
+- `.glocontext` v2: framework refs as hashless `{pack, path}` pointers (collapsing to `{packAll, tfm}` when a compilation covers a pack's whole `ref/<tfm>/` directory), canonicalized to nuget.org-channel bytes; ~6× smaller artifacts.
 - Deterministic output preserved (byte-identical recompaction).
-- Consumer-side pack acquisition with a no-network happy path (NuGet global packages folder), a glosharp cache, and nuget.org download as last resort; sha256 verification of every pointed file.
+- Consumer-side pack acquisition with a no-network happy path (NuGet global packages folder), a glosharp cache, and nuget.org download as last resort; one content-hash verification per pack, after which pointer reads are served from the verified snapshot.
 - Graceful degradation: producer falls back to embedding (with a warning) when canonical packs are unavailable; `--self-contained` opts out of pointers entirely and writes v1.
 - Fix the two compactor bugs independently of the pointer feature.
 
@@ -42,7 +42,7 @@ Against the canonical pack's `ref/<tfm>/*.dll` files (acquired from the NuGet ch
 2. MVID equality (same build, different signing/timestamps — covers ~70%),
 3. file name + assembly `Version` equality (facades and channel-rebuilt assemblies; semantically same release).
 
-Matched → pointer entry `{pack, path, sha256(canonical bytes)}`; canonical bytes never enter the tar. Unmatched pack refs (shouldn't happen; e.g. version skew mid-release) → warn + embed. The name-fallback is the only semantic substitution; the existing symbol-parity test suite gates it (extended to run in pointer mode).
+Matched → pointer entry `{pack, path}`, covered by the pack's single content hash (see decision 3); canonical bytes never enter the tar. When a pack repeats an assembly across tfm directories, the reference's own origin path picks the candidate; an ambiguous name+version match is treated as no match and the reference is embedded. Unmatched pack refs (shouldn't happen; e.g. version skew mid-release) → warn + embed. The name-fallback is the only semantic substitution; the existing symbol-parity test suite gates it (extended to run in pointer mode).
 
 ### 3. Format: header version 0x02 when pointers present; v1 for self-contained
 

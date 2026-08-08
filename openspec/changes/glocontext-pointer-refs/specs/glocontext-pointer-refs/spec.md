@@ -15,6 +15,14 @@ A `.glocontext` whose manifest contains at least one pointer reference SHALL use
 - **WHEN** a v2 manifest reference entry contains both `blob` and `pack`, or neither
 - **THEN** the reader throws `InvalidDataException` identifying the offending entry
 
+#### Scenario: Header and manifest version must agree
+- **WHEN** a file's header format version byte does not equal its manifest `version`
+- **THEN** the reader throws `InvalidDataException` naming both versions
+
+#### Scenario: Version 1 file containing pointers rejected
+- **WHEN** a file declaring version 1 contains a `packs` array or a pointer/whole-pack reference entry
+- **THEN** the reader throws `InvalidDataException` rather than acquiring any pack, because v1 promises a self-contained artifact
+
 #### Scenario: Deterministic v2 output
 - **WHEN** the same complog is compacted twice with the same options and the same available packs
 - **THEN** the two output files are byte-identical
@@ -33,6 +41,14 @@ During compaction, a reference SHALL be considered a framework-pack candidate on
 #### Scenario: Name-and-version fallback for channel-rebuilt facades
 - **WHEN** a pack-origin reference matches no canonical file by hash or MVID but exactly one canonical file shares its file name and assembly version
 - **THEN** the reference is canonicalized to a pointer to that file
+
+#### Scenario: Ambiguous match disambiguated by origin path
+- **WHEN** a pack repeats an assembly across `ref/<tfm>/` directories so a match tier yields more than one canonical candidate
+- **THEN** the candidate at the reference's own origin path (failing that, the sole candidate under the origin's tfm directory) is used, and a name-and-version match that remains ambiguous is treated as no match so the reference is embedded
+
+#### Scenario: Same module referenced from pack and non-pack paths
+- **WHEN** two references in a compilation share an MVID but originate from different paths, only one of which is a targeting pack
+- **THEN** each is resolved according to its own origin — the pack-origin one becomes a pointer and the other is refasmed and embedded — regardless of the order they appear in
 
 #### Scenario: Non-pack references never become pointers
 - **WHEN** a reference originates from a NuGet package lib folder or project output rather than a targeting pack

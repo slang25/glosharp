@@ -4,9 +4,9 @@ Experiments (`.context/complog-experiments/RESULTS.md`) show that ~95% of a `.gl
 
 ## What Changes
 
-- **BREAKING (format):** `.glocontext` format version bumps to v2. References in the manifest may now be *pointers* (`{pack, path, sha256}` into a targeting pack) instead of embedded blobs. v1 files remain readable; v2 files are rejected by v1 readers via the existing version check.
-- **Canonicalization:** at compact time, each framework reference is matched against the NuGet-channel targeting pack (by MVID, falling back to assembly file name) and replaced with the pack's canonical bytes' pointer. This makes producer and consumer byte-exact regardless of which distribution channel (installed SDK vs nuget.org) the original build used.
-- **Pack acquisition:** a new resolver-side component locates targeting packs — NuGet global packages folder first, then a glosharp-managed cache, then download from nuget.org — and verifies pointer hashes before use.
+- **BREAKING (format):** `.glocontext` format version bumps to v2. References in the manifest may now be *pointers* into a targeting pack (`{pack, path}`, or `{packAll, tfm}` when a compilation uses a pack's whole `ref/<tfm>/` directory) instead of embedded blobs. Pointer entries carry no per-file hash: each `packs[]` entry carries one content hash over the pack's `ref/**/*.dll`. v1 files remain readable; v2 files are rejected by v1 readers via the existing version check.
+- **Canonicalization:** at compact time, each framework reference is matched against the NuGet-channel targeting pack (raw SHA-256, then MVID, then file name + assembly version) and replaced with a pointer to the canonical file. This makes producer and consumer byte-exact regardless of which distribution channel (installed SDK vs nuget.org) the original build used.
+- **Pack acquisition:** a new resolver-side component locates targeting packs — NuGet global packages folder first, then a glosharp-managed cache, then download from nuget.org — and verifies each pack's content hash once before serving pointer reads from it.
 - **Self-contained fallback:** `--self-contained` CLI flag (and `ComplogCompactionOptions.SelfContained`) keeps the current embed-everything behavior, emitting v1.
 - **Bug fixes:** Refasmer invoked with `omitNonApiMembers: true` (as the complog-compaction spec already required); `IsReferenceAssembly` also recognizes the MethodDef-declared attribute.
 

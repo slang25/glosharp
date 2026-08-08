@@ -677,8 +677,10 @@ static int RunCompactComplog(string[] args)
             Console.Error.WriteLine($"  output: {result.OutputSizeBytes:N0} bytes ({ratio:P1} of input)");
             Console.Error.WriteLine($"  references: {result.ReferencesBefore} → {result.ReferencesAfter} unique blobs");
             Console.Error.WriteLine($"  refasm rewrites: {result.RefasmRewrittenCount}");
-            if (result.PointersCreated > 0)
-                Console.Error.WriteLine($"  pointers: {result.PointersCreated} (packs: {string.Join(", ", result.PointerPacks)})");
+            var packList = result.PointerPacks.Count > 0
+                ? string.Join(", ", result.PointerPacks)
+                : "none";
+            Console.Error.WriteLine($"  pointers: {result.PointersCreated} (packs: {packList})");
             Console.Error.WriteLine($"  dropped: {result.AnalyzersDropped} analyzers, {result.OriginalSourcesDropped} sources, {result.GeneratedSourcesDropped} generated");
             foreach (var warning in result.Warnings)
                 Console.Error.WriteLine($"  warning: {warning}");

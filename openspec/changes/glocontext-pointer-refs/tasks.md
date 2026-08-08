@@ -56,7 +56,16 @@
 - [x] 9.4 Resolver expansion from the verified pack snapshot; absent-tfm error
 - [x] 9.5 Tests: collapse full/partial/aliased, expansion order, unknown tfm, pointer+packAll malformed entry (BclOnly 2.5 KB → 766 bytes)
 
-## 10. Documentation
+## 10. Review follow-ups
 
-- [x] 10.1 README: pointer mode, first-open pack acquisition, `--self-contained`, offline guidance
-- [x] 10.2 Update format description: v2 layout, pointer entry schema, pack acquisition chain
+- [x] 10.1 Validate `PackIdentity` id/version as non-empty single path segments (untrusted manifests reach `Path.Combine`); `TryCreate` for the parse paths, `InvalidDataException` from the resolver
+- [x] 10.2 Key the compactor's reference dedupe on MVID *and* pack provenance so origin-based pointer eligibility is decided per occurrence
+- [x] 10.3 Require header format version to equal manifest version; reject pointer/`packAll`/`packs` in a v1 file
+- [x] 10.4 `CanonicalPackIndex`: keep all candidates per tier, disambiguate by origin path/tfm, treat an ambiguous name+version match as no match
+- [x] 10.5 CLI prints the pointer line unconditionally (packs: none when empty)
+- [x] 10.6 `NuGetDownloadSource` success-path test over a local HTTP nupkg fixture: ref-only extraction, cache reuse without a second request, no temp directory left behind
+
+## 11. Documentation
+
+- [x] 11.1 README: pointer mode, first-open pack acquisition, `--self-contained`, offline guidance
+- [x] 11.2 Update format description: v2 layout, pointer entry schema, pack acquisition chain

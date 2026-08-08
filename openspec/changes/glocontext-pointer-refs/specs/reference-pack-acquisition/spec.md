@@ -15,6 +15,13 @@
 - **WHEN** a test constructs the resolver with a custom source list
 - **THEN** only the supplied sources are consulted, in order
 
+### Requirement: Pack identities are validated as path segments
+Because pack ids and versions come from untrusted manifests and are combined into filesystem paths under the packages folder and the download cache, a pack identity SHALL be rejected unless both values are non-empty single path segments (no directory separators, no `.`/`..`, no characters invalid in a file name).
+
+#### Scenario: Traversing identity rejected
+- **WHEN** a manifest declares a pack whose id or version is `..`, is rooted, or contains a path separator
+- **THEN** the resolver refuses the identity and the reader reports the invalid manifest entry instead of touching any path outside the configured roots
+
 ### Requirement: nuget.org download populates the glosharp cache
 When earlier sources miss, the resolver SHALL download `https://api.nuget.org/v3-flatcontainer/{id}/{version}/{id}.{version}.nupkg` (id and version lowercased), extract only the `ref/**/*.dll` entries into the glosharp cache at `<cache>/<id>/<version>/…` preserving relative paths, and serve from the cache thereafter. Partial downloads SHALL NOT be visible in the cache (extract to a temp directory, then atomic rename).
 

@@ -42,10 +42,20 @@ public class GloContextPointerTests
     private static void WriteV2GloContext(
         string path, List<ManifestPack> packs, List<ManifestReference> references,
         Dictionary<string, byte[]>? blobs = null)
+        => WriteGloContext(path, GloContextFormat.Version2, 2, packs, references, blobs);
+
+    /// <summary>
+    /// Builds a .glocontext with the header and manifest versions set independently, so
+    /// tests can produce the mismatched/downgraded files a well-behaved writer never emits.
+    /// </summary>
+    private static void WriteGloContext(
+        string path, byte headerVersion, int manifestVersion,
+        List<ManifestPack>? packs, List<ManifestReference> references,
+        Dictionary<string, byte[]>? blobs = null)
     {
         var manifest = new GloContextManifest
         {
-            Version = 2,
+            Version = manifestVersion,
             Packs = packs,
             Compilations =
             {
@@ -76,7 +86,7 @@ public class GloContextPointerTests
 
         var compressed = ZstdSharpCodec.Instance.Compress(tarStream.ToArray(), 3, 27);
         var output = new byte[GloContextFormat.HeaderSize + compressed.Length];
-        GloContextFormat.WriteHeader(output, GloContextFormat.Version2);
+        GloContextFormat.WriteHeader(output, headerVersion);
         compressed.CopyTo(output, GloContextFormat.HeaderSize);
         File.WriteAllBytes(path, output);
     }
@@ -167,6 +177,55 @@ public class GloContextPointerTests
             // No tier matches a different file name.
             var miss = index.Match(rebuilt, ReadMvid(rebuilt), "OtherLib.dll");
             await Assert.That(miss).IsNull();
+        }
+        finally { if (Directory.Exists(tempDir)) Directory.Delete(tempDir, recursive: true); }
+    }
+
+    [Test]
+    public async Task CanonicalPackIndex_RepeatedAssemblyAcrossTfms_DisambiguatesByOrigin()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"canon-{Guid.NewGuid():N}");
+        try
+        {
+            // The same file name and assembly version under two tfm directories, with
+            // different bytes and MVIDs — only the origin path says which one is meant.
+            const string sourceA = """
+                [assembly: System.Reflection.AssemblyVersion("1.2.3.4")]
+                public class Widget { public int Value { get; set; } }
+                """;
+            const string sourceB = """
+                [assembly: System.Reflection.AssemblyVersion("1.2.3.4")]
+                public class Widget { public int Value { get; set; } public int Other { get; set; } }
+                """;
+            var net9 = CompileAssembly(sourceA, "TestLib");
+            var net10 = CompileAssembly(sourceB, "TestLib");
+
+            var packRoot = Path.Combine(tempDir, "pack");
+            foreach (var (tfm, bytes) in new[] { ("net9.0", net9), ("net10.0", net10) })
+            {
+                var dll = Path.Combine(packRoot, "ref", tfm, "TestLib.dll");
+                Directory.CreateDirectory(Path.GetDirectoryName(dll)!);
+                File.WriteAllBytes(dll, bytes);
+            }
+
+            var index = CanonicalPackIndex.Build(packRoot);
+            var other = CompileAssembly(
+                """
+                [assembly: System.Reflection.AssemblyVersion("1.2.3.4")]
+                public class Widget { public int Third { get; set; } }
+                """, "TestLib");
+
+            // Name+version is ambiguous across the two tfms: the origin path resolves it…
+            var byOrigin = index.Match(other, ReadMvid(other), "TestLib.dll", "ref/net9.0/TestLib.dll");
+            await Assert.That(byOrigin).IsNotNull();
+            await Assert.That(byOrigin!.RelativePath).IsEqualTo("ref/net9.0/TestLib.dll");
+
+            // …and without one it is no match at all, so the reference gets embedded.
+            await Assert.That(index.Match(other, ReadMvid(other), "TestLib.dll")).IsNull();
+
+            // An exact-byte match still lands on the file the reference actually came from.
+            var byShaWithOrigin = index.Match(net10, ReadMvid(net10), "TestLib.dll", "ref/net10.0/TestLib.dll");
+            await Assert.That(byShaWithOrigin!.RelativePath).IsEqualTo("ref/net10.0/TestLib.dll");
         }
         finally { if (Directory.Exists(tempDir)) Directory.Delete(tempDir, recursive: true); }
     }
@@ -423,6 +482,91 @@ public class GloContextPointerTests
 
             var ex = Assert.Throws<InvalidDataException>(() => GloContextResolver.Open(ctxPath));
             await Assert.That(ex.Message).Contains("exactly one of");
+        }
+        finally { if (Directory.Exists(tempDir)) Directory.Delete(tempDir, recursive: true); }
+    }
+
+    [Test]
+    public async Task Resolver_HeaderAndManifestVersionMismatch_Throws()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"v2vermix-{Guid.NewGuid():N}");
+        try
+        {
+            Directory.CreateDirectory(tempDir);
+            var ctxPath = Path.Combine(tempDir, "test.glocontext");
+            WriteGloContext(
+                ctxPath, GloContextFormat.Version2, manifestVersion: 1,
+                packs: null,
+                references: new List<ManifestReference>
+                {
+                    new() { Blob = new string('a', 64), Display = "Lib.dll" },
+                });
+
+            var ex = Assert.Throws<InvalidDataException>(() => GloContextResolver.Open(ctxPath));
+            await Assert.That(ex.Message).Contains("does not match manifest version");
+        }
+        finally { if (Directory.Exists(tempDir)) Directory.Delete(tempDir, recursive: true); }
+    }
+
+    [Test]
+    public async Task Resolver_V1FileDeclaringPointers_RejectedWithoutAcquiringPacks()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"v1ptr-{Guid.NewGuid():N}");
+        try
+        {
+            Directory.CreateDirectory(tempDir);
+
+            // A v1 file promises to be self-contained; pointers in one would smuggle pack
+            // acquisition past readers that trust the version byte.
+            var withPacks = Path.Combine(tempDir, "packs.glocontext");
+            WriteGloContext(
+                withPacks, GloContextFormat.Version1, manifestVersion: 1,
+                packs: new List<ManifestPack>
+                {
+                    new() { Id = "microsoft.netcore.app.ref", Version = "10.0.9", Sha256 = new string('0', 64) },
+                },
+                references: new List<ManifestReference>
+                {
+                    new() { Pack = 0, Path = "ref/net10.0/Widget.dll", Display = "Widget.dll" },
+                });
+
+            var ex = Assert.Throws<InvalidDataException>(() => GloContextResolver.Open(withPacks));
+            await Assert.That(ex.Message).Contains("must be self-contained");
+
+            var packAllOnly = Path.Combine(tempDir, "packall.glocontext");
+            WriteGloContext(
+                packAllOnly, GloContextFormat.Version1, manifestVersion: 1,
+                packs: null,
+                references: new List<ManifestReference> { new() { PackAll = 0, Tfm = "net10.0" } });
+
+            var ex2 = Assert.Throws<InvalidDataException>(() => GloContextResolver.Open(packAllOnly));
+            await Assert.That(ex2.Message).Contains("outside the packs array");
+        }
+        finally { if (Directory.Exists(tempDir)) Directory.Delete(tempDir, recursive: true); }
+    }
+
+    [Test]
+    public async Task Resolver_PackIdentityTraversal_Rejected()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"v2packtrav-{Guid.NewGuid():N}");
+        try
+        {
+            Directory.CreateDirectory(tempDir);
+            var ctxPath = Path.Combine(tempDir, "test.glocontext");
+            WriteV2GloContext(
+                ctxPath,
+                new List<ManifestPack>
+                {
+                    // Would resolve to <packages root>/../../../etc without validation.
+                    new() { Id = "..", Version = "..", Sha256 = new string('0', 64) },
+                },
+                new List<ManifestReference>
+                {
+                    new() { Pack = 0, Path = "ref/net10.0/Widget.dll", Display = "Widget.dll" },
+                });
+
+            var ex = Assert.Throws<InvalidDataException>(() => GloContextResolver.Open(ctxPath));
+            await Assert.That(ex.Message).Contains("invalid id or version");
         }
         finally { if (Directory.Exists(tempDir)) Directory.Delete(tempDir, recursive: true); }
     }

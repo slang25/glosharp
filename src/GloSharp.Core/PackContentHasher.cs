@@ -52,13 +52,27 @@ internal static class PackContentHasher
             .ToList();
     }
 
+    /// <summary>
+    /// The tfm directory of a path that is exactly <c>ref/&lt;tfm&gt;/&lt;file&gt;.dll</c>,
+    /// or null for anything else (nested files, non-DLLs, non-ref paths).
+    /// </summary>
+    public static string? TfmOfDirectRefDll(string path)
+    {
+        var segments = path.Split('/');
+        if (segments.Length != 3 || segments[0] != "ref" ||
+            !segments[2].EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+            return null;
+        return segments[1];
+    }
+
     private static string ComputeHash(Dictionary<string, byte[]> files)
     {
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        Span<byte> separator = stackalloc byte[1];
         foreach (var relative in files.Keys.OrderBy(p => p, StringComparer.Ordinal))
         {
             hash.AppendData(Encoding.UTF8.GetBytes(relative));
-            hash.AppendData(stackalloc byte[] { 0 });
+            hash.AppendData(separator);
             hash.AppendData(SHA256.HashData(files[relative]));
         }
         return Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant();

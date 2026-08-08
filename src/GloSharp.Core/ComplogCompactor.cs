@@ -87,7 +87,11 @@ public static class ComplogCompactor
         var warnings = new List<string>();
 
         var blobs = new Dictionary<string, byte[]>(StringComparer.Ordinal);
-        var mvidToEntry = new Dictionary<Guid, ResolvedReference>();
+        // Keyed by MVID *and* provenance: the same module can be referenced both from a
+        // targeting pack and from a project/package path (or from two pack versions), and
+        // only the pack-origin occurrences are eligible to become pointers. Deduping on
+        // MVID alone would let whichever occurrence was resolved first decide for the rest.
+        var resolvedByOrigin = new Dictionary<(Guid Mvid, string Origin), ResolvedReference>();
         var pointerTargets = new HashSet<string>(StringComparer.Ordinal);
 
         int referencesBefore = 0;
@@ -124,12 +128,14 @@ public static class ComplogCompactor
             var refs = new List<(ResolvedReference, ManifestReference)>();
             foreach (var refData in references)
             {
-                if (!mvidToEntry.TryGetValue(refData.Mvid, out var entry))
+                var origin = packResolver != null ? TryParsePackOrigin(refData.FilePath) : null;
+                var key = (refData.Mvid, origin is { } o ? $"{o.Pack}|{o.RelativePath}" : "");
+                if (!resolvedByOrigin.TryGetValue(key, out var entry))
                 {
                     entry = ResolveReference(
-                        reader, refData, options, packResolver, packIndexes, warnings,
+                        reader, refData, origin, options, packResolver, packIndexes, warnings,
                         blobs, pointerTargets, ref refasmRewrittenCount);
-                    mvidToEntry[refData.Mvid] = entry;
+                    resolvedByOrigin[key] = entry;
                 }
 
                 var occurrence = new ManifestReference
@@ -239,7 +245,7 @@ public static class ComplogCompactor
             if (pointers.Any(p => p.Aliases.Count > 0 || p.EmbedInteropTypes))
                 continue;
 
-            var tfms = pointers.Select(p => TfmOfDirectRefDll(p.Path!)).Distinct().ToList();
+            var tfms = pointers.Select(p => PackContentHasher.TfmOfDirectRefDll(p.Path!)).Distinct().ToList();
             if (tfms.Count != 1 || tfms[0] is not { } tfm)
                 continue;
 
@@ -273,16 +279,6 @@ public static class ComplogCompactor
         return result;
     }
 
-    private static string? TfmOfDirectRefDll(string path)
-    {
-        // Matches exactly ref/<tfm>/<file>.dll (a direct child).
-        var segments = path.Split('/');
-        if (segments.Length != 3 || segments[0] != "ref" ||
-            !segments[2].EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
-            return null;
-        return segments[1];
-    }
-
     /// <summary>A deduped reference: either an embedded blob or a pack pointer.</summary>
     private sealed record ResolvedReference
     {
@@ -294,6 +290,7 @@ public static class ComplogCompactor
     private static ResolvedReference ResolveReference(
         ICompilerCallReader reader,
         ReferenceData refData,
+        (PackIdentity Pack, string RelativePath)? packOrigin,
         ComplogCompactionOptions options,
         ReferencePackResolver? packResolver,
         Dictionary<PackIdentity, CanonicalPackIndex?> packIndexes,
@@ -304,8 +301,7 @@ public static class ComplogCompactor
     {
         var bytes = ReadReferenceBytes(reader, refData);
 
-        if (packResolver != null &&
-            TryParsePackOrigin(refData.FilePath) is { } origin)
+        if (packResolver != null && packOrigin is { } origin)
         {
             if (!packIndexes.TryGetValue(origin.Pack, out var index))
             {
@@ -319,7 +315,7 @@ public static class ComplogCompactor
 
             if (index != null)
             {
-                var match = index.Match(bytes, refData.Mvid, refData.FileName);
+                var match = index.Match(bytes, refData.Mvid, refData.FileName, origin.RelativePath);
                 if (match != null)
                 {
                     pointerTargets.Add($"{origin.Pack}:{match.RelativePath}");
@@ -376,7 +372,8 @@ public static class ComplogCompactor
         if (!id.EndsWith(".app.ref", StringComparison.OrdinalIgnoreCase))
             return null;
 
-        return (new PackIdentity(id, version), $"ref/{tfm}/{file}");
+        var pack = PackIdentity.TryCreate(id, version);
+        return pack != null ? (pack, $"ref/{tfm}/{file}") : null;
     }
 
     private static (CSharpCompilationOptions, CSharpParseOptions) ParseCompilerArguments(

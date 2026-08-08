@@ -23,7 +23,7 @@ public sealed class GloContextResolver : IDisposable
             throw new InvalidDataException(
                 $"File '{path}' is smaller than the minimum .glocontext header size.");
 
-        GloContextFormat.ReadHeader(allBytes.AsSpan(0, GloContextFormat.HeaderSize));
+        var header = GloContextFormat.ReadHeader(allBytes.AsSpan(0, GloContextFormat.HeaderSize));
 
         var compressed = allBytes.AsSpan(GloContextFormat.HeaderSize);
         var tarBytes = ZstdSharpCodec.Instance.Decompress(compressed);
@@ -34,7 +34,18 @@ public sealed class GloContextResolver : IDisposable
             throw new InvalidDataException(
                 $".glocontext manifest version {manifest.Version} is not supported by this reader (supported: 1, 2).");
 
+        // The header version is the file's advertised contract, so it has to agree with the
+        // manifest: otherwise a file labelled v1 — which v1 readers accept and which promises
+        // to be self-contained — could still carry pointers and trigger pack acquisition.
+        if (manifest.Version != header.Version)
+            throw new InvalidDataException(
+                $".glocontext header format version {header.Version} does not match manifest version {manifest.Version}.");
+
         var packs = manifest.Packs ?? new List<ManifestPack>();
+        if (manifest.Version == 1 && packs.Count > 0)
+            throw new InvalidDataException(
+                "A v1 .glocontext must be self-contained but declares targeting packs; " +
+                "pointer references require format version 2.");
         var pointerReader = new PointerReader(packs, packResolver);
 
         var compilations = new List<GloContextCompilation>(manifest.Compilations.Count);
@@ -44,6 +55,11 @@ public sealed class GloContextResolver : IDisposable
             foreach (var r in mc.References)
             {
                 r.Validate(packs.Count);
+
+                if (manifest.Version == 1 && (r.IsPointer || r.IsPackAll))
+                    throw new InvalidDataException(
+                        $"A v1 .glocontext must embed every reference, but '{r.Display}' is a targeting-pack " +
+                        "pointer; pointer references require format version 2.");
 
                 if (r.IsPackAll)
                 {
@@ -222,7 +238,13 @@ public sealed class GloContextResolver : IDisposable
                 throw new InvalidDataException(
                     $"Manifest pack '{pack.Id}/{pack.Version}' is missing a valid content hash.");
 
-            var root = _resolver.Locate(new PackIdentity(pack.Id, pack.Version));
+            // Manifest ids/versions are untrusted and end up in filesystem paths.
+            var identity = PackIdentity.TryCreate(pack.Id, pack.Version)
+                ?? throw new InvalidDataException(
+                    $"Manifest pack entry {packIndex} has an invalid id or version " +
+                    $"('{pack.Id}' / '{pack.Version}'): both must be non-empty single path segments.");
+
+            var root = _resolver.Locate(identity);
             var (contentHash, files) = PackContentHasher.HashRefDlls(root);
             if (!contentHash.Equals(pack.Sha256, StringComparison.OrdinalIgnoreCase))
                 throw new InvalidDataException(

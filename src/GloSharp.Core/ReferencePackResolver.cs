@@ -3,20 +3,48 @@ using System.IO.Compression;
 namespace GloSharp.Core;
 
 /// <summary>
-/// Identity of a NuGet targeting pack. Id and Version are normalized to lowercase.
+/// Identity of a NuGet targeting pack. Id and Version are normalized to lowercase and
+/// validated as single path segments: both are combined into filesystem paths under the
+/// packages folder and the download cache, and both originate in untrusted manifests, so
+/// a value like <c>..</c> or <c>/etc</c> must never reach <see cref="Path.Combine"/>.
 /// </summary>
 public sealed record PackIdentity
 {
+    private static readonly char[] SeparatorChars = { '/', '\\', ':' };
+
     public PackIdentity(string id, string version)
     {
-        Id = id.ToLowerInvariant();
-        Version = version.ToLowerInvariant();
+        Id = Normalize(id, nameof(id));
+        Version = Normalize(version, nameof(version));
     }
 
     public string Id { get; }
     public string Version { get; }
 
+    /// <summary>Returns null instead of throwing when either value is not a usable path segment.</summary>
+    public static PackIdentity? TryCreate(string? id, string? version) =>
+        IsValidSegment(id) && IsValidSegment(version) ? new PackIdentity(id!, version!) : null;
+
     public override string ToString() => $"{Id}/{Version}";
+
+    private static string Normalize(string value, string paramName)
+    {
+        if (!IsValidSegment(value))
+            throw new ArgumentException(
+                $"Pack {paramName} '{value}' must be a non-empty single path segment.", paramName);
+        return value.ToLowerInvariant();
+    }
+
+    private static bool IsValidSegment(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return false;
+        if (value is "." or "..")
+            return false;
+        if (value.IndexOfAny(SeparatorChars) >= 0)
+            return false;
+        return value.IndexOfAny(Path.GetInvalidFileNameChars()) < 0;
+    }
 }
 
 /// <summary>
