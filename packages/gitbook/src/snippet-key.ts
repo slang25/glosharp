@@ -15,7 +15,12 @@
  * `Function.prototype.toString()` so there is exactly one definition.
  */
 export function canonicalizeSnippet(code: string): string {
-  return code.replace(/\r\n?/g, '\n').replace(/^\n+/, '').replace(/[ \t\n]+$/, '')
+  return code
+    .replace(/\r\n?/g, '\n')
+    // Whole whitespace-only lines, so a leading "  \n" is dropped like a bare
+    // "\n" is — indentation on the first line that has content survives.
+    .replace(/^(?:[ \t]*\n)+/, '')
+    .replace(/[ \t\n]+$/, '')
 }
 
 /** Length of the hex artifact key, i.e. SHA-256. */

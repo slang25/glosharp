@@ -25,7 +25,9 @@ const OPENING = /^( {0,3})(`{3,}|~{3,})[ \t]*(.*)$/
  * length, indentation stripping, tilde fences, unterminated fences).
  */
 export function findFences(markdown: string, lang?: string): FenceBlock[] {
-  const lines = markdown.split('\n')
+  // Normalise first: a stray \r makes a closing fence fail to match, so the
+  // fence would swallow the rest of the document and every later fence with it.
+  const lines = markdown.replace(/\r\n?/g, '\n').split('\n')
   const blocks: FenceBlock[] = []
 
   for (let i = 0; i < lines.length; i++) {

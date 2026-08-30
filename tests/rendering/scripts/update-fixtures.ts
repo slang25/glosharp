@@ -27,6 +27,7 @@ const HTML_FIXTURES_DIR = join(FIXTURES_DIR, 'html')
 const FRAMEWORK = 'net8.0'
 const CONCURRENCY = 4
 const THEMES = ['github-dark', 'github-light'] as const
+const FRAGMENT_MARKER = '<div class="glosharp-code"'
 
 interface Fixture {
   sample: string
@@ -67,7 +68,16 @@ async function renderSample(file: string, theme: string): Promise<string> {
     ['run', '--no-build', '--project', CLI_PROJECT, '--', 'render', join(SAMPLES_DIR, file), '--framework', FRAMEWORK, '--theme', theme],
     { encoding: 'utf-8', timeout: 60000, maxBuffer: 32 * 1024 * 1024 },
   )
-  return stdout.slice(stdout.indexOf('<div class="glosharp-code"'))
+  // indexOf returning -1 would slice(-1) into a one-character fixture and
+  // overwrite every committed file with it.
+  const start = stdout.indexOf(FRAGMENT_MARKER)
+  if (start < 0) {
+    throw new Error(
+      `render produced no ${FRAGMENT_MARKER} fragment for ${file} (${theme}). Output was:\n` +
+        stdout.slice(0, 500),
+    )
+  }
+  return stdout.slice(start)
 }
 
 function fixtureFileName(sample: string): string {

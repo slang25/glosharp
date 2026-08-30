@@ -37,6 +37,12 @@ describe('parseArgs', () => {
     expect(() => parseArgs(['build', 'docs', '--out'])).toThrow('--out requires a value')
   })
 
+  it('does not swallow the next option as a value', () => {
+    expect(() => parseArgs(['build', 'docs', '--out', '--check'])).toThrow(
+      '--out requires a value',
+    )
+  })
+
   it('reads the dev command and its options', () => {
     const args = parseArgs(['dev', 'docs', '--port', '4200', '--frame-theme', 'github-dark', '--fresh'])
 

@@ -118,6 +118,16 @@ describe('startDevServer', () => {
     expect(response.status).toBe(403)
   })
 
+  it('advertises the address it actually bound', async () => {
+    await write('a.md', fence('var x = 42;'))
+    const { url } = await start({ host: '127.0.0.1' })
+
+    // Advertising `localhost` while listening on 127.0.0.1 is unreachable
+    // wherever `localhost` resolves to ::1 first.
+    expect(new URL(url).hostname).toBe('127.0.0.1')
+    expect((await fetch(url)).status).toBe(200)
+  })
+
   it('404s anything else', async () => {
     await write('a.md', fence('var x = 42;'))
     const { url } = await start()

@@ -44,6 +44,10 @@ The `snippet` component SHALL render, inside a `block`: in an editable document 
 - **WHEN** the block renders in a non-editable document context
 - **THEN** only the webframe is rendered
 
+#### Scenario: An empty fence stays empty
+- **WHEN** the block's `content` prop is present but empty
+- **THEN** the block renders that empty content rather than substituting the sample snippet
+
 #### Scenario: Theme precedence
 - **WHEN** the block has a `theme` prop, the installation has a configured theme, and neither is set
 - **THEN** the block prop wins, else the installation's theme, else `auto`

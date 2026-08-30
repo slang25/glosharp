@@ -254,9 +254,9 @@ function buildStandalonePages(fixtures: Fixture[]): Record<string, string> {
  * the fence body, pulls the matching artifact, and reports a height back to the
  * host — including extra height so an open popup is not clipped by the frame
  * edge. None of that is observable from the fragment alone, so it needs a page
- * of its own. The published artifacts here come from the Shiki path (same
- * markup contract as `glosharp render`, no .NET needed) with the stylesheet
- * inlined so each fragment is self-contained.
+ * of its own. The published artifacts are the committed `glosharp render` HTML
+ * fixtures — the production renderer is the thing this page exists to validate,
+ * and reading them from disk keeps the page fixture-only and .NET-free.
  */
 function buildGitBookFramePages(fixtures: Fixture[]): {
   pages: Record<string, string>

@@ -83,11 +83,11 @@ public class HtmlRenderer
                 tokens, theme, result.Hovers, result.Errors, scope);
 
             sb.Append("</span>");
-            // The newline separators stay: `.line` is display:block, which
-            // breaks the line visually, but Firefox does not synthesise a
-            // newline from a block boundary when copying, so without these the
-            // code copies out as one long line. The stylesheet zeroes their
-            // height instead (see GenerateStyles).
+            // These newlines are the only thing that breaks a line: `.line` is
+            // display:inline (see GenerateStyles), because a block boundary
+            // counts as a second break in Chromium and as none at all in
+            // Firefox's clipboard. Adding one anywhere else inside the <pre>
+            // adds a visible line break.
             if (lineIdx < lines.Length - 1)
                 sb.Append('\n');
 

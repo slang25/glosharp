@@ -145,16 +145,27 @@ export async function startDevServer(options: DevServerOptions): Promise<DevServ
     send(response, 404, 'text/plain; charset=utf-8', 'not found')
   }
 
-  const port = await listen(server, options.port ?? 4180, options.host ?? '127.0.0.1')
+  const host = options.host ?? '127.0.0.1'
+  const port = await listen(server, options.port ?? 4180, host)
 
   return {
     port,
-    url: `http://${options.host ?? 'localhost'}:${port}/`,
+    url: `http://${dialableHost(host)}:${port}/`,
     close: () =>
       new Promise<void>((resolve, reject) =>
         server.close((error) => (error ? reject(error) : resolve())),
       ),
   }
+}
+
+/**
+ * The bound address as something a browser can actually dial. Advertising
+ * `localhost` while listening on `127.0.0.1` breaks wherever `localhost`
+ * resolves to `::1` first.
+ */
+function dialableHost(host: string): string {
+  if (host === '0.0.0.0' || host === '::') return 'localhost'
+  return host.includes(':') ? `[${host}]` : host
 }
 
 function send(response: ServerResponse, status: number, type: string, body: string): void {

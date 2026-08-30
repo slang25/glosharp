@@ -32,7 +32,9 @@ const snippetBlock = createComponent<
 >({
   componentId: 'snippet',
   initialState: (props) => ({
-    content: props.content || DEFAULT_SNIPPET,
+    // `??`, not `||`: an author's deliberately empty fence is content, and
+    // replacing it with the sample would change what the page says.
+    content: props.content ?? DEFAULT_SNIPPET,
   }),
   async render(element, { environment }) {
     if (element.context.type !== 'document') {

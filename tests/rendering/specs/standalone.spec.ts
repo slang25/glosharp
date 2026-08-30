@@ -3,6 +3,7 @@ import {
   expectWithinViewport, ADJACENCY_TOLERANCE_PX, FALLBACK_ADJACENCY_TOLERANCE_PX,
 } from './helpers.ts'
 import type { Page } from '@playwright/test'
+import { readFile } from 'node:fs/promises'
 
 // The standalone renderer (`glosharp render`) ships its markup and its CSS
 // together, so nothing outside it can compensate for a mistake in either. It is
@@ -80,7 +81,14 @@ test('the code block is exactly as tall as its line count', async ({ page }) => 
   )
 })
 
-test('code copies back out as the original lines', async ({ page }) => {
+test('code copies back out as the original source', async ({ page }) => {
+  // Compare against the fixture's own processed source, exactly. Asserting a
+  // line count above one and a substring would pass with doubled interior
+  // newlines — the Chromium regression this test exists to catch.
+  const fixture = JSON.parse(
+    await readFile(new URL('../fixtures/local-variables.json', import.meta.url), 'utf8'),
+  ) as { result: { code: string } }
+
   await page.goto('/standalone-dark.html?static')
   const copied = await galleryCase(page, 'standalone/local-variables/dark')
     // `pre > code`: the popups nested in the code block have their own <code>.
@@ -94,8 +102,10 @@ test('code copies back out as the original lines', async ({ page }) => {
       return selection.toString()
     })
 
-  expect(copied.split('\n').length, 'one text line per code line').toBeGreaterThan(1)
-  expect(copied, 'tokens are not split across lines').toContain('var greeting = "Hello, World!";')
+  // A trailing newline is the one thing the engines disagree on — Firefox keeps
+  // the source's final one, Chromium drops it — so normalise that and nothing
+  // else. Interior newlines are compared exactly.
+  expect(copied.replace(/\n$/, '')).toBe(fixture.result.code.replace(/\n$/, ''))
   expect(copied, 'hidden popup text does not come along').not.toContain('(local variable)')
 })
 

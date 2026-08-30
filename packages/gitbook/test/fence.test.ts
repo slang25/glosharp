@@ -52,6 +52,20 @@ describe('findFences', () => {
     expect(findFences(markdown, 'glosharp')[0].code).toBe('```')
   })
 
+  it('scans CRLF documents, including every fence after the first', () => {
+    const markdown = '# Title\r\n\r\n```glosharp\r\nvar x = 1;\r\n```\r\n\r\n```glosharp\r\nvar y = 2;\r\n```\r\n'
+
+    const blocks = findFences(markdown, 'glosharp')
+
+    expect(blocks.map((b) => b.code)).toEqual(['var x = 1;', 'var y = 2;'])
+    expect(blocks.map((b) => b.line)).toEqual([3, 7])
+  })
+
+  it('parses attributes on a CRLF fence line', () => {
+    expect(findFences('```glosharp framework="net10.0"\r\nvar x = 1;\r\n```', 'glosharp')[0]
+      .attributes).toEqual({ framework: 'net10.0' })
+  })
+
   it('runs an unterminated fence to end of file', () => {
     const markdown = '```glosharp\nvar x = 42;'
 

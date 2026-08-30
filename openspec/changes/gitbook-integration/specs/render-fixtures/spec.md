@@ -24,6 +24,10 @@ A check SHALL regenerate fixtures — both the `GloSharpResult` JSON and the per
 - **WHEN** a change to the standalone renderer alters its markup or CSS
 - **THEN** the affected HTML fixtures change, making the difference reviewable in the diff
 
+#### Scenario: Unrecognisable render output fails the run
+- **WHEN** the CLI's render output does not contain the expected fragment marker
+- **THEN** the script fails and names the sample, rather than committing a truncated fixture
+
 #### Scenario: Orphaned fixtures reported
 - **WHEN** a sample is removed but its fixtures are still committed
 - **THEN** the drift check reports them as orphaned

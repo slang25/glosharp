@@ -17,6 +17,11 @@ describe('canonicalizeSnippet', () => {
     expect(canonicalizeSnippet('\n    var x = 1;')).toBe('    var x = 1;')
   })
 
+  it('drops leading lines that are blank but not empty', () => {
+    expect(canonicalizeSnippet('  \n\t\nvar x = 1;')).toBe('var x = 1;')
+    expect(canonicalizeSnippet('  \n    var x = 1;')).toBe('    var x = 1;')
+  })
+
   it('preserves interior blank lines and interior trailing whitespace', () => {
     expect(canonicalizeSnippet('a   \n\nb')).toBe('a   \n\nb')
   })
@@ -35,6 +40,8 @@ describe('snippetKey', () => {
 
   it('is stable across line-ending and surrounding-blank-line differences', () => {
     expect(snippetKey('var x = 42;')).toBe(snippetKey('\r\nvar x = 42;\r\n\r\n'))
+    expect(snippetKey('var x = 42;')).toBe(snippetKey('  \nvar x = 42;  '))
+    expect(snippetKey('var x = 42;')).toBe(snippetKey('   \nvar x = 42;\n \n'))
   })
 
   it('changes when the code changes', () => {

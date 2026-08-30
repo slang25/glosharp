@@ -95,7 +95,19 @@
 - [x] 11.5 Add the package to the npm publish workflow
 - [x] 11.6 ROADMAP entry
 
-## 12. Deferred (not in this change)
+## 12. Review findings
+
+- [x] 12.1 `canonicalizeSnippet` dropped `^\n+` only, so a leading line of spaces changed the key despite the documented form; it now drops whole whitespace-only lines
+- [x] 12.2 `findFences` split on `\n` and left `\r` behind, so a CRLF document's closing fence never matched and the fence ate the rest of the file; line endings are normalised before scanning
+- [x] 12.3 The block defaulted with `||`, so a deliberately empty fence displayed the sample snippet; now `??`
+- [x] 12.4 A value flag followed by another option took it as the value (`--out --check` lost check mode); a following `--option` is now a missing value
+- [x] 12.5 `action.yml` interpolated inputs straight into bash, so a value containing `$(…)` would execute; every input now reaches the script through `env`
+- [x] 12.6 `update-fixtures` sliced on an `indexOf` that could be `-1`, silently committing a one-character fixture; a missing fragment marker now fails the run
+- [x] 12.7 The dev server bound `127.0.0.1` but advertised `localhost`, unreachable where `localhost` resolves to `::1` first; it now advertises what it bound
+- [x] 12.8 The copy-fidelity spec asserted a line count and a substring, which doubled interior newlines would pass; it now compares against the fixture's exact processed source
+- [x] 12.9 Two comments described superseded designs (`HtmlRenderer`'s block-line model, the gallery's Shiki artifacts)
+
+## 13. Deferred (not in this change)
 
 - [ ] 12.1 Live editor preview via Roslyn on `dotnet.wasm`: byte-array reference loading (`CreateFromImage`), a browser build target, ref assemblies as static assets. Blocked on measuring download-to-first-hover; see design.md and decision 006.
 - [ ] 12.2 Batch `glosharp render` in the .NET CLI, to resolve references once per run instead of once per snippet. Only worth it if the current cost becomes a bottleneck.

@@ -95,7 +95,12 @@ export function parseArgs(argv: string[]): ParsedArgs {
       }
       if (!VALUE_FLAGS.has(name)) throw new Error(`Unknown option: ${arg}`)
       const value = argv[++i]
-      if (value === undefined) throw new Error(`Option ${arg} requires a value`)
+      // A following option is a missing value, not the value: `--out --check`
+      // would otherwise set the output directory to `--check` and quietly drop
+      // check mode.
+      if (value === undefined || value.startsWith('--')) {
+        throw new Error(`Option ${arg} requires a value`)
+      }
       parsed.flags.set(name, [...(parsed.flags.get(name) ?? []), value])
       continue
     }

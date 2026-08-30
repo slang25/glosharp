@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Canonical snippet form
-The package SHALL export `canonicalizeSnippet(code)` producing the form that is hashed to key an artifact. It SHALL normalise `\r\n` and `\r` to `\n`, remove leading blank lines, and remove trailing whitespace at the end of the input. It SHALL NOT alter anything else — in particular it SHALL preserve leading indentation, interior blank lines, and trailing whitespace on interior lines. It SHALL be idempotent.
+The package SHALL export `canonicalizeSnippet(code)` producing the form that is hashed to key an artifact. It SHALL normalise `\r\n` and `\r` to `\n`, remove leading lines that contain nothing but whitespace, and remove trailing whitespace at the end of the input. It SHALL NOT alter anything else — in particular it SHALL preserve leading indentation, interior blank lines, and trailing whitespace on interior lines. It SHALL be idempotent.
 
 #### Scenario: Line endings normalised
 - **WHEN** `canonicalizeSnippet("a\r\nb\rc")` is called
@@ -10,6 +10,10 @@ The package SHALL export `canonicalizeSnippet(code)` producing the form that is 
 #### Scenario: Surrounding blank space dropped
 - **WHEN** `canonicalizeSnippet("\n\nvar x = 1;\n\n  \n")` is called
 - **THEN** it returns `"var x = 1;"`
+
+#### Scenario: A leading blank line counts even when it holds spaces
+- **WHEN** `canonicalizeSnippet("  \n\t\nvar x = 1;")` is called
+- **THEN** it returns `"var x = 1;"`, so a fence indented by an editor still hashes to the same key
 
 #### Scenario: Indentation preserved
 - **WHEN** `canonicalizeSnippet("\n    var x = 1;")` is called
@@ -35,7 +39,7 @@ The package SHALL export `snippetKey(code)` returning the lowercase hex SHA-256 
 - **THEN** they are equal
 
 ### Requirement: Fence discovery in Markdown
-The package SHALL export `findFences(markdown, lang?)` returning each fenced code block, with its info-string language, its parsed attributes, its body with the opening fence's indentation removed, and the 1-based line number of the opening fence. Fence handling SHALL follow CommonMark for what decides a body's extent: an opening fence of three or more backticks or tildes indented at most three spaces; a closing fence of the same character and at least the same length; a backtick info string containing a backtick disqualifies the fence; an unterminated fence runs to end of input. When `lang` is given, matching SHALL be case-insensitive and only matching blocks SHALL be returned. Blocks inside another fence's body SHALL NOT be returned.
+The package SHALL export `findFences(markdown, lang?)` returning each fenced code block, with its info-string language, its parsed attributes, its body with the opening fence's indentation removed, and the 1-based line number of the opening fence. Fence handling SHALL follow CommonMark for what decides a body's extent: line endings are normalised before scanning, so a CRLF document does not fail to close its fences; an opening fence of three or more backticks or tildes indented at most three spaces; a closing fence of the same character and at least the same length; a backtick info string containing a backtick disqualifies the fence; an unterminated fence runs to end of input. When `lang` is given, matching SHALL be case-insensitive and only matching blocks SHALL be returned. Blocks inside another fence's body SHALL NOT be returned.
 
 #### Scenario: Fence found with position
 - **WHEN** `findFences("# Title\n\n```glosharp\nvar x = 42;\n```\n", "glosharp")` is called
@@ -60,6 +64,10 @@ The package SHALL export `findFences(markdown, lang?)` returning each fenced cod
 #### Scenario: Nested fence not discovered
 - **WHEN** a four-backtick `md` fence contains a three-backtick `glosharp` fence
 - **THEN** `findFences(doc, "glosharp")` returns nothing
+
+#### Scenario: CRLF documents scan the same as LF
+- **WHEN** a CRLF document contains two `glosharp` fences
+- **THEN** both are returned, with their bodies free of `\r`
 
 #### Scenario: Unterminated fence
 - **WHEN** a document ends without closing a `glosharp` fence
@@ -171,8 +179,8 @@ The package SHALL provide a `glosharp-gitbook` executable with `build <paths...>
 - **THEN** the CLI reports `Unknown option: --nope` and exits non-zero
 
 #### Scenario: Missing value rejected
-- **WHEN** `--out` is passed with no value
-- **THEN** the CLI reports that `--out` requires a value and exits non-zero
+- **WHEN** `--out` is passed with no value, or is followed by another option
+- **THEN** the CLI reports that `--out` requires a value and exits non-zero, rather than taking the option as the value
 
 #### Scenario: Check gates a pull request
 - **WHEN** `build --check` finds an artifact that would change
@@ -180,6 +188,10 @@ The package SHALL provide a `glosharp-gitbook` executable with `build <paths...>
 
 ### Requirement: Local preview command
 The CLI SHALL provide `dev <paths...>`, serving the real webframe shell, the built artifacts, and a host page that implements GitBook's webframe contract — so a snippet can be previewed exactly as the block will show it without a GitBook account. Requesting the host page SHALL re-scan and rebuild, rendering only snippets not already published, so the loop is "edit Markdown, reload". It SHALL accept `--port`, `--frame-theme`, `--out` (defaulting to a stable per-project temp directory), `--fresh`, and `--no-build`, and it SHALL serve files only from inside the artifacts directory.
+
+#### Scenario: The preview URL is the address it bound
+- **WHEN** the server binds a loopback address
+- **THEN** the URL it reports names that address, not a name that may resolve elsewhere
 
 #### Scenario: The host listens before the frames exist
 - **WHEN** the preview page is served

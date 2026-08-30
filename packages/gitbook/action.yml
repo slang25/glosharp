@@ -79,9 +79,14 @@ runs:
 
     - name: Install the glosharp CLI
       shell: bash
+      # Inputs reach bash through env, never through ${{ }} interpolation:
+      # interpolation splices the value into the script source, so a value
+      # containing $(...) or a quote runs as code.
+      env:
+        GLOSHARP_VERSION: ${{ inputs.glosharp-version }}
       run: |
-        if [ -n "${{ inputs.glosharp-version }}" ]; then
-          dotnet tool install --global GloSharp.Cli --version "${{ inputs.glosharp-version }}"
+        if [ -n "$GLOSHARP_VERSION" ]; then
+          dotnet tool install --global GloSharp.Cli --version "$GLOSHARP_VERSION"
         else
           dotnet tool install --global GloSharp.Cli
         fi
@@ -89,16 +94,32 @@ runs:
 
     - name: Render snippets
       shell: bash
+      env:
+        GB_PATHS: ${{ inputs.paths }}
+        GB_OUT: ${{ inputs.out }}
+        GB_FENCE: ${{ inputs.fence }}
+        GB_THEMES: ${{ inputs.themes }}
+        GB_CONCURRENCY: ${{ inputs.concurrency }}
+        GB_FRAMEWORK: ${{ inputs.framework }}
+        GB_PROJECT: ${{ inputs.project }}
+        GB_COMPLOG: ${{ inputs.complog }}
+        GB_CONFIG: ${{ inputs.config }}
+        GB_CHECK: ${{ inputs.check }}
+        GB_PRUNE: ${{ inputs.prune }}
+        GB_PACKAGE_VERSION: ${{ inputs.package-version }}
       run: |
-        args=(build ${{ inputs.paths }} --out "${{ inputs.out }}" --fence "${{ inputs.fence }}")
-        args+=(--concurrency "${{ inputs.concurrency }}")
-        for theme in ${{ inputs.themes }}; do args+=(--theme "$theme"); done
+        # $GB_PATHS and $GB_THEMES are intentionally unquoted — both are
+        # space-separated lists and word splitting is the point. Expansion
+        # cannot execute anything either way.
+        args=(build $GB_PATHS --out "$GB_OUT" --fence "$GB_FENCE")
+        args+=(--concurrency "$GB_CONCURRENCY")
+        for theme in $GB_THEMES; do args+=(--theme "$theme"); done
         # `if` blocks, not `[ … ] && …`: under `set -e` a false test as the last
         # command of the step would fail the step.
-        if [ -n "${{ inputs.framework }}" ]; then args+=(--framework "${{ inputs.framework }}"); fi
-        if [ -n "${{ inputs.project }}" ]; then args+=(--project "${{ inputs.project }}"); fi
-        if [ -n "${{ inputs.complog }}" ]; then args+=(--complog "${{ inputs.complog }}"); fi
-        if [ -n "${{ inputs.config }}" ]; then args+=(--config "${{ inputs.config }}"); fi
-        if [ "${{ inputs.check }}" = "true" ]; then args+=(--check); fi
-        if [ "${{ inputs.prune }}" = "true" ]; then args+=(--prune); fi
-        npx --yes "@glosharp/gitbook@${{ inputs.package-version }}" "${args[@]}"
+        if [ -n "$GB_FRAMEWORK" ]; then args+=(--framework "$GB_FRAMEWORK"); fi
+        if [ -n "$GB_PROJECT" ]; then args+=(--project "$GB_PROJECT"); fi
+        if [ -n "$GB_COMPLOG" ]; then args+=(--complog "$GB_COMPLOG"); fi
+        if [ -n "$GB_CONFIG" ]; then args+=(--config "$GB_CONFIG"); fi
+        if [ "$GB_CHECK" = "true" ]; then args+=(--check); fi
+        if [ "$GB_PRUNE" = "true" ]; then args+=(--prune); fi
+        npx --yes "@glosharp/gitbook@$GB_PACKAGE_VERSION" "${args[@]}"
