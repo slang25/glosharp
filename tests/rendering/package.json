@@ -12,6 +12,7 @@
   "dependencies": {
     "@glosharp/core": "*",
     "@glosharp/expressive-code": "*",
+    "@glosharp/gitbook": "*",
     "@glosharp/shiki": "*"
   },
   "devDependencies": {

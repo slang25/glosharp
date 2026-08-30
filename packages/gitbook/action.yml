@@ -1,0 +1,104 @@
+name: Publish Glo# GitBook artifacts
+description: >-
+  Pre-render every glosharp fence in a GitBook Git Sync repo and write hash-keyed
+  HTML artifacts for the Glo# GitBook integration to look up.
+author: Glo#
+
+inputs:
+  paths:
+    description: Space-separated Markdown files or directories to scan.
+    required: false
+    default: .
+  out:
+    description: Directory to write artifacts to (upload this to your static host).
+    required: false
+    default: glosharp-artifacts
+  fence:
+    description: Fence language to claim.
+    required: false
+    default: glosharp
+  themes:
+    description: Space-separated themes to render. Empty means dark + light.
+    required: false
+    default: ''
+  framework:
+    description: Target framework moniker, e.g. net10.0.
+    required: false
+    default: ''
+  project:
+    description: .csproj providing NuGet context for the snippets.
+    required: false
+    default: ''
+  complog:
+    description: .complog / .glocontext providing compilation context.
+    required: false
+    default: ''
+  config:
+    description: glosharp.config.json to load.
+    required: false
+    default: ''
+  concurrency:
+    description: Concurrent renders.
+    required: false
+    default: '4'
+  check:
+    description: Report drift and fail instead of writing (for pull requests).
+    required: false
+    default: 'false'
+  prune:
+    description: Delete artifacts that no snippet claims.
+    required: false
+    default: 'true'
+  package-version:
+    description: Version of @glosharp/gitbook to run.
+    required: false
+    default: latest
+  glosharp-version:
+    description: Version of the GloSharp.Cli dotnet tool to install. Empty means latest.
+    required: false
+    default: ''
+  setup-dotnet:
+    description: >-
+      Install the .NET SDK. Set to 'false' when the workflow already did, or when
+      snippets resolve entirely from a committed .glocontext.
+    required: false
+    default: 'true'
+  dotnet-version:
+    description: .NET SDK version to install when setup-dotnet is enabled.
+    required: false
+    default: '10.0.x'
+
+runs:
+  using: composite
+  steps:
+    - name: Setup .NET
+      if: inputs.setup-dotnet == 'true'
+      uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: ${{ inputs.dotnet-version }}
+
+    - name: Install the glosharp CLI
+      shell: bash
+      run: |
+        if [ -n "${{ inputs.glosharp-version }}" ]; then
+          dotnet tool install --global GloSharp.Cli --version "${{ inputs.glosharp-version }}"
+        else
+          dotnet tool install --global GloSharp.Cli
+        fi
+        echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+
+    - name: Render snippets
+      shell: bash
+      run: |
+        args=(build ${{ inputs.paths }} --out "${{ inputs.out }}" --fence "${{ inputs.fence }}")
+        args+=(--concurrency "${{ inputs.concurrency }}")
+        for theme in ${{ inputs.themes }}; do args+=(--theme "$theme"); done
+        # `if` blocks, not `[ … ] && …`: under `set -e` a false test as the last
+        # command of the step would fail the step.
+        if [ -n "${{ inputs.framework }}" ]; then args+=(--framework "${{ inputs.framework }}"); fi
+        if [ -n "${{ inputs.project }}" ]; then args+=(--project "${{ inputs.project }}"); fi
+        if [ -n "${{ inputs.complog }}" ]; then args+=(--complog "${{ inputs.complog }}"); fi
+        if [ -n "${{ inputs.config }}" ]; then args+=(--config "${{ inputs.config }}"); fi
+        if [ "${{ inputs.check }}" = "true" ]; then args+=(--check); fi
+        if [ "${{ inputs.prune }}" = "true" ]; then args+=(--prune); fi
+        npx --yes "@glosharp/gitbook@${{ inputs.package-version }}" "${args[@]}"

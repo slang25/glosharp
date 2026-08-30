@@ -51,6 +51,7 @@ const sampleResult: GloSharpResult = {
   errors: [],
   completions: [],
   highlights: [],
+  tags: [],
   hidden: [],
   meta: { targetFramework: 'net8.0', packages: [], compileSucceeded: true },
 }
@@ -237,5 +238,86 @@ describe('createGloSharp', () => {
     expect(result.completions[0].items[0].label).toBe('WriteLine')
     expect(result.completions[0].items[0].kind).toBe('Method')
     expect(result.completions[0].items[0].detail).toBe('void Console.WriteLine(string?)')
+  })
+})
+
+describe('render', () => {
+  const fragment = '<div class="glosharp-code" data-theme="github-dark"></div>'
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('invokes the render command and returns HTML verbatim', async () => {
+    mockSpawn.mockReturnValue(createMockProcess(fragment, '', 0))
+
+    const glosharp = createGloSharp()
+    const html = await glosharp.render({ code: 'var x = 42;\n//  ^?' })
+
+    expect(html).toBe(fragment)
+    expect(mockSpawn).toHaveBeenCalledWith(
+      '/usr/local/bin/glosharp',
+      ['render', '--stdin'],
+      expect.any(Object),
+    )
+  })
+
+  it('passes --theme and --standalone', async () => {
+    mockSpawn.mockReturnValue(createMockProcess(fragment, '', 0))
+
+    const glosharp = createGloSharp()
+    await glosharp.render({ code: 'var x = 42;', theme: 'github-light', standalone: true })
+
+    expect(mockSpawn).toHaveBeenCalledWith(
+      '/usr/local/bin/glosharp',
+      ['render', '--stdin', '--theme', 'github-light', '--standalone'],
+      expect.any(Object),
+    )
+  })
+
+  it('shares the process option surface', async () => {
+    mockSpawn.mockReturnValue(createMockProcess(fragment, '', 0))
+
+    const glosharp = createGloSharp({ complog: './docs.glocontext' })
+    await glosharp.render({ code: 'var x = 42;', framework: 'net10.0' })
+
+    expect(mockSpawn).toHaveBeenCalledWith(
+      '/usr/local/bin/glosharp',
+      ['render', '--stdin', '--framework', 'net10.0', '--complog', './docs.glocontext'],
+      expect.any(Object),
+    )
+  })
+
+  it('caches by code and theme', async () => {
+    mockSpawn.mockImplementation(() => createMockProcess(fragment, '', 0))
+
+    const glosharp = createGloSharp()
+    await glosharp.render({ code: 'var x = 42;', theme: 'github-dark' })
+    expect(mockSpawn).toHaveBeenCalledTimes(1)
+
+    await glosharp.render({ code: 'var x = 42;', theme: 'github-dark' })
+    expect(mockSpawn).toHaveBeenCalledTimes(1)
+
+    await glosharp.render({ code: 'var x = 42;', theme: 'github-light' })
+    expect(mockSpawn).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not share its cache with process()', async () => {
+    mockSpawn.mockReturnValue(createMockProcess(JSON.stringify(sampleResult), '', 0))
+    const glosharp = createGloSharp()
+    await glosharp.process({ code: 'var x = 42;' })
+
+    mockSpawn.mockReturnValue(createMockProcess(fragment, '', 0))
+    const html = await glosharp.render({ code: 'var x = 42;' })
+
+    expect(html).toBe(fragment)
+  })
+
+  it('throws on non-zero exit code', async () => {
+    mockSpawn.mockReturnValue(createMockProcess('', 'unknown theme', 1))
+
+    const glosharp = createGloSharp()
+    await expect(glosharp.render({ code: 'var x = 42;', theme: 'nope' }))
+      .rejects.toThrow('glosharp exited with code 1')
   })
 })

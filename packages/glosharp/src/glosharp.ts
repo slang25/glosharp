@@ -1,10 +1,11 @@
 import { spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { which } from './which.js'
-import type { GloSharpOptions, GloSharpProcessOptions, GloSharpResult } from './types.js'
+import type { GloSharpOptions, GloSharpProcessOptions, GloSharpRenderOptions, GloSharpResult } from './types.js'
 
 export function createGloSharp(options: GloSharpOptions = {}) {
   const cache = new Map<string, GloSharpResult>()
+  const htmlCache = new Map<string, string>()
 
   async function findExecutable(): Promise<{ command: string; prefix?: string[] }> {
     if (options.executable) return { command: options.executable }
@@ -21,15 +22,8 @@ export function createGloSharp(options: GloSharpOptions = {}) {
     )
   }
 
-  async function process(opts: GloSharpProcessOptions): Promise<GloSharpResult> {
-    const cacheKey = opts.code
-      ? createHash('sha256').update(opts.code).digest('hex')
-      : opts.file ?? ''
-
-    const cached = cache.get(cacheKey)
-    if (cached) return cached
-
-    const args = ['process']
+  function buildArgs(command: string, opts: GloSharpProcessOptions): string[] {
+    const args = [command]
 
     if (opts.file) {
       args.push(opts.file)
@@ -74,14 +68,52 @@ export function createGloSharp(options: GloSharpOptions = {}) {
       args.push('--complog-project', complogProject)
     }
 
+    return args
+  }
+
+  async function run(args: string[], stdin?: string): Promise<string> {
     const { command, prefix } = await findExecutable()
-    const fullArgs = [...(prefix ?? []), ...args]
-    const result = await spawnCli(command, fullArgs, opts.code)
+    return spawnCli(command, [...(prefix ?? []), ...args], stdin)
+  }
+
+  async function process(opts: GloSharpProcessOptions): Promise<GloSharpResult> {
+    const cacheKey = opts.code
+      ? createHash('sha256').update(opts.code).digest('hex')
+      : opts.file ?? ''
+
+    const cached = cache.get(cacheKey)
+    if (cached) return cached
+
+    const stdout = await run(buildArgs('process', opts), opts.code)
+    let result: GloSharpResult
+    try {
+      result = JSON.parse(stdout) as GloSharpResult
+    } catch {
+      throw new Error(`glosharp produced invalid JSON:\n${stdout}`)
+    }
     cache.set(cacheKey, result)
     return result
   }
 
-  return { process }
+  async function render(opts: GloSharpRenderOptions): Promise<string> {
+    const args = buildArgs('render', opts)
+    if (opts.theme) args.push('--theme', opts.theme)
+    if (opts.standalone) args.push('--standalone')
+
+    const cacheKey = [
+      opts.code ? createHash('sha256').update(opts.code).digest('hex') : opts.file ?? '',
+      ...args.slice(1),
+    ].join('\u0000')
+
+    const cached = htmlCache.get(cacheKey)
+    if (cached !== undefined) return cached
+
+    const html = await run(args, opts.code)
+    htmlCache.set(cacheKey, html)
+    return html
+  }
+
+  return { process, render }
 }
 
 function spawnCheck(command: string, args: string[]): Promise<boolean> {
@@ -94,7 +126,7 @@ function spawnCheck(command: string, args: string[]): Promise<boolean> {
   })
 }
 
-function spawnCli(executable: string, args: string[], stdin?: string): Promise<GloSharpResult> {
+function spawnCli(executable: string, args: string[], stdin?: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const child = spawn(executable, args, { stdio: ['pipe', 'pipe', 'pipe'] })
 
@@ -114,12 +146,7 @@ function spawnCli(executable: string, args: string[], stdin?: string): Promise<G
         return
       }
 
-      try {
-        const result = JSON.parse(stdout) as GloSharpResult
-        resolve(result)
-      } catch {
-        reject(new Error(`glosharp produced invalid JSON:\n${stdout}`))
-      }
+      resolve(stdout)
     })
 
     if (stdin) {

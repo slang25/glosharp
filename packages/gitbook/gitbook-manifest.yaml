@@ -1,0 +1,56 @@
+name: glosharp
+title: Glo#
+# The GitBook organization that owns the published integration. Set
+# GLOSHARP_GITBOOK_ORG before `gitbook publish`; there is no sensible default.
+organization: ${{ env.GLOSHARP_GITBOOK_ORG }}
+description: Compiler-derived C# type information in code snippets — hovers, XML docs, compile errors.
+summary: |
+    # Overview
+
+    Glo# is [twoslash](https://twoslash.netlify.app/) for C#: it runs your snippets through Roslyn and renders the
+    real hover information — type signatures, XML doc comments, compiler diagnostics — the way your editor shows it.
+
+    # How it works
+
+    Insert the Glo# block into any page, or write a `glosharp` code fence in a Git Sync repo — all
+    `glosharp` fences are replaced by rendered snippets, and blocks inserted in the editor export back as
+    that fence.
+
+    Rendering needs Roslyn, which cannot run inside GitBook. Instead your repo's CI pre-renders every
+    snippet with the [`glosharp-gitbook`](https://github.com/twohash/glosharp) tool and publishes the
+    results to a static host; the block looks each one up by a hash of its own code. Snippets that have not
+    been published yet render as plain code.
+
+    # Configure
+
+    Point **Artifacts URL** at wherever CI publishes (for example a GitHub Pages site). The host must send
+    `Access-Control-Allow-Origin` — GitHub Pages does by default.
+visibility: private
+script: ./src/integration/index.tsx
+scopes: []
+blocks:
+    - id: snippet
+      title: Glo# C# snippet
+      description: A C# snippet with compiler-derived hover information.
+      markdown:
+          codeblock: glosharp
+          body: content
+configurations:
+    space:
+        properties:
+            artifactsUrl:
+                type: string
+                title: Artifacts URL
+                description: >-
+                    Where CI publishes rendered snippets, e.g.
+                    https://acme.github.io/docs/glosharp (needs CORS).
+            theme:
+                type: string
+                title: Theme
+                description: Colour theme for rendered snippets.
+                enum:
+                    - auto
+                    - github-dark
+                    - github-light
+                default: auto
+target: space

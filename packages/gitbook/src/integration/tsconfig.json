@@ -1,0 +1,5 @@
+{
+  "//": "Type-check only. The GitBook CLI bundles index.tsx with esbuild, and @gitbook/runtime ships TypeScript sources rather than a build, so this needs GitBook's own bundler-style config (Workers types, ContentKit JSX). It lives here rather than at the package root so editors pick it up for these files.",
+  "extends": "@gitbook/tsconfig/integration.json",
+  "include": ["."]
+}

@@ -1,11 +1,12 @@
 // Builds the static rendering gallery from committed fixtures. Renders every
 // fixture through both render paths (Shiki transformer, Expressive Code
 // plugin) in dark and light themes, plus an explicit anchor-positioning
-// fallback variant of the Shiki page. Never invokes the GloSharp CLI: the EC
-// plugin is pointed at glosharp-stub.mjs, which serves fixture JSON.
+// fallback variant of the Shiki page and a page that drives the GitBook
+// webframe shell. Never invokes the GloSharp CLI: the EC plugin is pointed at
+// glosharp-stub.mjs, which serves fixture JSON.
 //
 // Requires the @glosharp/* packages to be built (npm run build -w ...).
-import { readdirSync, readFileSync, writeFileSync, mkdirSync, copyFileSync, chmodSync } from 'node:fs'
+import { readdirSync, readFileSync, writeFileSync, mkdirSync, copyFileSync, chmodSync, existsSync } from 'node:fs'
 import { join, resolve, basename } from 'node:path'
 import { createRequire } from 'node:module'
 import { createHash } from 'node:crypto'
@@ -13,6 +14,7 @@ import { codeToHtml } from 'shiki'
 import { transformerGloSharpFromMap, type GloSharpResultMap } from '@glosharp/shiki'
 import type { GloSharpResult } from '@glosharp/core'
 import { pluginGloSharp } from '@glosharp/expressive-code'
+import { GITBOOK_HOST_SCRIPT, renderFrameShell, renderWebframeIframe, snippetKey } from '@glosharp/gitbook'
 import { ExpressiveCode, loadShikiTheme, type ExpressiveCodePlugin } from 'expressive-code'
 import { toHtml } from 'expressive-code/hast'
 
@@ -22,11 +24,15 @@ const HERE = import.meta.dirname!
 const FIXTURES_DIR = resolve(HERE, '../fixtures')
 const DIST = resolve(HERE, '../gallery-dist')
 const STUB = join(HERE, 'glosharp-stub.mjs')
+const HTML_FIXTURES_DIR = resolve(HERE, '../fixtures/html')
+const SHIKI_STYLE_CSS = readFileSync(require.resolve('@glosharp/shiki/style.css'), 'utf-8')
 
 interface Fixture {
   name: string
   source: string
   result: GloSharpResult
+  /** `glosharp render` output per theme, from fixtures/html (may be absent). */
+  html: Record<string, string>
 }
 
 const THEMES = [
@@ -49,7 +55,13 @@ function loadFixtures(): Fixture[] {
     .sort()
     .map(f => {
       const parsed = JSON.parse(readFileSync(join(FIXTURES_DIR, f), 'utf-8'))
-      return { name: basename(f, '.json'), source: parsed.source, result: parsed.result }
+      const name = basename(f, '.json')
+      const html: Record<string, string> = {}
+      for (const theme of THEMES) {
+        const file = join(HTML_FIXTURES_DIR, `${name}.${theme.shiki}.html`)
+        if (existsSync(file)) html[theme.shiki] = readFileSync(file, 'utf-8')
+      }
+      return { name, source: parsed.source, result: parsed.result, html }
     })
 }
 
@@ -89,7 +101,7 @@ async function buildShikiPages(fixtures: Fixture[]): Promise<Record<string, stri
     resultMap.set(createHash('sha256').update(f.source).digest('hex'), f.result)
   }
 
-  const styleCss = readFileSync(require.resolve('@glosharp/shiki/style.css'), 'utf-8')
+  const styleCss = SHIKI_STYLE_CSS
   const pages: Record<string, string> = {}
 
   for (const theme of THEMES) {
@@ -198,6 +210,126 @@ async function buildEcPages(fixtures: Fixture[]): Promise<Record<string, string>
   return pages
 }
 
+/**
+ * The standalone renderer's own output, as shipped.
+ *
+ * This is the only render path whose markup and CSS travel together, and the
+ * only one a GitBook reader ever sees — but it was long the only one with no
+ * browser coverage, which is how popups that could never open shipped in it.
+ */
+function buildStandalonePages(fixtures: Fixture[]): Record<string, string> {
+  const pages: Record<string, string> = {}
+
+  for (const theme of THEMES) {
+    const sections: string[] = []
+    for (const f of fixtures) {
+      const html = f.html[theme.shiki]
+      if (!html) {
+        console.warn(`SKIPPED  standalone/${f.name}/${theme.label}: no HTML fixture — run fixtures:update`)
+        continue
+      }
+      const id = `standalone/${f.name}/${theme.label}`
+      assertGloSharpRendered(html, id)
+      sections.push(caseSection(id, html))
+    }
+    if (sections.length === 0) {
+      throw new Error('No HTML fixtures found; run fixtures:update -w tests/rendering')
+    }
+    pages[`standalone-${theme.label}.html`] = page(
+      `GloSharp gallery — standalone renderer (${theme.label})`,
+      theme.label,
+      // Nothing to add: `glosharp render` output carries its own styles.
+      '',
+      sections.join('\n'),
+    )
+  }
+
+  return pages
+}
+
+/**
+ * The GitBook webframe shell, driven the way GitBook drives it.
+ *
+ * The shell is what makes a rendered snippet survive inside an iframe: it hashes
+ * the fence body, pulls the matching artifact, and reports a height back to the
+ * host — including extra height so an open popup is not clipped by the frame
+ * edge. None of that is observable from the fragment alone, so it needs a page
+ * of its own. The published artifacts here come from the Shiki path (same
+ * markup contract as `glosharp render`, no .NET needed) with the stylesheet
+ * inlined so each fragment is self-contained.
+ */
+function buildGitBookFramePages(fixtures: Fixture[]): {
+  pages: Record<string, string>
+  artifacts: Record<string, string>
+} {
+  const artifacts: Record<string, string> = {}
+  const cases: { id: string; state: Record<string, string> }[] = []
+
+  // Publish the same bytes CI would: `glosharp render` output, keyed the same way.
+  for (const f of fixtures) {
+    const html = f.html['github-dark']
+    if (!html) continue
+    artifacts[`github-dark/${snippetKey(f.source)}.html`] = html
+    cases.push({
+      id: `gitbook-frame/${f.name}/dark`,
+      state: { content: f.source, artifacts: '/gitbook-artifacts', theme: 'github-dark' },
+    })
+  }
+
+  // No artifacts URL configured: the shell never fetches, so this belongs on the
+  // main page. A *missing* artifact necessarily 404s, which the console-cleanliness
+  // fixture treats as a page defect — so it gets a page of its own.
+  cases.push({
+    id: 'gitbook-frame/no-artifacts-url/dark',
+    state: { content: 'var x = 1;', artifacts: '', theme: 'github-dark' },
+  })
+
+  // Inline and classic, not a deferred module: the listener has to exist before
+  // the browser parses the first iframe, or that frame's readiness announcement
+  // lands on nothing.
+  const head = `<style>
+.webframe { width: 100%; border: 0; display: block; height: 120px; }
+</style>
+<script>
+${GITBOOK_HOST_SCRIPT}
+</script>`
+
+  const sections = (of: typeof cases) =>
+    of
+      .map(({ id, state }) =>
+        caseSection(id, renderWebframeIframe(id, state, { frameUrl: 'gitbook-frame-shell.html' })),
+      )
+      .join('\n')
+
+  return {
+    pages: {
+      'gitbook-frame-shell.html': renderFrameShell(),
+      'gitbook-frame.html': page(
+        'GloSharp gallery — GitBook webframe',
+        'dark',
+        head,
+        sections(cases),
+      ),
+      'gitbook-frame-unpublished.html': page(
+        'GloSharp gallery — GitBook webframe (unpublished snippet)',
+        'dark',
+        head,
+        sections([
+          {
+            id: 'gitbook-frame/unpublished/dark',
+            state: {
+              content: 'var neverPublished = 1;',
+              artifacts: '/gitbook-artifacts',
+              theme: 'github-dark',
+            },
+          },
+        ]),
+      ),
+    },
+    artifacts,
+  }
+}
+
 async function main() {
   chmodSync(STUB, 0o755)
   const fixtures = loadFixtures()
@@ -205,13 +337,22 @@ async function main() {
 
   mkdirSync(join(DIST, 'assets'), { recursive: true })
 
-  const pages = {
+  const gitbook = buildGitBookFramePages(fixtures)
+  const pages: Record<string, string> = {
     ...(await buildShikiPages(fixtures)),
     ...(await buildEcPages(fixtures)),
+    ...buildStandalonePages(fixtures),
+    ...gitbook.pages,
+  }
+
+  for (const [name, html] of Object.entries(gitbook.artifacts)) {
+    const target = join(DIST, 'gitbook-artifacts', name)
+    mkdirSync(resolve(target, '..'), { recursive: true })
+    writeFileSync(target, html)
   }
 
   const links = Object.keys(pages).sort().map(p => `<li><a href="${p}">${p}</a></li>`).join('\n')
-  pages['index.html' as keyof typeof pages] = page(
+  pages['index.html'] = page(
     'GloSharp rendering gallery',
     'dark',
     '',
@@ -228,6 +369,9 @@ Add <code>?static</code> to disable animations, <code>?pin=&lt;case-id&gt;&amp;t
     join(DIST, 'assets/jetbrains-mono.woff2'),
   )
   copyFileSync(join(HERE, 'gallery-client.js'), join(DIST, 'assets/gallery-client.js'))
+  // The host stub is GitBook's side of the webframe contract, shared with the
+  // package's own local preview so there is one definition of it.
+  writeFileSync(join(DIST, 'assets/gitbook-host.js'), GITBOOK_HOST_SCRIPT)
 
   writeFileSync(join(DIST, 'assets/gallery.css'), `
 @font-face {

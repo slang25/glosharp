@@ -54,6 +54,18 @@ jobs:
           npm run build -w @glosharp/core
           npm run build -w @glosharp/shiki
           npm run build -w @glosharp/expressive-code
+          npm run build -w @glosharp/gitbook
+
+      - name: GitBook package tests
+        run: npm test -w @glosharp/gitbook
+
+      - name: GitBook integration typecheck
+        run: npm run typecheck:integration -w @glosharp/gitbook
+
+      - name: GitBook integration manifest check
+        run: npm run gitbook:check -w @glosharp/gitbook
+        env:
+          GLOSHARP_GITBOOK_ORG: ci
 
       - name: E2E tests
         run: npm test --workspace=tests/e2e
@@ -82,6 +94,7 @@ jobs:
           npm run build -w @glosharp/core
           npm run build -w @glosharp/shiki
           npm run build -w @glosharp/expressive-code
+          npm run build -w @glosharp/gitbook
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium firefox

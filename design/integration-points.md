@@ -244,6 +244,28 @@ This:
 
 Some users may want to consume the JSON and build their own rendering. The `process` command outputs JSON, giving full control.
 
+## GitBook integration
+
+The only integration where the render does *not* happen at build time next to the content, because GitBook renders on its own hosted infrastructure and cannot run Roslyn. See [decision 006](decisions.md) and [`packages/gitbook/README.md`](../packages/gitbook/README.md).
+
+### How it works
+
+```
+docs/*.md ──(CI: glosharp-gitbook build)──▶ <theme>/<sha256(code)>.html  (static host)
+                                                      ▲
+GitBook page ──▶ glosharp block ──▶ webframe ─────────┘  fetch by hash of its own fence body
+```
+
+1. A `glosharp` code fence in a Git Sync repo imports as the integration's custom block (`markdown.codeblock: glosharp` in the manifest); blocks inserted in the editor export back as that fence.
+2. The block renders a `<webframe>` — the only ContentKit component that can show custom markup — and hands it the fence body as dynamic state.
+3. The webframe shell hashes the body and fetches the pre-rendered `glosharp render` fragment CI published for it.
+
+Content addressing is the whole contract: nothing but the snippet text has to match between CI and the browser. The fragment's no-JavaScript guarantee becomes an asset here (a sandboxed iframe is a hostile place for scripts); the shell adds only what a fragment cannot do for itself — report a height, and make room for a popup that would otherwise be clipped by the frame edge.
+
+### What it cannot do
+
+Snippets are stale until CI publishes them, including in the editor. Live preview would require Roslyn in the browser, which is feasible but deferred.
+
 ## Open questions
 
 - Should the Shiki transformer run the CLI on every build, or support a pre-processed JSON cache?

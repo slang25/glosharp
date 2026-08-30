@@ -1,0 +1,43 @@
+{
+  "name": "@glosharp/gitbook",
+  "version": "0.1.0-alpha.1",
+  "description": "GitBook integration for glosharp C# type information, plus the CI tool that publishes its artifacts",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "glosharp-gitbook": "./dist/bin.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "typecheck:integration": "tsc -p src/integration",
+    "gitbook:check": "gitbook integration check",
+    "gitbook:dev": "gitbook integration dev",
+    "gitbook:publish": "gitbook integration publish .",
+    "dev:frame": "node dist/bin.js dev sample --framework net8.0 --executable ../../src/GloSharp.Cli/bin/Release/net8.0/GloSharp.Cli"
+  },
+  "dependencies": {
+    "@glosharp/core": "0.1.0-alpha.1"
+  },
+  "files": [
+    "dist"
+  ],
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20251111.0",
+    "@gitbook/api": "^0.193.0",
+    "@gitbook/cli": "^0.30.0",
+    "@gitbook/runtime": "^0.23.3",
+    "@gitbook/tsconfig": "^0.1.2",
+    "@types/node": "^25.3.5",
+    "typescript": "^6.0.0",
+    "vitest": "^4.0.18"
+  }
+}

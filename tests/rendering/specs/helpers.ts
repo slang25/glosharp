@@ -30,14 +30,23 @@ export const HIDE_DEADLINE_MS = 1500
 // ---- Console cleanliness ----------------------------------------------------
 // Every test fails if the page logs a console error or throws an uncaught
 // exception at any point during the test.
+//
+// A spec whose subject *is* a browser-level failure (a deliberate 404, say) can
+// widen this with `test.use({ consoleErrorAllowlist: [/…/] })`. Keep those
+// patterns narrow: they are holes in the invariant, and the spec that opens one
+// must assert the intended behaviour positively.
 
-export const test = base.extend({
-  page: async ({ page }, use) => {
+export const test = base.extend<{ consoleErrorAllowlist: RegExp[] }>({
+  consoleErrorAllowlist: [[], { option: true }],
+  page: async ({ page, consoleErrorAllowlist }, use) => {
     const errors: string[] = []
+    const allowed = (text: string) => consoleErrorAllowlist.some((p) => p.test(text))
     page.on('console', (msg) => {
-      if (msg.type() === 'error') errors.push(`console.error: ${msg.text()}`)
+      if (msg.type() === 'error' && !allowed(msg.text())) errors.push(`console.error: ${msg.text()}`)
     })
-    page.on('pageerror', (err) => errors.push(`pageerror: ${err.message}`))
+    page.on('pageerror', (err) => {
+      if (!allowed(err.message)) errors.push(`pageerror: ${err.message}`)
+    })
     await use(page)
     expect(errors, 'page must produce no console errors or uncaught exceptions').toEqual([])
   },
