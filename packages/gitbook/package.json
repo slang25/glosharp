@@ -37,7 +37,7 @@
     "@gitbook/runtime": "^0.23.3",
     "@gitbook/tsconfig": "^0.1.2",
     "@types/node": "^25.3.5",
-    "typescript": "^6.0.0",
+    "typescript": "^7.0.0",
     "vitest": "^4.0.18"
   }
 }
