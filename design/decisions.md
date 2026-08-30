@@ -4,7 +4,9 @@ Key architectural and design decisions. Each entry captures context, options, an
 
 ---
 
-## 001: CLI-based bridge between C# core and JS integrations
+## 001: CLI-based bridge for build-time integrations
+
+**Scope**: build-time bridges only — a Node process that can spawn children. See [006](#006-gitbook-precomputed-artifacts-not-a-hosted-service) for environments that cannot.
 
 **Context**: GloSharp's core runs on .NET (Roslyn requires it). Shiki/EC integrations run in Node.js. We need a bridge.
 
@@ -13,9 +15,11 @@ Key architectural and design decisions. Each entry captures context, options, an
 - **(b) WASM** — compile Roslyn to WASM, run in-process in Node.js
 - **(c) Native Node addon** — use node-api or similar to load .NET in-process
 
-**Recommendation: (a) CLI tool**
+**Decision: (a) CLI tool**
 
-Rationale: Roslyn is a large, complex runtime — WASM compilation would be extremely difficult and the result would be huge. Native addons add build complexity. A CLI tool is simple, debuggable, and the latency of spawning a process is acceptable since this runs at build time, not in a hot path. The JSON boundary also gives us a clean contract between C# and JS.
+Rationale: spawning a process is nearly free at build time, and the JSON boundary gives us a clean contract between C# and JS. Native addons add build complexity for no gain here.
+
+**Amended 2026-08-09**: this decision originally rejected WASM on the grounds that "WASM compilation would be extremely difficult and the result would be huge". The first half is wrong: Roslyn is pure managed IL and runs on the stock .NET browser-wasm runtime today (BlazorRepl, Telerik's C# REPL, try.mudblazor.com all compile user C# in-browser). The second half still holds — ~15–30 MB compressed, seconds to first compile under the interpreter. So the reason to prefer the CLI at build time is *cost, not feasibility*, and the choice does not generalise: where no process can be spawned, WASM is on the table (again, [006](#006-gitbook-precomputed-artifacts-not-a-hosted-service)).
 
 ---
 
@@ -90,3 +94,28 @@ However, the core data format should be designed to work with all three from day
 **Recommendation: (a) CSS anchor positioning**
 
 Rationale: The user specified targeting modern browsers. CSS anchor positioning is supported in Chrome 125+, Edge 125+, and Firefox 131+ (2024). By the time glosharp ships and is adopted, support will be widespread. The markup is cleaner and there's no JS dependency. We can provide a simple CSS fallback for older browsers if needed.
+
+---
+
+## 006: GitBook — precomputed artifacts, not a hosted service
+
+**Status**: Resolved
+
+**Context**: GitBook is a hosted renderer. There is no markdown/build pipeline to hook, no raw HTML in content, and the one extension point — a ContentKit integration — runs in a Workers-style sandbox with no child processes and no filesystem. Roslyn cannot run there, so the compile has to happen somewhere else. Where?
+
+**Options considered**:
+- **(a) CI precompute + static artifacts** — the repo's own CI runs `glosharp render` over every fence and publishes `sha256(code).html` fragments to static hosting; the block looks each one up by hashing the fence body it was handed
+- **(b) .NET WASM inside the webframe** — GloSharp.Core + Roslyn on the browser runtime, ref assemblies as static assets
+- **(c) Hosted GloSharp API** — an ASP.NET service wrapping `GloSharpProcessor`, called from the webframe
+
+**Decision: (a), with (b) as a possible later addition for editor preview. (c) rejected.**
+
+(c) is the tempting one and the wrong one: it means operating a service, and exposing an endpoint that compiles arbitrary submitted C#, to enable nothing that (a) and (b) do not already cover.
+
+(a) needs no infrastructure at all — CI already has a .NET SDK, and a committed `.glocontext` makes the compilation context cheap and SDK-free. Content addressing is what makes it work: CI and the reader's browser never have to agree on anything but the snippet text, so there is no manifest to keep in sync and no per-page coordination.
+
+The cost is staleness — a snippet renders as plain code until CI publishes it, including while an author is editing it in GitBook. (b) is the fix for the editor specifically, and is now known to be feasible (see [001](#001-cli-based-bridge-for-build-time-integrations)); the tiers a GitBook integration needs (bare snippet + framework refs, `.glocontext`) are pure `GloSharpProcessor` + `MetadataReference` with no MSBuild and no SDK. It is deferred rather than rejected because it is a real chunk of work — byte-array reference loading (`CreateFromImage` instead of `CreateFromFile`), a browser build target, ref assemblies as static assets — whose value depends on a latency measurement nobody has taken. ~15–30 MB and seconds to first compile is defensible for an author editing one snippet and indefensible per reader page-load, which is why it could only ever be the editor path, never the reading path.
+
+**Lookup happens in the browser, not in the integration's `fetch` handler.** Resolving artifacts worker-side would let us cache in Workers and would sidestep CORS, but it would also turn the integration into an open GET proxy that inlines arbitrary fetched HTML onto its own origin. Fetching from the frame instead costs a CORS requirement on the artifacts host (GitHub Pages, the recommended target, sends `Access-Control-Allow-Origin: *`) and nothing else.
+
+**The fence is `glosharp`, not `csharp`.** A custom block can claim any fence string, but claiming `csharp` would take over every C# fence in every space the integration is installed on, wanted or not — and would make the snippets invalid on every other renderer.

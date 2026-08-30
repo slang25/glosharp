@@ -1,0 +1,174 @@
+<div class="glosharp-code" data-theme="github-dark">
+<style>
+
+.glosharp-code {
+  anchor-scope: all;
+}
+/* Line breaks come from the newline characters between line spans, not from the
+   spans themselves — there can only be one source of them. Chromium copies a
+   `display: block` boundary as a newline while Firefox copies it as nothing, so
+   block lines plus real newlines double-space the block and double the newlines
+   Chromium puts on the clipboard, while block lines without real newlines copy
+   as a single run-on line in Firefox. Inline lines plus real newlines is the one
+   combination both browsers lay out and copy correctly (and is what the Shiki
+   path has always done). The cost is that line-level backgrounds end at the end
+   of the text rather than spanning the block. */
+.glosharp-code .line {
+  display: inline;
+}
+.glosharp-hover {
+  border-bottom: 1px dotted currentColor;
+  cursor: pointer;
+}
+.glosharp-popup {
+  display: none;
+  position: fixed;
+  position-area: top;
+  margin-bottom: 4px;
+  z-index: 100;
+  max-width: 500px;
+  padding: 8px 12px;
+  border: 1px solid #30363d;
+  border-radius: 4px;
+  background: #161b22;
+  color: #e6edf3;
+  font-size: 0.875em;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+.glosharp-hover:hover > .glosharp-popup,
+.glosharp-popup:hover {
+  display: block;
+}
+.glosharp-popup-code {
+  font-family: inherit;
+}
+.glosharp-popup-docs {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid #30363d;
+}
+.glosharp-popup-summary {
+  font-style: italic;
+}
+.glosharp-popup-params,
+.glosharp-popup-returns {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid #30363d;
+}
+.glosharp-popup-section-label {
+  font-size: 0.8em;
+  opacity: 0.7;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 2px;
+}
+.glosharp-popup-param {
+  display: flex;
+  gap: 6px;
+  margin: 1px 0;
+}
+.glosharp-popup-param-name {
+  font-weight: bold;
+  white-space: nowrap;
+}
+.glosharp-error-underline {
+  border-bottom: 2px wavy #f85149;
+}
+.glosharp-error-underline.glosharp-severity-warning {
+  border-bottom-color: #d29922;
+}
+.glosharp-error-underline.glosharp-severity-info {
+  border-bottom-color: #539bf5;
+}
+.glosharp-error-message {
+  display: block;
+  padding: 2px 8px;
+  margin-top: 2px;
+  background: rgba(248, 81, 73, 0.1);
+  border-left: 3px solid #f85149;
+  color: #f85149;
+  font-size: 0.85em;
+}
+.glosharp-error-message.glosharp-severity-warning {
+  background: rgba(210, 153, 34, 0.15);
+  border-left-color: #d29922;
+  color: #d29922;
+}
+.glosharp-error-message.glosharp-severity-info {
+  background: rgba(83, 155, 245, 0.15);
+  border-left-color: #539bf5;
+  color: #539bf5;
+}
+.glosharp-error-code {
+  font-weight: bold;
+}
+a.glosharp-error-code {
+  color: inherit;
+  text-decoration: none;
+}
+a.glosharp-error-code:hover {
+  text-decoration: underline;
+}
+.glosharp-completion-list {
+  list-style: none;
+  margin: 4px 0 0 0;
+  padding: 4px 0;
+  border: 1px solid #30363d;
+  border-radius: 4px;
+  background: #161b22;
+  font-size: 0.875em;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.glosharp-completion-item {
+  display: flex;
+  gap: 8px;
+  padding: 2px 8px;
+  align-items: center;
+}
+.glosharp-completion-kind {
+  font-size: 0.75em;
+  opacity: 0.7;
+  min-width: 60px;
+}
+.glosharp-completion-label {
+  color: #e6edf3;
+}
+.glosharp-completion-detail {
+  opacity: 0.6;
+  font-size: 0.85em;
+  margin-left: auto;
+}
+.glosharp-highlight {
+  background: rgba(173, 124, 255, 0.15);
+}
+.glosharp-focus-dim {
+  opacity: 0.4;
+  transition: opacity 0.2s;
+}
+.glosharp-diff-add {
+  background: rgba(46, 160, 67, 0.15);
+  border-left: 3px solid #2ea043;
+}
+.glosharp-diff-remove {
+  background: rgba(248, 81, 73, 0.15);
+  border-left: 3px solid #f85149;
+}
+@supports not (anchor-name: --x) {
+  .glosharp-hover {
+    position: relative;
+  }
+  .glosharp-popup {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+  }
+}
+</style>
+<pre style="background:#0d1117;color:#e6edf3;padding:16px;border-radius:6px;overflow-x:auto;margin:0;font-family:'Cascadia Code','Fira Code',Consolas,monospace;"><code><span class="line"><span class="glosharp-hover" style="anchor-name:--gs05c7c46f-1"><span style="color:#ff7b72">var</span><div class="glosharp-popup" style="position-anchor:--gs05c7c46f-1"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span><span style="color:#e6edf3">struct</span><span style="color:#e6edf3">)</span><span style="color:#e6edf3"> </span><span style="color:#ff7b72">int</span></code><div class="glosharp-popup-docs"><div class="glosharp-popup-summary">Represents a 32-bit signed integer.</div></div></div></span> <span class="glosharp-hover" style="anchor-name:--gs05c7c46f-2"><span>x</span><div class="glosharp-popup" style="position-anchor:--gs05c7c46f-2"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span><span style="color:#e6edf3">local variable</span><span style="color:#e6edf3">)</span><span style="color:#e6edf3"> </span><span style="color:#ff7b72">int</span><span style="color:#e6edf3"> </span><span style="color:#e6edf3">x</span></code></div></span> <span style="color:#ff7b72">=</span> <span style="color:#79c0ff">10</span><span>;</span></span>
+<span class="line"><span class="glosharp-hover" style="anchor-name:--gs05c7c46f-3"><span style="color:#f0883e">Console</span><div class="glosharp-popup" style="position-anchor:--gs05c7c46f-3"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span><span style="color:#e6edf3">class</span><span style="color:#e6edf3">)</span><span style="color:#e6edf3"> </span><span style="color:#f0883e">Console</span></code><div class="glosharp-popup-docs"><div class="glosharp-popup-summary">Represents the standard input, output, and error streams for console applications. This class cannot be inherited.</div></div></div></span><span style="color:#ff7b72">.</span><span class="glosharp-hover" style="anchor-name:--gs05c7c46f-4"><span style="color:#d2a8ff">WriteLine</span><div class="glosharp-popup" style="position-anchor:--gs05c7c46f-4"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span><span style="color:#e6edf3">method</span><span style="color:#e6edf3">)</span><span style="color:#e6edf3"> </span><span style="color:#ff7b72">void</span><span style="color:#e6edf3"> </span><span style="color:#f0883e">Console</span><span style="color:#e6edf3">.</span><span style="color:#d2a8ff">WriteLine</span><span style="color:#e6edf3">(</span><span style="color:#ff7b72">int</span><span style="color:#e6edf3"> </span><span style="color:#e6edf3">value</span><span style="color:#e6edf3">)</span></code><div class="glosharp-popup-docs"><div class="glosharp-popup-summary">Writes the text representation of the specified 32-bit signed integer value, followed by the current line terminator, to the standard output stream.</div><div class="glosharp-popup-params"><div class="glosharp-popup-section-label">Parameters</div><div class="glosharp-popup-param"><span class="glosharp-popup-param-name">value</span> — The value to write.</div></div></div></div></span><span>(</span><span class="glosharp-hover" style="anchor-name:--gs05c7c46f-0"><span>x</span><div class="glosharp-popup" style="position-anchor:--gs05c7c46f-0"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span><span style="color:#e6edf3">local variable</span><span style="color:#e6edf3">)</span><span style="color:#e6edf3"> </span><span style="color:#ff7b72">int</span><span style="color:#e6edf3"> </span><span style="color:#e6edf3">x</span></code></div></span><span>)</span><span>;</span></span>
+<span class="line"></span></code></pre>
+</div>

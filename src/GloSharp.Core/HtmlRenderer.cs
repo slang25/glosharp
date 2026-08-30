@@ -1,4 +1,5 @@
 using System.Net;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -23,6 +24,12 @@ public class HtmlRenderer
     {
         options ??= new HtmlRenderOptions();
         var sb = new StringBuilder();
+
+        // Anchor names live in a document-wide namespace, so two fragments on one
+        // page that both used --th-0 would make every popup anchor to the last
+        // fragment's token. Derive the prefix from the code so it is unique per
+        // snippet and still byte-deterministic across runs.
+        var scope = ScopeId(result.Code);
 
         if (options.Standalone)
         {
@@ -73,13 +80,17 @@ public class HtmlRenderer
 
             // Render tokens that fall within this line
             RenderLineFromTokens(sb, code, lineStart, lineEnd, lineIdx, ref tokenIndex,
-                tokens, theme, result.Hovers, result.Errors);
+                tokens, theme, result.Hovers, result.Errors, scope);
 
             sb.Append("</span>");
+            // These newlines are the only thing that breaks a line: `.line` is
+            // display:inline (see GenerateStyles), because a block boundary
+            // counts as a second break in Chromium and as none at all in
+            // Firefox's clipboard. Adding one anywhere else inside the <pre>
+            // adds a visible line break.
             if (lineIdx < lines.Length - 1)
                 sb.Append('\n');
 
-            // Render completion list after this line
             var completion = result.Completions.FirstOrDefault(c => c.Line == lineIdx);
             if (completion != null)
             {
@@ -89,12 +100,6 @@ public class HtmlRenderer
         }
 
         sb.AppendLine("</code></pre>");
-
-        // Render popup elements (positioned via CSS anchors)
-        for (var i = 0; i < result.Hovers.Count; i++)
-        {
-            RenderPopup(sb, result.Hovers[i], i, theme);
-        }
 
         // Render error messages (placed after the last affected line)
         foreach (var error in result.Errors)
@@ -123,7 +128,8 @@ public class HtmlRenderer
         List<ClassifiedToken> tokens,
         GloSharpTheme theme,
         List<GloSharpHover> hovers,
-        List<GloSharpError> errors)
+        List<GloSharpError> errors,
+        string scope)
     {
         // Build hover/error lookups for this line
         var lineHovers = new Dictionary<int, int>(); // character -> hover index
@@ -184,8 +190,12 @@ public class HtmlRenderer
 
             if (isHover)
             {
-                sb.Append($"<span class=\"glosharp-hover\" style=\"anchor-name:--th-{hoverIdx}\">");
+                // The popup is nested inside its hover span, not emitted after the
+                // <pre>: an adjacent-sibling selector cannot reach across parents,
+                // so a popup outside the code block could never be shown on hover.
+                sb.Append($"<span class=\"glosharp-hover\" style=\"anchor-name:--{scope}-{hoverIdx}\">");
                 sb.Append($"<span{colorAttr}>{Encode(tokenText)}</span>");
+                RenderPopup(sb, hovers[hoverIdx], hoverIdx, theme, scope);
                 sb.Append("</span>");
             }
             else if (isError)
@@ -214,9 +224,9 @@ public class HtmlRenderer
         }
     }
 
-    private static void RenderPopup(StringBuilder sb, GloSharpHover hover, int index, GloSharpTheme theme)
+    private static void RenderPopup(StringBuilder sb, GloSharpHover hover, int index, GloSharpTheme theme, string scope)
     {
-        sb.Append($"<div class=\"glosharp-popup\" style=\"position-anchor:--th-{index}\">");
+        sb.Append($"<div class=\"glosharp-popup\" style=\"position-anchor:--{scope}-{index}\">");
         sb.Append("<code class=\"glosharp-popup-code\">");
 
         foreach (var part in hover.Parts)
@@ -254,7 +264,9 @@ public class HtmlRenderer
             sb.Append("</div>");
         }
 
-        sb.AppendLine("</div>");
+        // Append, not AppendLine: the popup sits inside the <pre>, where a
+        // trailing newline is rendered as a line break after its hover token.
+        sb.Append("</div>");
     }
 
     private static readonly Regex CsCodeRegex = new(@"^CS\d+$", RegexOptions.Compiled);
@@ -322,6 +334,15 @@ public class HtmlRenderer
         return classes;
     }
 
+    /// <summary>
+    /// Short, stable, document-unique prefix for this fragment's anchor names.
+    /// </summary>
+    private static string ScopeId(string code)
+    {
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(code));
+        return $"gs{Convert.ToHexString(hash, 0, 4).ToLowerInvariant()}";
+    }
+
     private static string PartKindToClassificationKind(string partKind) => partKind switch
     {
         "keyword" => "keyword",
@@ -340,8 +361,20 @@ public class HtmlRenderer
     };
 
     private static string GenerateStyles(GloSharpTheme theme) => $@"
+.glosharp-code {{
+  anchor-scope: all;
+}}
+/* Line breaks come from the newline characters between line spans, not from the
+   spans themselves — there can only be one source of them. Chromium copies a
+   `display: block` boundary as a newline while Firefox copies it as nothing, so
+   block lines plus real newlines double-space the block and double the newlines
+   Chromium puts on the clipboard, while block lines without real newlines copy
+   as a single run-on line in Firefox. Inline lines plus real newlines is the one
+   combination both browsers lay out and copy correctly (and is what the Shiki
+   path has always done). The cost is that line-level backgrounds end at the end
+   of the text rather than spanning the block. */
 .glosharp-code .line {{
-  display: block;
+  display: inline;
 }}
 .glosharp-hover {{
   border-bottom: 1px dotted currentColor;
@@ -364,7 +397,7 @@ public class HtmlRenderer
   white-space: pre-wrap;
   box-shadow: 0 2px 8px rgba(0,0,0,0.4);
 }}
-.glosharp-hover:hover + .glosharp-popup,
+.glosharp-hover:hover > .glosharp-popup,
 .glosharp-popup:hover {{
   display: block;
 }}

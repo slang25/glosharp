@@ -5,6 +5,7 @@
     "packages/glosharp",
     "packages/shiki",
     "packages/expressive-code",
+    "packages/gitbook",
     "examples/astro-blog",
     "examples/docusaurus-docs",
     "examples/expressive-code",

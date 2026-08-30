@@ -1,0 +1,175 @@
+<div class="glosharp-code" data-theme="github-light">
+<style>
+
+.glosharp-code {
+  anchor-scope: all;
+}
+/* Line breaks come from the newline characters between line spans, not from the
+   spans themselves — there can only be one source of them. Chromium copies a
+   `display: block` boundary as a newline while Firefox copies it as nothing, so
+   block lines plus real newlines double-space the block and double the newlines
+   Chromium puts on the clipboard, while block lines without real newlines copy
+   as a single run-on line in Firefox. Inline lines plus real newlines is the one
+   combination both browsers lay out and copy correctly (and is what the Shiki
+   path has always done). The cost is that line-level backgrounds end at the end
+   of the text rather than spanning the block. */
+.glosharp-code .line {
+  display: inline;
+}
+.glosharp-hover {
+  border-bottom: 1px dotted currentColor;
+  cursor: pointer;
+}
+.glosharp-popup {
+  display: none;
+  position: fixed;
+  position-area: top;
+  margin-bottom: 4px;
+  z-index: 100;
+  max-width: 500px;
+  padding: 8px 12px;
+  border: 1px solid #d0d7de;
+  border-radius: 4px;
+  background: #f6f8fa;
+  color: #1f2328;
+  font-size: 0.875em;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+.glosharp-hover:hover > .glosharp-popup,
+.glosharp-popup:hover {
+  display: block;
+}
+.glosharp-popup-code {
+  font-family: inherit;
+}
+.glosharp-popup-docs {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid #d0d7de;
+}
+.glosharp-popup-summary {
+  font-style: italic;
+}
+.glosharp-popup-params,
+.glosharp-popup-returns {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid #d0d7de;
+}
+.glosharp-popup-section-label {
+  font-size: 0.8em;
+  opacity: 0.7;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 2px;
+}
+.glosharp-popup-param {
+  display: flex;
+  gap: 6px;
+  margin: 1px 0;
+}
+.glosharp-popup-param-name {
+  font-weight: bold;
+  white-space: nowrap;
+}
+.glosharp-error-underline {
+  border-bottom: 2px wavy #cf222e;
+}
+.glosharp-error-underline.glosharp-severity-warning {
+  border-bottom-color: #9a6700;
+}
+.glosharp-error-underline.glosharp-severity-info {
+  border-bottom-color: #0969da;
+}
+.glosharp-error-message {
+  display: block;
+  padding: 2px 8px;
+  margin-top: 2px;
+  background: rgba(207, 34, 46, 0.1);
+  border-left: 3px solid #cf222e;
+  color: #cf222e;
+  font-size: 0.85em;
+}
+.glosharp-error-message.glosharp-severity-warning {
+  background: rgba(154, 103, 0, 0.15);
+  border-left-color: #9a6700;
+  color: #9a6700;
+}
+.glosharp-error-message.glosharp-severity-info {
+  background: rgba(9, 105, 218, 0.15);
+  border-left-color: #0969da;
+  color: #0969da;
+}
+.glosharp-error-code {
+  font-weight: bold;
+}
+a.glosharp-error-code {
+  color: inherit;
+  text-decoration: none;
+}
+a.glosharp-error-code:hover {
+  text-decoration: underline;
+}
+.glosharp-completion-list {
+  list-style: none;
+  margin: 4px 0 0 0;
+  padding: 4px 0;
+  border: 1px solid #d0d7de;
+  border-radius: 4px;
+  background: #f6f8fa;
+  font-size: 0.875em;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.glosharp-completion-item {
+  display: flex;
+  gap: 8px;
+  padding: 2px 8px;
+  align-items: center;
+}
+.glosharp-completion-kind {
+  font-size: 0.75em;
+  opacity: 0.7;
+  min-width: 60px;
+}
+.glosharp-completion-label {
+  color: #1f2328;
+}
+.glosharp-completion-detail {
+  opacity: 0.6;
+  font-size: 0.85em;
+  margin-left: auto;
+}
+.glosharp-highlight {
+  background: rgba(139, 90, 230, 0.12);
+}
+.glosharp-focus-dim {
+  opacity: 0.4;
+  transition: opacity 0.2s;
+}
+.glosharp-diff-add {
+  background: rgba(46, 160, 67, 0.12);
+  border-left: 3px solid #2ea043;
+}
+.glosharp-diff-remove {
+  background: rgba(248, 81, 73, 0.12);
+  border-left: 3px solid #f85149;
+}
+@supports not (anchor-name: --x) {
+  .glosharp-hover {
+    position: relative;
+  }
+  .glosharp-popup {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+  }
+}
+</style>
+<pre style="background:#ffffff;color:#1f2328;padding:16px;border-radius:6px;overflow-x:auto;margin:0;font-family:'Cascadia Code','Fira Code',Consolas,monospace;"><code><span class="line"><span class="glosharp-hover" style="anchor-name:--gse2d3a5a0-2"><span>sb</span><div class="glosharp-popup" style="position-anchor:--gse2d3a5a0-2"><code class="glosharp-popup-code"><span style="color:#1f2328">(</span><span style="color:#1f2328">local variable</span><span style="color:#1f2328">)</span><span style="color:#1f2328"> </span><span style="color:#953800">StringBuilder</span><span style="color:#1f2328">?</span><span style="color:#1f2328"> </span><span style="color:#1f2328">sb</span></code></div></span><span style="color:#cf222e">.</span><span class="glosharp-hover" style="anchor-name:--gse2d3a5a0-0"><span>Append</span><div class="glosharp-popup" style="position-anchor:--gse2d3a5a0-0"><code class="glosharp-popup-code"><span style="color:#1f2328">(</span><span style="color:#1f2328">method</span><span style="color:#1f2328">)</span><span style="color:#1f2328"> </span><span style="color:#953800">StringBuilder</span><span style="color:#1f2328"> </span><span style="color:#953800">StringBuilder</span><span style="color:#1f2328">.</span><span style="color:#8250df">Append</span><span style="color:#1f2328">(</span><span style="color:#cf222e">string</span><span style="color:#1f2328">?</span><span style="color:#1f2328"> </span><span style="color:#1f2328">value</span><span style="color:#1f2328">)</span></code><div class="glosharp-popup-docs"><div class="glosharp-popup-summary">Appends a copy of the specified string to this instance.</div><div class="glosharp-popup-params"><div class="glosharp-popup-section-label">Parameters</div><div class="glosharp-popup-param"><span class="glosharp-popup-param-name">value</span> — The string to append.</div></div><div class="glosharp-popup-returns"><div class="glosharp-popup-section-label">Returns</div>A reference to this instance after the append operation has completed.</div></div></div></span><span>(</span><span style="color:#0a3069">&quot;hello&quot;</span><span>)</span><span>;</span></span>
+<span class="line"><span class="glosharp-hover" style="anchor-name:--gse2d3a5a0-3"><span>sb</span><div class="glosharp-popup" style="position-anchor:--gse2d3a5a0-3"><code class="glosharp-popup-code"><span style="color:#1f2328">(</span><span style="color:#1f2328">local variable</span><span style="color:#1f2328">)</span><span style="color:#1f2328"> </span><span style="color:#953800">StringBuilder</span><span style="color:#1f2328">?</span><span style="color:#1f2328"> </span><span style="color:#1f2328">sb</span></code></div></span><span style="color:#cf222e">.</span><span class="glosharp-hover" style="anchor-name:--gse2d3a5a0-4"><span>Append</span><div class="glosharp-popup" style="position-anchor:--gse2d3a5a0-4"><code class="glosharp-popup-code"><span style="color:#1f2328">(</span><span style="color:#1f2328">method</span><span style="color:#1f2328">)</span><span style="color:#1f2328"> </span><span style="color:#953800">StringBuilder</span><span style="color:#1f2328"> </span><span style="color:#953800">StringBuilder</span><span style="color:#1f2328">.</span><span style="color:#8250df">Append</span><span style="color:#1f2328">(</span><span style="color:#cf222e">string</span><span style="color:#1f2328">?</span><span style="color:#1f2328"> </span><span style="color:#1f2328">value</span><span style="color:#1f2328">)</span></code><div class="glosharp-popup-docs"><div class="glosharp-popup-summary">Appends a copy of the specified string to this instance.</div><div class="glosharp-popup-params"><div class="glosharp-popup-section-label">Parameters</div><div class="glosharp-popup-param"><span class="glosharp-popup-param-name">value</span> — The string to append.</div></div><div class="glosharp-popup-returns"><div class="glosharp-popup-section-label">Returns</div>A reference to this instance after the append operation has completed.</div></div></div></span><span>(</span><span style="color:#0a3069">&quot; world&quot;</span><span>)</span><span>;</span></span>
+<span class="line"><span class="glosharp-hover" style="anchor-name:--gse2d3a5a0-5"><span style="color:#cf222e">var</span><div class="glosharp-popup" style="position-anchor:--gse2d3a5a0-5"><code class="glosharp-popup-code"><span style="color:#1f2328">(</span><span style="color:#1f2328">class</span><span style="color:#1f2328">)</span><span style="color:#1f2328"> </span><span style="color:#cf222e">string</span></code><div class="glosharp-popup-docs"><div class="glosharp-popup-summary">Represents text as a sequence of UTF-16 code units.</div></div></div></span> <span class="glosharp-hover" style="anchor-name:--gse2d3a5a0-1"><span>result</span><div class="glosharp-popup" style="position-anchor:--gse2d3a5a0-1"><code class="glosharp-popup-code"><span style="color:#1f2328">(</span><span style="color:#1f2328">local variable</span><span style="color:#1f2328">)</span><span style="color:#1f2328"> </span><span style="color:#cf222e">string</span><span style="color:#1f2328">?</span><span style="color:#1f2328"> </span><span style="color:#1f2328">result</span></code></div></span> <span style="color:#cf222e">=</span> <span class="glosharp-hover" style="anchor-name:--gse2d3a5a0-6"><span>sb</span><div class="glosharp-popup" style="position-anchor:--gse2d3a5a0-6"><code class="glosharp-popup-code"><span style="color:#1f2328">(</span><span style="color:#1f2328">local variable</span><span style="color:#1f2328">)</span><span style="color:#1f2328"> </span><span style="color:#953800">StringBuilder</span><span style="color:#1f2328">?</span><span style="color:#1f2328"> </span><span style="color:#1f2328">sb</span></code></div></span><span style="color:#cf222e">.</span><span class="glosharp-hover" style="anchor-name:--gse2d3a5a0-7"><span>ToString</span><div class="glosharp-popup" style="position-anchor:--gse2d3a5a0-7"><code class="glosharp-popup-code"><span style="color:#1f2328">(</span><span style="color:#1f2328">method</span><span style="color:#1f2328">)</span><span style="color:#1f2328"> </span><span style="color:#cf222e">string</span><span style="color:#1f2328"> </span><span style="color:#953800">StringBuilder</span><span style="color:#1f2328">.</span><span style="color:#8250df">ToString</span><span style="color:#1f2328">(</span><span style="color:#1f2328">)</span></code><div class="glosharp-popup-docs"><div class="glosharp-popup-summary">Converts the value of this instance to a String.</div><div class="glosharp-popup-returns"><div class="glosharp-popup-section-label">Returns</div>A string whose value is the same as this instance.</div></div></div></span><span>(</span><span>)</span><span>;</span></span>
+<span class="line"></span></code></pre>
+</div>

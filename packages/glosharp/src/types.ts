@@ -122,3 +122,10 @@ export interface GloSharpProcessOptions {
   complog?: string
   complogProject?: string
 }
+
+export interface GloSharpRenderOptions extends GloSharpProcessOptions {
+  /** Built-in theme name. Defaults to the CLI's default (`github-dark`). */
+  theme?: string
+  /** Wrap the fragment in a full HTML page. */
+  standalone?: boolean
+}

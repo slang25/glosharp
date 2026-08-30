@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "types": ["node"]
+  },
+  "include": ["src"],
+  "//": "The integration entry point is bundled by the GitBook CLI, not tsc — see tsconfig.integration.json.",
+  "exclude": ["src/integration"]
+}

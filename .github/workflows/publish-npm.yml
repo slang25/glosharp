@@ -42,21 +42,25 @@ jobs:
           npm pkg set "version=$NEXT" -w @glosharp/core
           npm pkg set "version=$NEXT" -w @glosharp/shiki
           npm pkg set "version=$NEXT" -w @glosharp/expressive-code
+          npm pkg set "version=$NEXT" -w @glosharp/gitbook
 
           # Update cross-package dependency references
           cd packages/shiki && npm pkg set "dependencies.@glosharp/core=$NEXT" && cd ../..
           cd packages/expressive-code && npm pkg set "dependencies.@glosharp/core=$NEXT" && cd ../..
+          cd packages/gitbook && npm pkg set "dependencies.@glosharp/core=$NEXT" && cd ../..
 
       - name: Build packages
         run: |
           npm run build -w @glosharp/core
           npm run build -w @glosharp/shiki
           npm run build -w @glosharp/expressive-code
+          npm run build -w @glosharp/gitbook
 
       - name: Publish packages
         run: |
           npm publish -w @glosharp/core --access public --tag alpha
           npm publish -w @glosharp/shiki --access public --tag alpha
           npm publish -w @glosharp/expressive-code --access public --tag alpha
+          npm publish -w @glosharp/gitbook --access public --tag alpha
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

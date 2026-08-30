@@ -54,6 +54,28 @@ For artifacts that must resolve fully offline with no pack acquisition, pass `--
 >
 > The file header reserves baseline id/version slots for a possible future format that layers `zstd --patch-from` over a shipped baseline artifact. Readers **must** reject any file with non-zero baseline fields so such output does not silently resolve on an older reader.
 
+## GitBook
+
+GitBook is a hosted renderer with no markdown pipeline to hook, so Glo# gets there a
+different way: [`@glosharp/gitbook`](packages/gitbook/README.md) ships a GitBook
+integration that claims the `glosharp` code fence and renders it in a sandboxed
+webframe, plus a `glosharp-gitbook` CLI that your CI runs to pre-render every fence
+into content-addressed HTML.
+
+```sh
+npx glosharp-gitbook build docs --out glosharp-artifacts --prune   # publish from CI
+npx glosharp-gitbook dev   docs                                    # preview locally, no account needed
+```
+
+The block hashes the fence body it was handed and fetches
+`<artifacts>/<theme>/<sha256>.html`, so CI and the reader's browser agree on nothing
+but the snippet text. Nothing is operated: no service, no compute in GitBook. The
+trade-off is staleness — a snippet renders as plain code until CI publishes it,
+including while you edit it. See [decision 006](design/decisions.md) for why that
+beats running a hosted compile service, and
+[research/07-gitbook-integration.md](research/07-gitbook-integration.md) for the
+platform constraints behind it.
+
 ## Testing the web rendering
 
 Browser-level rendering quality (popup positioning, scroll tracking, themes,

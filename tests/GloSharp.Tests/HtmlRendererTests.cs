@@ -103,10 +103,127 @@ public class HtmlRendererTests
         var html = HtmlRenderer.Render(result, tokens, GloSharpTheme.GithubDark);
 
         await Assert.That(html).Contains("glosharp-hover");
-        await Assert.That(html).Contains("anchor-name:--th-0");
+        await Assert.That(html).Contains("anchor-name:--gs");
         await Assert.That(html).Contains("glosharp-popup");
-        await Assert.That(html).Contains("position-anchor:--th-0");
+        await Assert.That(html).Contains("position-anchor:--gs");
         await Assert.That(html).Contains("glosharp-popup-code");
+    }
+
+    [Test]
+    public async Task Render_PopupIsNestedInsideItsHoverSpan()
+    {
+        // A popup emitted after </pre> shares no parent with the hover span, so
+        // no descendant or sibling selector can reach it and it can never be
+        // shown. It has to live inside its anchor.
+        var hover = new GloSharpHover
+        {
+            Line = 0, Character = 4, Length = 1,
+            Text = "(local variable) int x",
+            Parts = [new GloSharpDisplayPart { Kind = "keyword", Text = "int" }],
+            SymbolKind = "Local",
+            TargetText = "x",
+        };
+        var result = CreateSimpleResult(hovers: [hover]);
+        var tokens = CreateSimpleTokens("var x = 42;");
+        var html = HtmlRenderer.Render(result, tokens, GloSharpTheme.GithubDark);
+
+        var hoverStart = html.IndexOf("<span class=\"glosharp-hover\"", StringComparison.Ordinal);
+        var popupStart = html.IndexOf("<div class=\"glosharp-popup\"", StringComparison.Ordinal);
+        var codeEnd = html.IndexOf("</code></pre>", StringComparison.Ordinal);
+
+        await Assert.That(hoverStart).IsGreaterThan(-1);
+        await Assert.That(codeEnd).IsGreaterThan(-1);
+        await Assert.That(popupStart).IsGreaterThan(hoverStart);
+        await Assert.That(popupStart).IsLessThan(codeEnd);
+    }
+
+    [Test]
+    public async Task Render_AnchorNamesAreUniquePerSnippet()
+    {
+        // Anchor names are document-global. Two fragments on one page that both
+        // used --th-0 would make every popup anchor to the last fragment's token.
+        GloSharpHover Hover() => new()
+        {
+            Line = 0, Character = 4, Length = 1,
+            Text = "(local variable) int x",
+            Parts = [new GloSharpDisplayPart { Kind = "keyword", Text = "int" }],
+            SymbolKind = "Local",
+            TargetText = "x",
+        };
+
+        var first = HtmlRenderer.Render(
+            CreateSimpleResult(hovers: [Hover()]),
+            CreateSimpleTokens("var x = 42;"),
+            GloSharpTheme.GithubDark);
+        var second = HtmlRenderer.Render(
+            CreateSimpleResult(code: "var y = 42;", hovers: [Hover()]),
+            CreateSimpleTokens("var y = 42;"),
+            GloSharpTheme.GithubDark);
+
+        var firstAnchor = AnchorName(first);
+        var secondAnchor = AnchorName(second);
+
+        await Assert.That(firstAnchor).IsNotEqualTo(secondAnchor);
+        await Assert.That(first).Contains($"position-anchor:{firstAnchor}");
+        await Assert.That(second).Contains($"position-anchor:{secondAnchor}");
+    }
+
+    [Test]
+    public async Task Render_CodeBlockNewlinesMatchTheSource()
+    {
+        // Inside <pre> the newlines between line spans are the only line-break
+        // source: `.line` is inline, because a block boundary counts as a second
+        // break in Chromium and as none at all in Firefox's clipboard. So the
+        // code block must carry exactly the source's newlines — no more (a
+        // popup emitted with a trailing newline wraps its own line) and no
+        // fewer (the code would copy out as one run-on line).
+        var code = "var x = 42;\nvar y = x;";
+        var hovers = new List<GloSharpHover>
+        {
+            new() { Line = 0, Character = 4, Length = 1, Text = "x", Parts = [], SymbolKind = "Local", TargetText = "x" },
+            new() { Line = 1, Character = 4, Length = 1, Text = "y", Parts = [], SymbolKind = "Local", TargetText = "y" },
+        };
+        var html = HtmlRenderer.Render(
+            CreateSimpleResult(code: code, hovers: hovers),
+            CreateSimpleTokens(code),
+            GloSharpTheme.GithubDark);
+
+        var start = html.IndexOf("<code>", StringComparison.Ordinal);
+        var end = html.IndexOf("</code></pre>", StringComparison.Ordinal);
+        var codeBlock = html[start..end];
+
+        await Assert.That(codeBlock.Count(c => c == '\n')).IsEqualTo(code.Count(c => c == '\n'));
+    }
+
+    [Test]
+    public async Task Render_AnchorNamesAreDeterministic()
+    {
+        // Committed fixtures and content-addressed artifacts both depend on the
+        // same input rendering to the same bytes every time.
+        var result = CreateSimpleResult(hovers:
+        [
+            new GloSharpHover
+            {
+                Line = 0, Character = 4, Length = 1, Text = "x",
+                Parts = [new GloSharpDisplayPart { Kind = "keyword", Text = "int" }],
+                SymbolKind = "Local", TargetText = "x",
+            },
+        ]);
+        var tokens = CreateSimpleTokens("var x = 42;");
+
+        var a = HtmlRenderer.Render(result, tokens, GloSharpTheme.GithubDark);
+        var b = HtmlRenderer.Render(result, tokens, GloSharpTheme.GithubDark);
+
+        await Assert.That(a).IsEqualTo(b);
+    }
+
+    private static string AnchorName(string html)
+    {
+        // "anchor-name:--" (no space) only matches the inline style attribute,
+        // never the "@supports not (anchor-name: --x)" rule in the stylesheet.
+        var start = html.IndexOf("anchor-name:--", StringComparison.Ordinal) + "anchor-name:".Length;
+        var end = html.IndexOf('"', start);
+        return html[start..end];
     }
 
     [Test]
@@ -224,7 +341,7 @@ public class HtmlRendererTests
         var html = HtmlRenderer.Render(result, tokens, GloSharpTheme.GithubDark);
 
         await Assert.That(html).Contains(".glosharp-popup {\n  display: none;");
-        await Assert.That(html).Contains(".glosharp-hover:hover + .glosharp-popup");
+        await Assert.That(html).Contains(".glosharp-hover:hover > .glosharp-popup");
     }
 
     [Test]
@@ -279,9 +396,12 @@ public class HtmlRendererTests
         var tokens = CreateSimpleTokens("var x = 42;");
         var html = HtmlRenderer.Render(result, tokens, GloSharpTheme.GithubDark);
 
-        await Assert.That(html).Contains("--th-0");
-        await Assert.That(html).Contains("--th-1");
-        await Assert.That(html).Contains("--th-2");
+        // Names are prefixed per snippet (see Render_AnchorNamesAreUniquePerSnippet);
+        // within one snippet they are still numbered from zero.
+        var prefix = AnchorName(html)[..^2];
+        await Assert.That(html).Contains($"{prefix}-0");
+        await Assert.That(html).Contains($"{prefix}-1");
+        await Assert.That(html).Contains($"{prefix}-2");
     }
 
     // === Richer error display tests ===
