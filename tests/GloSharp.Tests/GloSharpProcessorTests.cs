@@ -148,7 +148,7 @@ public class GloSharpProcessorTests
         var source = """
             using Newtonsoft.Json;
             var json = JsonConvert.SerializeObject(new { Name = "test" });
-            //                    ^?
+            //                     ^?
             """;
 
         var fixtureDir = Path.Combine(
@@ -287,7 +287,7 @@ public class GloSharpProcessorTests
 
         try
         {
-            var source = "#:package Newtonsoft.Json@13.0.3\nusing Newtonsoft.Json;\nvar json = JsonConvert.SerializeObject(new { Name = \"test\" });\n//                    ^?";
+            var source = "#:package Newtonsoft.Json@13.0.3\nusing Newtonsoft.Json;\nvar json = JsonConvert.SerializeObject(new { Name = \"test\" });\n//                     ^?";
             File.WriteAllText(filePath, source);
 
             var result = await _processor.ProcessAsync(source, new GloSharpProcessorOptions
@@ -350,8 +350,9 @@ public class GloSharpProcessorTests
 
         var persistent = result.Hovers.First(h => h.Persistent);
         await Assert.That(persistent.Text).Contains("int");
-        await Assert.That(result.Meta.LangVersion).IsNull();
-        await Assert.That(result.Meta.Nullable).IsNull();
+        // meta reports the effective settings, including defaults
+        await Assert.That(result.Meta.LangVersion).IsEqualTo("latest");
+        await Assert.That(result.Meta.Nullable).IsEqualTo("enable");
     }
 
     [Test]
@@ -361,7 +362,7 @@ public class GloSharpProcessorTests
         var result = await _processor.ProcessAsync(source);
 
         await Assert.That(result.Errors.Count).IsGreaterThan(0);
-        await Assert.That(result.Errors[0].Code).IsEqualTo("TH0001");
+        await Assert.That(result.Errors[0].Code).IsEqualTo("GS0001");
         await Assert.That(result.Errors[0].Message).Contains("99");
         await Assert.That(result.Meta.CompileSucceeded).IsFalse();
     }
@@ -373,7 +374,7 @@ public class GloSharpProcessorTests
         var result = await _processor.ProcessAsync(source);
 
         await Assert.That(result.Errors.Count).IsGreaterThan(0);
-        await Assert.That(result.Errors[0].Code).IsEqualTo("TH0002");
+        await Assert.That(result.Errors[0].Code).IsEqualTo("GS0002");
         await Assert.That(result.Errors[0].Message).Contains("sometimes");
         await Assert.That(result.Meta.CompileSucceeded).IsFalse();
     }
@@ -397,14 +398,15 @@ public class GloSharpProcessorTests
     }
 
     [Test]
-    public async Task Process_LangVersionAndNullable_OmittedFromJsonWhenAbsent()
+    public async Task Process_LangVersionAndNullable_EffectiveDefaultsInJsonWhenAbsent()
     {
+        // meta always reports the effective settings (previously omitted when no marker was used)
         var source = "var x = 42;";
         var result = await _processor.ProcessAsync(source);
         var json = JsonOutput.Serialize(result);
 
-        await Assert.That(json).DoesNotContain("\"langVersion\"");
-        await Assert.That(json).DoesNotContain("\"nullable\"");
+        await Assert.That(json).Contains("\"langVersion\": \"latest\"");
+        await Assert.That(json).Contains("\"nullable\": \"enable\"");
     }
 
     [Test]

@@ -78,7 +78,10 @@ The system SHALL extract all `<exception>` elements, capturing the `cref` attrib
 - **THEN** `type` is `"ArgumentNullException"` (the `T:` prefix and namespace are stripped)
 
 ### Requirement: Handle inline XML elements
-The system SHALL render inline XML elements (`<see>`, `<paramref>`, `<c>`, `<seealso>`) as their inner text or relevant attribute value. Specifically: `<see cref="X"/>` becomes `"X"`, `<paramref name="x"/>` becomes `"x"`, `<c>code</c>` becomes `"code"`.
+The system SHALL render inline XML elements (`<see>`, `<paramref>`, `<typeparamref>`, `<c>`, `<seealso>`) as their inner text or relevant attribute value, recursively (so `<see>` inside `<para>`, `<list>`, `<item>` etc. keeps its text). Specifically: `<see langword="null"/>` becomes `"null"`; `<see cref="..."/>` is resolved to a symbol where possible and shown as `List<T>` for types and `Type.Member` for members (`<see cref="string.Join(string, string[])"/>` becomes `"String.Join"`), falling back to text formatting that strips the doc-ID prefix, parameter list and generic arity markers; explicit link text wins; `<see href="url"/>` becomes the URL; `<paramref name="x"/>` becomes `"x"`; `<c>code</c>` becomes `"code"`. Block elements (`<para>`, `<list>`, `<item>`, `<br/>`) are separated by spaces.
+
+### Requirement: Expand inheritdoc
+`<inheritdoc/>` SHALL be expanded from the overridden member, the implemented interface member, the base type (for types), or the `cref` target when given. Elements written locally take precedence over inherited ones; inherited `<param>` entries fill in missing parameters only.
 
 #### Scenario: Summary with see reference
 - **WHEN** summary text is `Gets the <see cref="String"/> value.`

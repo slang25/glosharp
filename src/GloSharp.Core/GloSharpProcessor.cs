@@ -1,4 +1,5 @@
-using System.Xml.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Completion;
 using Microsoft.CodeAnalysis.CSharp;
@@ -7,7 +8,14 @@ using Microsoft.CodeAnalysis.Host.Mef;
 
 namespace GloSharp.Core;
 
-public class GloSharpProcessorOptions
+/// <summary>
+/// Options for one <see cref="GloSharpProcessor"/> run.
+/// </summary>
+/// <remarks>
+/// Every property except <see cref="CacheDir"/> is part of the result-cache key (the record is
+/// serialised as a whole), so a new option is automatically taken into account by the cache.
+/// </remarks>
+public record GloSharpProcessorOptions
 {
     public string? TargetFramework { get; init; }
     public string? ProjectPath { get; init; }
@@ -24,6 +32,10 @@ public class GloSharpProcessorOptions
 
 public class GloSharpProcessor
 {
+    internal const string DefaultTargetFramework = "net8.0";
+    private const string GlobalUsingsPath = "__GlobalUsings.cs";
+    private const string WebSdk = "Microsoft.NET.Sdk.Web";
+
     private readonly CompilationContextCache _contextCache;
 
     public GloSharpProcessor(CompilationContextCache? contextCache = null)
@@ -81,379 +93,447 @@ public class GloSharpProcessor
 
     public async Task<GloSharpProcessResult> ProcessWithContextAsync(string source, GloSharpProcessorOptions? options = null)
     {
-        // Check disk-based result cache
+        options ??= new GloSharpProcessorOptions();
+
+        // 1. Text-only preprocessing: #: directives, region, markers. Cheap, no Roslyn binding.
+        var snippet = Snippet.Prepare(source, options);
+
+        // 2. Result cache: a hit skips reference resolution and compilation entirely. The
+        //    compilation (needed only for syntax classification when rendering) is built lazily.
         ResultCache? resultCache = null;
         string? resultCacheKey = null;
-
-        if (options?.CacheDir != null)
+        if (options.CacheDir != null)
         {
             resultCache = new ResultCache(options.CacheDir);
-            resultCacheKey = ResultCache.ComputeKey(
-                source,
-                options.TargetFramework ?? "net8.0",
-                null, // packages are embedded in source via #: directives
-                options.ComplogPath ?? options.ProjectPath);
+            resultCacheKey = ComputeResultCacheKey(source, options, snippet);
 
             var cached = resultCache.TryGet(resultCacheKey);
             if (cached != null)
             {
-                // On cache hit, we still need compilation context for classification.
-                // Fall through to build it, but use the cached result.
-            }
-        }
-
-        var targetFramework = options?.TargetFramework;
-        var originalSourceWithDirectives = source;
-
-        // 0. Parse and strip #: file-based app directives (before anything else)
-        var fileDirectives = FileDirectiveParser.Parse(source);
-        source = fileDirectives.CleanedSource;
-
-        // 0b. Apply region extraction if requested
-        if (options?.RegionName != null)
-        {
-            source = RegionExtractor.ApplyRegion(source, options.RegionName);
-        }
-
-        // 1. Parse markers
-        var markers = MarkerParser.Parse(source);
-
-        // 2. Get code for compilation (all code, no markers)
-        var compilationCode = MarkerParser.GetCompilationCode(source);
-
-        // 3. Build global usings (config replaces defaults when specified)
-        var effectiveUsings = options?.ImplicitUsings ?? DefaultGlobalUsings;
-
-        // Add Web SDK implicit usings when #:sdk Microsoft.NET.Sdk.Web is specified
-        var sdkDirective = fileDirectives.GetSdk();
-        if (sdkDirective == "Microsoft.NET.Sdk.Web" && options?.ImplicitUsings == null)
-            effectiveUsings = [..effectiveUsings, ..WebSdkGlobalUsings];
-
-        var globalUsings = string.Join('\n', effectiveUsings
-            .Where(u => !string.IsNullOrWhiteSpace(u))
-            .Select(u => $"global using {u};"));
-
-        // 4. Resolve language version and nullable context (precedence: marker > config > default)
-        var resolvedLangVersion = LanguageVersion.Latest;
-        var resolvedNullable = NullableContextOptions.Enable;
-        var validationErrors = new List<GloSharpError>();
-
-        // Apply config-level defaults first
-        if (options?.LangVersion != null)
-        {
-            var mapped = CompilationOptionsMapper.MapLangVersion(options.LangVersion);
-            if (mapped == null)
-            {
-                validationErrors.Add(new GloSharpError
+                return new GloSharpProcessResult(cached, () => BuildCompilationIgnoringErrors(snippet, options))
                 {
-                    Line = 0, Character = 0, Length = 0,
-                    Code = "TH0001",
-                    Message = $"Invalid language version '{options.LangVersion}'. Valid values: {CompilationOptionsMapper.ValidLangVersions}",
-                    Severity = "error",
-                    Expected = false,
-                });
-            }
-            else
-            {
-                resolvedLangVersion = mapped.Value;
-            }
-        }
-
-        if (options?.Nullable != null)
-        {
-            var mapped = CompilationOptionsMapper.MapNullable(options.Nullable);
-            if (mapped == null)
-            {
-                validationErrors.Add(new GloSharpError
-                {
-                    Line = 0, Character = 0, Length = 0,
-                    Code = "TH0002",
-                    Message = $"Invalid nullable context '{options.Nullable}'. Valid values: {CompilationOptionsMapper.ValidNullableValues}",
-                    Severity = "error",
-                    Expected = false,
-                });
-            }
-            else
-            {
-                resolvedNullable = mapped.Value;
-            }
-        }
-
-        // Per-block markers override config
-        if (markers.LangVersion != null)
-        {
-            var mapped = CompilationOptionsMapper.MapLangVersion(markers.LangVersion);
-            if (mapped == null)
-            {
-                validationErrors.Add(new GloSharpError
-                {
-                    Line = 0, Character = 0, Length = 0,
-                    Code = "TH0001",
-                    Message = $"Invalid language version '{markers.LangVersion}'. Valid values: {CompilationOptionsMapper.ValidLangVersions}",
-                    Severity = "error",
-                    Expected = false,
-                });
-            }
-            else
-            {
-                resolvedLangVersion = mapped.Value;
-            }
-        }
-
-        if (markers.Nullable != null)
-        {
-            var mapped = CompilationOptionsMapper.MapNullable(markers.Nullable);
-            if (mapped == null)
-            {
-                validationErrors.Add(new GloSharpError
-                {
-                    Line = 0, Character = 0, Length = 0,
-                    Code = "TH0002",
-                    Message = $"Invalid nullable context '{markers.Nullable}'. Valid values: {CompilationOptionsMapper.ValidNullableValues}",
-                    Severity = "error",
-                    Expected = false,
-                });
-            }
-            else
-            {
-                resolvedNullable = mapped.Value;
-            }
-        }
-
-        if (validationErrors.Count > 0)
-        {
-            var errorResult = new GloSharpResult
-            {
-                Code = markers.ProcessedCode,
-                Original = originalSourceWithDirectives,
-                Hovers = [],
-                Errors = validationErrors,
-                Meta = new GloSharpMeta
-                {
-                    TargetFramework = targetFramework ?? "net8.0",
-                    CompileSucceeded = false,
-                    LangVersion = markers.LangVersion,
-                    Nullable = markers.Nullable,
-                },
-            };
-            var errorParseOptions = new CSharpParseOptions(LanguageVersion.Latest);
-            var errorTree = CSharpSyntaxTree.ParseText(compilationCode, errorParseOptions);
-            var errorCompilation = CSharpCompilation.Create("GloSharpSnippet", [errorTree],
-                FrameworkResolver.GetFrameworkReferences("net8.0"),
-                new CSharpCompilationOptions(OutputKind.ConsoleApplication));
-            return new GloSharpProcessResult
-            {
-                Result = errorResult,
-                Compilation = errorCompilation,
-                SyntaxTree = errorTree,
-            };
-        }
-
-        // Parse and compile
-        var parseOptions = new CSharpParseOptions(resolvedLangVersion);
-        var globalUsingsTree = CSharpSyntaxTree.ParseText(globalUsings, parseOptions, path: "__GlobalUsings.cs");
-        var tree = CSharpSyntaxTree.ParseText(compilationCode, parseOptions);
-
-        // Resolve references: complog > project path > file-based app directives > framework-only
-        ProjectAssetsResult? projectAssets = null;
-        ComplogResolutionResult? complogResult = null;
-        var resolvedFramework = targetFramework ?? "net8.0";
-        string? assetsFilePath = null;
-
-        if (options?.ComplogPath != null)
-        {
-            // Complog takes highest priority — bypasses all other resolution
-            var complogLastWrite = File.GetLastWriteTimeUtc(options.ComplogPath).Ticks.ToString();
-            var complogContextKey = CompilationContextCache.ComputeKey(
-                options.ComplogPath,
-                null,
-                $"complog:{options.ComplogProject ?? ""}:{complogLastWrite}");
-
-            var complogRefs = _contextCache.GetOrAdd(complogContextKey, () =>
-            {
-                using var resolver = CompilationContextResolverFactory.Open(options.ComplogPath);
-                complogResult = resolver.Resolve(options.ComplogProject);
-                return complogResult.References;
-            });
-
-            // If complogResult was populated in the factory, use it; otherwise re-resolve for metadata
-            if (complogResult == null)
-            {
-                using var resolver = CompilationContextResolverFactory.Open(options.ComplogPath);
-                complogResult = resolver.Resolve(options.ComplogProject);
-            }
-
-            resolvedFramework = complogResult.TargetFramework;
-
-            // Use complog's parse options only if neither marker nor config override
-            if (markers.LangVersion == null && options.LangVersion == null)
-                resolvedLangVersion = complogResult.ParseOptions.LanguageVersion;
-            if (markers.Nullable == null && options.Nullable == null)
-                resolvedNullable = complogResult.CompilationOptions.NullableContextOptions;
-
-            // Re-parse with potentially updated options
-            parseOptions = new CSharpParseOptions(resolvedLangVersion);
-            globalUsingsTree = CSharpSyntaxTree.ParseText(globalUsings, parseOptions, path: "__GlobalUsings.cs");
-            tree = CSharpSyntaxTree.ParseText(compilationCode, parseOptions);
-
-            var complogCompilation = CSharpCompilation.Create(
-                "GloSharpSnippet",
-                [tree, globalUsingsTree],
-                complogRefs,
-                new CSharpCompilationOptions(OutputKind.ConsoleApplication)
-                    .WithNullableContextOptions(resolvedNullable));
-
-            return await BuildResult(complogCompilation, tree, markers, compilationCode, globalUsings,
-                complogRefs, resolvedLangVersion, resolvedNullable, resolvedFramework,
-                [], fileDirectives, originalSourceWithDirectives,
-                options.ComplogPath, resultCache, resultCacheKey);
-        }
-
-        if (options?.ProjectPath != null)
-        {
-            // Explicit project path takes priority
-            assetsFilePath = ProjectAssetsResolver.FindAssetsFile(options.ProjectPath);
-            projectAssets = ProjectAssetsResolver.Resolve(assetsFilePath, targetFramework);
-            resolvedFramework = targetFramework ?? projectAssets.TargetFramework;
-        }
-        else if (fileDirectives.HasDirectives)
-        {
-            // File-based app mode: use SDK to resolve packages.
-            // If no source file path (stdin mode), write to a temp file so
-            // dotnet build can resolve #:sdk / #:package directives.
-            // Requires .NET 10+ which supports file-based apps.
-            var resolveFilePath = options?.SourceFilePath;
-            string? tempFile = null;
-            if (resolveFilePath == null)
-            {
-                var sdkVersion = FileBasedAppResolver.GetDotnetSdkVersion();
-                if (sdkVersion != null && sdkVersion.Major >= 10)
-                {
-                    tempFile = Path.Combine(Path.GetTempPath(), $"glosharp-{Guid.NewGuid():N}.cs");
-                    File.WriteAllText(tempFile, originalSourceWithDirectives);
-                    resolveFilePath = tempFile;
-                }
-            }
-
-            if (resolveFilePath != null)
-            {
-                try
-                {
-                    projectAssets = FileBasedAppResolver.ResolveReferences(
-                        resolveFilePath,
-                        targetFramework,
-                        options?.NoRestore ?? false);
-                    resolvedFramework = targetFramework ?? projectAssets.TargetFramework;
-
-                    // Override framework from #:property TargetFramework if present
-                    var tfmProperty = fileDirectives.GetProperty("TargetFramework");
-                    if (tfmProperty != null)
-                        resolvedFramework = targetFramework ?? tfmProperty;
-                }
-                catch
-                {
-                    // Build may fail (e.g. unresolvable packages) — fall through
-                    // to framework-only resolution rather than failing entirely
-                }
-                finally
-                {
-                    if (tempFile != null)
-                    {
-                        try { File.Delete(tempFile); } catch { /* best effort */ }
-                    }
-                }
-            }
-        }
-
-        // Determine additional framework packs based on SDK directive
-        var sdk = fileDirectives.GetSdk();
-
-        // Use compilation context cache for reference resolution
-        // Include SDK in key so web/non-web contexts aren't mixed
-        var contextKey = CompilationContextCache.ComputeKey(
-            resolvedFramework,
-            projectAssets?.Packages,
-            assetsFilePath ?? sdk);
-        var additionalFrameworks = sdk switch
-        {
-            "Microsoft.NET.Sdk.Web" => new[] { "Microsoft.AspNetCore.App.Ref" },
-            _ => null
-        };
-
-        var references = _contextCache.GetOrAdd(contextKey, () =>
-        {
-            var refs = FrameworkResolver.GetFrameworkReferences(resolvedFramework, additionalFrameworks);
-            if (projectAssets != null)
-            {
-                refs.AddRange(projectAssets.References);
-            }
-            return refs;
-        });
-
-        var compilation = CSharpCompilation.Create(
-            "GloSharpSnippet",
-            [tree, globalUsingsTree],
-            references,
-            new CSharpCompilationOptions(OutputKind.ConsoleApplication)
-                .WithNullableContextOptions(resolvedNullable));
-
-        // Build meta: prefer directive-derived packages if present, else from project assets
-        var packages = fileDirectives.HasDirectives
-            ? fileDirectives.GetPackageReferences()
-            : projectAssets?.Packages ?? [];
-
-        return await BuildResult(compilation, tree, markers, compilationCode, globalUsings,
-            references, resolvedLangVersion, resolvedNullable, resolvedFramework,
-            packages, fileDirectives, originalSourceWithDirectives,
-            null, resultCache, resultCacheKey);
-    }
-
-    private async Task<GloSharpProcessResult> BuildResult(
-        CSharpCompilation compilation,
-        SyntaxTree tree,
-        MarkerParseResult markers,
-        string compilationCode,
-        string globalUsings,
-        List<MetadataReference> references,
-        LanguageVersion resolvedLangVersion,
-        NullableContextOptions resolvedNullable,
-        string resolvedFramework,
-        List<PackageReference> packages,
-        FileDirectiveResult fileDirectives,
-        string originalSourceWithDirectives,
-        string? complogPath,
-        ResultCache? resultCache,
-        string? resultCacheKey)
-    {
-        // Check if we have a cached result (skip extraction)
-        if (resultCache != null && resultCacheKey != null)
-        {
-            var cached = resultCache.TryGet(resultCacheKey);
-            if (cached != null)
-            {
-                return new GloSharpProcessResult
-                {
-                    Result = cached,
-                    Compilation = compilation,
-                    SyntaxTree = tree,
+                    FromCache = true,
                 };
             }
         }
 
-        var model = compilation.GetSemanticModel(tree);
+        // 3. Requested language version / nullable context (marker > config)
+        var requested = ResolveRequestedSettings(snippet, options);
+        if (requested.Errors.Count > 0)
+        {
+            var errorResult = new GloSharpResult
+            {
+                Code = snippet.Markers.ProcessedCode,
+                Original = source,
+                Hovers = [],
+                Errors = requested.Errors,
+                Meta = new GloSharpMeta
+                {
+                    TargetFramework = options.TargetFramework
+                        ?? snippet.Directives.GetProperty("TargetFramework")
+                        ?? DefaultTargetFramework,
+                    CompileSucceeded = false,
+                    Sdk = snippet.Directives.GetSdk(),
+                    LangVersion = snippet.Markers.LangVersion ?? options.LangVersion,
+                    Nullable = snippet.Markers.Nullable ?? options.Nullable,
+                    Complog = options.ComplogPath,
+                },
+            };
+            return new GloSharpProcessResult(errorResult, () => BuildCompilationIgnoringErrors(snippet, options));
+        }
 
-        // Extract hovers
-        var hovers = ExtractHovers(markers, tree, model, compilationCode);
+        // 4. Resolve references + compile
+        var warnings = new List<string>();
+        var context = ResolveContext(snippet, options, warnings);
+        var built = CreateCompilation(snippet, options, context, requested);
 
-        // Extract diagnostics
-        var (errors, compileSucceeded) = ExtractDiagnostics(compilation, model, markers, compilationCode);
+        // 5. Extract
+        var result = await BuildResultAsync(snippet, options, context, built, warnings);
 
-        // Extract completions (only if ^| markers present)
+        resultCache?.Set(resultCacheKey!, result);
+
+        return new GloSharpProcessResult(result, built.Compilation, built.Tree);
+    }
+
+    // ------------------------------------------------------------------
+    // Snippet preprocessing
+    // ------------------------------------------------------------------
+
+    private sealed class Snippet
+    {
+        public required string Source { get; init; }
+        public required FileDirectiveResult Directives { get; init; }
+        public required MarkerParseResult Markers { get; init; }
+
+        public static Snippet Prepare(string source, GloSharpProcessorOptions options)
+        {
+            // #: file-based app directives are stripped first
+            var directives = FileDirectiveParser.Parse(source);
+            var text = directives.CleanedSource;
+
+            // Region extraction is a hidden-line mask, so the rest of the file still compiles
+            var regionMask = options.RegionName != null
+                ? RegionExtractor.GetHiddenLineMask(text, options.RegionName)
+                : null;
+
+            return new Snippet
+            {
+                Source = source,
+                Directives = directives,
+                Markers = MarkerParser.Parse(text, regionMask),
+            };
+        }
+
+        /// <summary>Maps a marker-parser input line to the line in the original input text.</summary>
+        public int ToSourceLine(int inputLine) =>
+            inputLine >= 0 && inputLine < Directives.LineMap.Length ? Directives.LineMap[inputLine] : inputLine;
+
+        /// <summary>Maps a processed (rendered) line to the line in the original input text.</summary>
+        public int ProcessedToSourceLine(int processedLine) => ToSourceLine(Markers.LineMap[processedLine]);
+    }
+
+    private static string ComputeResultCacheKey(string source, GloSharpProcessorOptions options, Snippet snippet)
+    {
+        // The source path only matters for file-based apps (#: directives are resolved relative to it)
+        var keyOptions = snippet.Directives.HasDirectives ? options : options with { SourceFilePath = null };
+
+        var fingerprints = new List<string>();
+        if (options.ComplogPath != null)
+            fingerprints.Add("complog:" + ResultCache.FileFingerprint(options.ComplogPath));
+
+        if (options.ProjectPath != null)
+        {
+            string assets;
+            try { assets = ProjectAssetsResolver.FindAssetsFile(options.ProjectPath); }
+            catch (FileNotFoundException) { assets = Path.Combine(options.ProjectPath, "obj", "project.assets.json"); }
+            fingerprints.Add("assets:" + ResultCache.FileFingerprint(assets));
+        }
+
+        return ResultCache.ComputeKey(source, keyOptions, fingerprints);
+    }
+
+    // ------------------------------------------------------------------
+    // Language version / nullable
+    // ------------------------------------------------------------------
+
+    private sealed record RequestedSettings(
+        LanguageVersion? LangVersion,
+        NullableContextOptions? Nullable,
+        List<GloSharpError> Errors);
+
+    private static RequestedSettings ResolveRequestedSettings(Snippet snippet, GloSharpProcessorOptions options)
+    {
+        var errors = new List<GloSharpError>();
+        var markers = snippet.Markers;
+
+        LanguageVersion? langVersion = null;
+        NullableContextOptions? nullable = null;
+
+        // Precedence: marker > config
+        if (options.LangVersion != null)
+            langVersion = MapLangVersion(options.LangVersion, sourceLine: null, errors);
+        if (markers.LangVersion != null)
+            langVersion = MapLangVersion(markers.LangVersion, snippet.ToSourceLine(markers.LangVersionLine), errors) ?? langVersion;
+
+        if (options.Nullable != null)
+            nullable = MapNullable(options.Nullable, sourceLine: null, errors);
+        if (markers.Nullable != null)
+            nullable = MapNullable(markers.Nullable, snippet.ToSourceLine(markers.NullableLine), errors) ?? nullable;
+
+        return new RequestedSettings(langVersion, nullable, errors);
+    }
+
+    private static LanguageVersion? MapLangVersion(string value, int? sourceLine, List<GloSharpError> errors)
+    {
+        var mapped = CompilationOptionsMapper.MapLangVersion(value);
+        if (mapped == null)
+        {
+            errors.Add(ConfigurationError(GloSharpDiagnosticCodes.InvalidLangVersion,
+                $"Invalid language version '{value}'. Valid values: {CompilationOptionsMapper.ValidLangVersions}",
+                sourceLine));
+        }
+        return mapped;
+    }
+
+    private static NullableContextOptions? MapNullable(string value, int? sourceLine, List<GloSharpError> errors)
+    {
+        var mapped = CompilationOptionsMapper.MapNullable(value);
+        if (mapped == null)
+        {
+            errors.Add(ConfigurationError(GloSharpDiagnosticCodes.InvalidNullable,
+                $"Invalid nullable context '{value}'. Valid values: {CompilationOptionsMapper.ValidNullableValues}",
+                sourceLine));
+        }
+        return mapped;
+    }
+
+    private static GloSharpError ConfigurationError(string code, string message, int? sourceLine) => new()
+    {
+        Line = 0,
+        Character = 0,
+        Length = 0,
+        Code = code,
+        Message = message,
+        Severity = "error",
+        Expected = false,
+        SourceLine = sourceLine ?? 0,
+        SourceCharacter = 0,
+    };
+
+    // ------------------------------------------------------------------
+    // Compilation context (references + options)
+    // ------------------------------------------------------------------
+
+    private sealed class SnippetContext
+    {
+        public required List<MetadataReference> References { get; init; }
+        public required string TargetFramework { get; init; }
+        public required List<PackageReference> Packages { get; init; }
+        public bool IsWeb { get; init; }
+        public ComplogResolutionResult? Complog { get; init; }
+    }
+
+    private sealed record ComplogContext(ComplogResolutionResult Resolution, List<PackageReference> Packages, bool IsWeb);
+
+    private SnippetContext ResolveContext(Snippet snippet, GloSharpProcessorOptions options, List<string> warnings)
+    {
+        var directives = snippet.Directives;
+
+        // Complog / .glocontext takes highest priority — bypasses all other resolution
+        if (options.ComplogPath != null)
+        {
+            var complog = ResolveComplog(options.ComplogPath, options.ComplogProject);
+            return new SnippetContext
+            {
+                References = complog.Resolution.References,
+                TargetFramework = complog.Resolution.TargetFramework,
+                Packages = complog.Packages,
+                IsWeb = complog.IsWeb,
+                Complog = complog.Resolution,
+            };
+        }
+
+        ProjectAssetsResult? projectAssets = null;
+        string? assetsFilePath = null;
+        var packages = new List<PackageReference>();
+        var targetFramework = options.TargetFramework;
+
+        if (options.ProjectPath != null)
+        {
+            assetsFilePath = ProjectAssetsResolver.FindAssetsFile(options.ProjectPath);
+            projectAssets = ProjectAssetsResolver.Resolve(assetsFilePath, options.TargetFramework);
+            targetFramework ??= projectAssets.TargetFramework;
+            packages = projectAssets.Packages;
+        }
+        else if (directives.HasDirectives)
+        {
+            // File-based app mode: the SDK resolves #:package / #:sdk / #:property directives
+            var tfmProperty = directives.GetProperty("TargetFramework");
+            try
+            {
+                var resolveFilePath = options.SourceFilePath ?? WriteDirectiveStub(directives);
+                projectAssets = FileBasedAppResolver.ResolveReferences(
+                    resolveFilePath, options.TargetFramework, options.NoRestore);
+                targetFramework ??= tfmProperty ?? projectAssets.TargetFramework;
+            }
+            catch (Exception ex)
+            {
+                targetFramework ??= tfmProperty;
+                warnings.Add(
+                    "Could not resolve the file-based app directives (" +
+                    string.Join(", ", directives.DirectiveLines) +
+                    "); the snippet was compiled against the framework only. " +
+                    ex.Message.Trim());
+            }
+            packages = directives.GetPackageReferences();
+        }
+
+        targetFramework ??= DefaultTargetFramework;
+
+        var sdk = directives.GetSdk();
+        var additionalFrameworks = sdk == WebSdk ? new[] { "Microsoft.AspNetCore.App.Ref" } : null;
+
+        // Include SDK in key so web/non-web contexts aren't mixed
+        var contextKey = CompilationContextCache.ComputeKey(
+            targetFramework,
+            projectAssets?.Packages,
+            assetsFilePath ?? sdk);
+
+        var references = _contextCache.GetOrAdd(contextKey, () =>
+        {
+            var refs = FrameworkResolver.GetFrameworkReferences(targetFramework, additionalFrameworks);
+            if (projectAssets != null)
+                refs.AddRange(projectAssets.References);
+            return refs;
+        });
+
+        return new SnippetContext
+        {
+            References = references,
+            TargetFramework = targetFramework,
+            Packages = packages,
+            IsWeb = sdk == WebSdk,
+        };
+    }
+
+    /// <summary>
+    /// Opens and resolves a complog/.glocontext once per (path, project, size, mtime) and caches
+    /// the whole resolution — references, options and target framework.
+    /// </summary>
+    private ComplogContext ResolveComplog(string path, string? project)
+    {
+        var info = new FileInfo(path);
+        if (!info.Exists)
+            throw new FileNotFoundException($"Compilation context file not found: {path}", path);
+
+        var key = $"complog\0{info.FullName}\0{project}\0{info.Length}\0{info.LastWriteTimeUtc.Ticks}";
+        return _contextCache.GetOrAdd(key, () =>
+        {
+            using var resolver = CompilationContextResolverFactory.Open(path);
+            var resolution = resolver.Resolve(project);
+            return new ComplogContext(
+                resolution,
+                ComplogPackageInference.InferPackages(resolution.References),
+                ComplogPackageInference.ReferencesAspNetCore(resolution.References));
+        });
+    }
+
+    /// <summary>
+    /// For snippets read from stdin, writes the directive lines to a stable temp file named by a
+    /// hash of the directive set. The SDK keys its file-based-app artifacts on the file path, so
+    /// identical directive sets reuse one restore instead of leaking a new artifacts directory
+    /// per snippet. Only the directives are written, so concurrent writers produce identical
+    /// content and the snippet's own (possibly intentionally broken) code never affects restore.
+    /// </summary>
+    private static string WriteDirectiveStub(FileDirectiveResult directives)
+    {
+        var content = string.Join('\n', directives.DirectiveLines) + "\n\nreturn;\n";
+        var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(content)))[..16].ToLowerInvariant();
+
+        var dir = Path.Combine(Path.GetTempPath(), "glosharp", "file-based-apps");
+        Directory.CreateDirectory(dir);
+        var path = Path.Combine(dir, $"glosharp-{hash}.cs");
+
+        if (!File.Exists(path) || File.ReadAllText(path) != content)
+        {
+            var temp = path + "." + Guid.NewGuid().ToString("N")[..8] + ".tmp";
+            File.WriteAllText(temp, content);
+            File.Move(temp, path, overwrite: true);
+        }
+
+        return path;
+    }
+
+    private sealed record BuiltCompilation(
+        CSharpCompilation Compilation,
+        SyntaxTree Tree,
+        string GlobalUsings,
+        LanguageVersion LangVersion,
+        NullableContextOptions Nullable);
+
+    private static BuiltCompilation CreateCompilation(
+        Snippet snippet,
+        GloSharpProcessorOptions options,
+        SnippetContext context,
+        RequestedSettings requested)
+    {
+        // Global usings: config replaces the defaults; web projects/SDK add the Web SDK set
+        IEnumerable<string> usings = options.ImplicitUsings ?? DefaultGlobalUsings;
+        if (options.ImplicitUsings == null && context.IsWeb)
+            usings = usings.Concat(WebSdkGlobalUsings);
+
+        var globalUsings = string.Join('\n', usings
+            .Where(u => !string.IsNullOrWhiteSpace(u))
+            .Distinct(StringComparer.Ordinal)
+            .Select(u => $"global using {u};"));
+
+        LanguageVersion langVersion;
+        NullableContextOptions nullable;
+        CSharpParseOptions parseOptions;
+        CSharpCompilationOptions compilationOptions;
+
+        if (context.Complog != null)
+        {
+            // Start from the project's own options (AllowUnsafe, defines, NoWarn, warning level, ...)
+            // and override only what a snippet needs to differ on.
+            var complog = context.Complog;
+            langVersion = requested.LangVersion ?? complog.ParseOptions.SpecifiedLanguageVersion;
+            nullable = requested.Nullable ?? complog.CompilationOptions.NullableContextOptions;
+
+            parseOptions = complog.ParseOptions
+                .WithLanguageVersion(langVersion)
+                .WithKind(SourceCodeKind.Regular);
+            if (parseOptions.DocumentationMode == DocumentationMode.None)
+                parseOptions = parseOptions.WithDocumentationMode(DocumentationMode.Parse);
+
+            compilationOptions = complog.CompilationOptions
+                .WithOutputKind(OutputKind.ConsoleApplication)
+                .WithMainTypeName(null)
+                .WithNullableContextOptions(nullable)
+                .WithCryptoKeyFile(null)
+                .WithCryptoKeyContainer(null)
+                .WithDelaySign(null)
+                .WithPublicSign(false);
+        }
+        else
+        {
+            langVersion = requested.LangVersion ?? LanguageVersion.Latest;
+            nullable = requested.Nullable ?? NullableContextOptions.Enable;
+
+            parseOptions = new CSharpParseOptions(
+                langVersion,
+                preprocessorSymbols: TargetFrameworkSymbols.Get(context.TargetFramework));
+            compilationOptions = new CSharpCompilationOptions(OutputKind.ConsoleApplication)
+                .WithNullableContextOptions(nullable);
+        }
+
+        var globalUsingsTree = CSharpSyntaxTree.ParseText(globalUsings, parseOptions, path: GlobalUsingsPath);
+        var tree = CSharpSyntaxTree.ParseText(snippet.Markers.CompilationCode, parseOptions);
+
+        var compilation = CSharpCompilation.Create(
+            "GloSharpSnippet",
+            [tree, globalUsingsTree],
+            context.References,
+            compilationOptions);
+
+        return new BuiltCompilation(compilation, tree, globalUsings, langVersion, nullable);
+    }
+
+    /// <summary>
+    /// Builds the compilation for a result that did not need one up front (cache hit, invalid
+    /// options). Invalid lang/nullable values fall back to the defaults; resolution warnings are
+    /// dropped (they are already part of the result).
+    /// </summary>
+    private (CSharpCompilation, SyntaxTree) BuildCompilationIgnoringErrors(Snippet snippet, GloSharpProcessorOptions options)
+    {
+        var requested = ResolveRequestedSettings(snippet, options);
+        var context = ResolveContext(snippet, options, new List<string>());
+        var built = CreateCompilation(snippet, options, context, requested);
+        return (built.Compilation, built.Tree);
+    }
+
+    // ------------------------------------------------------------------
+    // Extraction
+    // ------------------------------------------------------------------
+
+    private async Task<GloSharpResult> BuildResultAsync(
+        Snippet snippet,
+        GloSharpProcessorOptions options,
+        SnippetContext context,
+        BuiltCompilation built,
+        List<string> warnings)
+    {
+        var markers = snippet.Markers;
+        var model = built.Compilation.GetSemanticModel(built.Tree);
+        var lines = new LineIndex(markers.CompilationCode);
+
+        var hovers = ExtractHovers(snippet, built.Tree, model, lines, warnings);
+        var (errors, hiddenErrors, compileSucceeded) = ExtractDiagnostics(snippet, built.Tree, model, lines);
+
         var completions = markers.CompletionQueries.Count > 0
-            ? await ExtractCompletions(markers, compilationCode, references, globalUsings, resolvedLangVersion, resolvedNullable)
+            ? await ExtractCompletionsAsync(snippet, built, context, lines, warnings)
             : [];
 
-        // Build highlights from parsed directives
         var processedLines = markers.ProcessedCode.Split('\n');
         var highlights = markers.Highlights
             .Where(h => h.TargetOriginalLine >= 0 && h.TargetOriginalLine < processedLines.Length)
@@ -466,7 +546,6 @@ public class GloSharpProcessor
             })
             .ToList();
 
-        // Build tags from parsed directives
         var tags = markers.Tags
             .Where(t => t.TargetOriginalLine >= 0 && t.TargetOriginalLine < processedLines.Length)
             .Select(t => new GloSharpTag
@@ -477,64 +556,67 @@ public class GloSharpProcessor
             })
             .ToList();
 
-        var result = new GloSharpResult
+        var hidden = markers.HiddenRanges
+            .Select(r => new GloSharpHiddenRange
+            {
+                Line = CountVisibleLinesBefore(markers.LineMap, r.StartLine),
+                SourceStartLine = snippet.ToSourceLine(r.StartLine),
+                SourceEndLine = snippet.ToSourceLine(r.EndLine),
+            })
+            .ToList();
+
+        return new GloSharpResult
         {
             Code = markers.ProcessedCode,
-            Original = originalSourceWithDirectives,
+            Original = snippet.Source,
             Hovers = hovers,
             Errors = errors,
+            HiddenErrors = hiddenErrors,
             Completions = completions,
             Highlights = highlights,
             Tags = tags,
+            Hidden = hidden,
             Meta = new GloSharpMeta
             {
-                TargetFramework = resolvedFramework,
-                Packages = packages,
+                TargetFramework = context.TargetFramework,
+                Packages = context.Packages,
                 CompileSucceeded = compileSucceeded,
-                Sdk = fileDirectives.GetSdk(),
-                LangVersion = markers.LangVersion,
-                Nullable = markers.Nullable,
-                Complog = complogPath,
+                Sdk = snippet.Directives.GetSdk(),
+                LangVersion = CompilationOptionsMapper.ToDisplayString(built.LangVersion),
+                Nullable = CompilationOptionsMapper.ToDisplayString(built.Nullable),
+                Complog = options.ComplogPath,
+                Warnings = warnings,
             },
-        };
-
-        // Write to disk cache on miss
-        if (resultCache != null && resultCacheKey != null)
-        {
-            resultCache.Set(resultCacheKey, result);
-        }
-
-        return new GloSharpProcessResult
-        {
-            Result = result,
-            Compilation = compilation,
-            SyntaxTree = tree,
         };
     }
 
-    private async Task<List<GloSharpCompletion>> ExtractCompletions(
-        MarkerParseResult markers,
-        string compilationCode,
-        List<MetadataReference> references,
-        string globalUsings,
-        LanguageVersion langVersion,
-        NullableContextOptions nullableContext)
+    private static int CountVisibleLinesBefore(int[] lineMap, int inputLine)
     {
+        var index = Array.BinarySearch(lineMap, inputLine);
+        return index >= 0 ? index : ~index;
+    }
+
+    // ---- Completions --------------------------------------------------
+
+    private static async Task<List<GloSharpCompletion>> ExtractCompletionsAsync(
+        Snippet snippet,
+        BuiltCompilation built,
+        SnippetContext context,
+        LineIndex lines,
+        List<string> warnings)
+    {
+        var markers = snippet.Markers;
         var completions = new List<GloSharpCompletion>();
-        var compilationLines = compilationCode.Split('\n');
+        var compilationCode = markers.CompilationCode;
 
         var host = MefHostServices.Create(MefHostServices.DefaultAssemblies);
         using var workspace = new AdhocWorkspace(host);
-        var project = workspace.AddProject("GloSharpCompletion", LanguageNames.CSharp);
-        project = project
-            .WithCompilationOptions(new CSharpCompilationOptions(OutputKind.ConsoleApplication)
-                .WithNullableContextOptions(nullableContext))
-            .WithParseOptions(new CSharpParseOptions(langVersion));
-        foreach (var r in references)
-            project = project.AddMetadataReference(r);
-        project = project.AddDocument("__GlobalUsings.cs", globalUsings).Project;
+        var project = workspace.AddProject("GloSharpCompletion", LanguageNames.CSharp)
+            .WithCompilationOptions(built.Compilation.Options)
+            .WithParseOptions(built.Tree.Options)
+            .AddMetadataReferences(context.References);
+        project = project.AddDocument(GlobalUsingsPath, built.GlobalUsings).Project;
         var document = project.AddDocument("snippet.cs", compilationCode);
-        // Apply changes to workspace so CompletionService can see them
         workspace.TryApplyChanges(document.Project.Solution);
         document = workspace.CurrentSolution.GetDocument(document.Id)!;
 
@@ -543,33 +625,54 @@ public class GloSharpProcessor
 
         foreach (var query in markers.CompletionQueries)
         {
-            var originalLine = markers.LineMap[query.OriginalLine];
-            var compilationLine = FindCompilationLine(compilationCode, originalLine, markers);
-            if (compilationLine < 0) continue;
+            var sourceLine = snippet.ProcessedToSourceLine(query.OriginalLine);
+            var markerLine = snippet.ToSourceLine(query.MarkerInputLine);
+            var compLine = markers.InputLineToCompilation[markers.LineMap[query.OriginalLine]];
 
-            var position = GetAbsolutePosition(compilationLines, compilationLine, query.Column);
-            if (position < 0 || position > compilationCode.Length) continue;
-
-            var completionList = await completionService.GetCompletionsAsync(document, position);
-            if (completionList == null)
+            // A completion caret may sit just after the last character (e.g. after "Console.")
+            if (query.Column > lines.GetLineContentLength(compLine))
             {
-                completions.Add(new GloSharpCompletion
-                {
-                    Line = query.OriginalLine,
-                    Character = query.Column,
-                    Items = [],
-                });
+                warnings.Add(
+                    $"Line {markerLine + 1}: the ^| marker points at column {query.Column + 1}, past the end of line {sourceLine + 1}; the completion request was skipped.");
                 continue;
             }
 
-            var items = completionList.ItemsList
-                .Select(item => new GloSharpCompletionItem
+            var position = lines.GetLineStart(compLine) + query.Column;
+            var completionList = await completionService.GetCompletionsAsync(document, position);
+
+            var items = new List<GloSharpCompletionItem>();
+            if (completionList != null)
+            {
+                // Filter by the identifier already typed before the caret, as an editor would
+                var span = completionList.Span;
+                var prefix = span.Start <= position && span.Start >= 0
+                    ? compilationCode[span.Start..position]
+                    : "";
+
+                var seen = new HashSet<string>(StringComparer.Ordinal);
+                foreach (var item in completionList.ItemsList)
                 {
-                    Label = item.DisplayText,
-                    Kind = item.Tags.FirstOrDefault() ?? "Unknown",
-                    Detail = item.InlineDescription.Length > 0 ? item.InlineDescription : null,
-                })
-                .ToList();
+                    if (prefix.Length > 0 && !item.FilterText.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                        continue;
+
+                    // Overloads and generic/non-generic variants share a label: list it once
+                    if (!seen.Add(item.DisplayText))
+                        continue;
+
+                    items.Add(new GloSharpCompletionItem
+                    {
+                        Label = item.DisplayText,
+                        Kind = item.Tags.FirstOrDefault() ?? "Unknown",
+                        Detail = item.InlineDescription.Length > 0 ? item.InlineDescription : null,
+                    });
+                }
+            }
+
+            if (items.Count == 0)
+            {
+                warnings.Add(
+                    $"Line {markerLine + 1}: the ^| marker (line {sourceLine + 1}, column {query.Column + 1}) produced no completions.");
+            }
 
             completions.Add(new GloSharpCompletion
             {
@@ -582,117 +685,100 @@ public class GloSharpProcessor
         return completions;
     }
 
-    private List<GloSharpHover> ExtractHovers(
-        MarkerParseResult markers,
+    // ---- Hovers -------------------------------------------------------
+
+    private static List<GloSharpHover> ExtractHovers(
+        Snippet snippet,
         SyntaxTree tree,
         SemanticModel model,
-        string compilationCode)
+        LineIndex lines,
+        List<string> warnings)
     {
-        var persistentHovers = ExtractPersistentHovers(markers, tree, model, compilationCode);
-        var autoHovers = ExtractAllHovers(markers, tree, model, compilationCode, persistentHovers);
+        var persistentHovers = ExtractPersistentHovers(snippet, tree, model, lines, warnings);
+        var autoHovers = ExtractAutoHovers(snippet, tree, model, lines, persistentHovers);
 
-        // Merge: persistent hovers first, then auto-hovers (already deduplicated)
         var merged = new List<GloSharpHover>(persistentHovers.Count + autoHovers.Count);
         merged.AddRange(persistentHovers);
         merged.AddRange(autoHovers);
         return merged;
     }
 
-    private List<GloSharpHover> ExtractPersistentHovers(
-        MarkerParseResult markers,
+    private static List<GloSharpHover> ExtractPersistentHovers(
+        Snippet snippet,
         SyntaxTree tree,
         SemanticModel model,
-        string compilationCode)
+        LineIndex lines,
+        List<string> warnings)
     {
+        var markers = snippet.Markers;
         var hovers = new List<GloSharpHover>();
         var root = tree.GetCompilationUnitRoot();
-        var compilationLines = compilationCode.Split('\n');
 
         foreach (var query in markers.HoverQueries)
         {
-            var originalLine = markers.LineMap[query.OriginalLine];
-            var compilationLine = FindCompilationLine(compilationCode, originalLine, markers);
-            if (compilationLine < 0) continue;
+            var sourceLine = snippet.ProcessedToSourceLine(query.OriginalLine);
+            var markerLine = snippet.ToSourceLine(query.MarkerInputLine);
+            var compLine = markers.InputLineToCompilation[markers.LineMap[query.OriginalLine]];
 
-            var position = GetAbsolutePosition(compilationLines, compilationLine, query.Column);
-            if (position < 0 || position >= compilationCode.Length) continue;
+            if (query.Column >= lines.GetLineContentLength(compLine))
+            {
+                warnings.Add(lines.GetLineContentLength(compLine) == 0
+                    ? $"Line {markerLine + 1}: the ^? marker points at line {sourceLine + 1}, which is empty; the hover was skipped."
+                    : $"Line {markerLine + 1}: the ^? marker points at column {query.Column + 1}, past the end of line {sourceLine + 1}; the hover was skipped.");
+                continue;
+            }
 
+            var position = lines.GetLineStart(compLine) + query.Column;
             var token = root.FindToken(position);
-            if (token == default) continue;
+            GloSharpHover? hover = null;
+            if (token.Span.Contains(position))
+            {
+                var character = token.SpanStart - lines.GetLineStart(lines.GetLine(token.SpanStart));
+                hover = BuildHover(token, model, query.OriginalLine, character, persistent: true);
+            }
 
-            var hover = BuildHoverFromToken(token, model, query.OriginalLine, persistent: true);
-            if (hover != null)
-                hovers.Add(hover);
+            if (hover == null)
+            {
+                warnings.Add(
+                    $"Line {markerLine + 1}: the ^? marker (line {sourceLine + 1}, column {query.Column + 1}) does not point at a symbol; the hover was skipped.");
+                continue;
+            }
+
+            hovers.Add(hover);
         }
 
         return hovers;
     }
 
-    private List<GloSharpHover> ExtractAllHovers(
-        MarkerParseResult markers,
+    private static List<GloSharpHover> ExtractAutoHovers(
+        Snippet snippet,
         SyntaxTree tree,
         SemanticModel model,
-        string compilationCode,
+        LineIndex lines,
         List<GloSharpHover> persistentHovers)
     {
+        var markers = snippet.Markers;
         var hovers = new List<GloSharpHover>();
         var root = tree.GetCompilationUnitRoot();
 
-        // Build set of persistent hover positions for deduplication
         var persistentPositions = new HashSet<(int Line, int Character)>();
         foreach (var ph in persistentHovers)
             persistentPositions.Add((ph.Line, ph.Character));
 
-        // Build set of visible original lines (lines that appear in processed output)
-        var visibleOriginalLines = new HashSet<int>(markers.LineMap);
-
         foreach (var token in root.DescendantTokens())
         {
-            // Skip tokens that won't have meaningful hover info
-            if (token.IsKind(SyntaxKind.SemicolonToken) ||
-                token.IsKind(SyntaxKind.OpenBraceToken) ||
-                token.IsKind(SyntaxKind.CloseBraceToken) ||
-                token.IsKind(SyntaxKind.OpenParenToken) ||
-                token.IsKind(SyntaxKind.CloseParenToken) ||
-                token.IsKind(SyntaxKind.CommaToken) ||
-                token.IsKind(SyntaxKind.DotToken) ||
-                token.IsKind(SyntaxKind.EqualsToken) ||
-                token.IsKind(SyntaxKind.EqualsGreaterThanToken) ||
-                token.IsKind(SyntaxKind.EndOfFileToken) ||
-                token.IsKind(SyntaxKind.StringLiteralToken) ||
-                token.IsKind(SyntaxKind.Utf8StringLiteralToken) ||
-                token.IsKind(SyntaxKind.NumericLiteralToken) ||
-                token.IsKind(SyntaxKind.CharacterLiteralToken) ||
-                token.IsKind(SyntaxKind.InterpolatedStringTextToken) ||
-                token.IsKind(SyntaxKind.InterpolatedStringStartToken) ||
-                token.IsKind(SyntaxKind.InterpolatedStringEndToken) ||
-                token.IsKind(SyntaxKind.QuestionToken))
+            if (!IsHoverableToken(token))
                 continue;
 
-            // Skip < and > tokens that are part of generic type argument/parameter lists —
-            // the GenericNameSyntax identifier already provides the hover for the whole type
-            if ((token.IsKind(SyntaxKind.LessThanToken) || token.IsKind(SyntaxKind.GreaterThanToken))
-                && token.Parent is (TypeArgumentListSyntax or TypeParameterListSyntax))
+            var (compLine, character) = lines.GetPosition(token.SpanStart);
+            var processedLine = markers.InputLineToProcessed[markers.CompilationLineMap[compLine]];
+            if (processedLine < 0)
+                continue; // hidden code
+
+            if (persistentPositions.Contains((processedLine, character)))
                 continue;
 
-            var tokenLineSpan = token.GetLocation().GetLineSpan();
-            var compilationLine = tokenLineSpan.StartLinePosition.Line;
-
-            // Map compilation line to processed line
-            var processedLine = MapCompilationLineToProcessed(compilationLine, markers, compilationCode);
-            if (processedLine < 0) continue;
-
-            // Check if this compilation line maps to a visible original line
-            var originalLine = markers.LineMap.Length > processedLine ? markers.LineMap[processedLine] : -1;
-            if (originalLine < 0 || !visibleOriginalLines.Contains(originalLine)) continue;
-
-            var tokenCharacter = tokenLineSpan.StartLinePosition.Character;
-
-            // Skip if a persistent hover already covers this position
-            if (persistentPositions.Contains((processedLine, tokenCharacter)))
-                continue;
-
-            var hover = BuildHoverFromToken(token, model, processedLine, persistent: false);
+            var hover = BuildHover(token, model, processedLine, character, persistent: false);
             if (hover != null)
                 hovers.Add(hover);
         }
@@ -700,91 +786,101 @@ public class GloSharpProcessor
         return hovers;
     }
 
-    private static GloSharpHover? BuildHoverFromToken(SyntaxToken token, SemanticModel model, int line, bool persistent)
+    /// <summary>
+    /// Allow-list of tokens that carry their own symbol: identifiers (including contextual
+    /// keywords such as <c>var</c>), predefined type keywords, <c>this</c>/<c>base</c> and the
+    /// <c>new</c> of target-typed/anonymous object creation. Operators and punctuation never
+    /// borrow the hover of an enclosing call or declaration.
+    /// </summary>
+    private static bool IsHoverableToken(SyntaxToken token)
     {
-        // Keywords like case, break, switch, return, if, else have no semantic symbol.
-        // GetMeaningfulNode walks up to ancestor declarations (e.g. MethodDeclarationSyntax)
-        // which produces misleading hovers showing the containing method.
-        // Allow: predefined type keywords (int, string, void) which have PredefinedTypeSyntax,
-        // contextual keywords like 'var' which resolve via IdentifierNameSyntax,
-        // and expression keywords like 'this'/'base' which resolve directly to symbols.
-        if (token.IsKeyword()
-            && token.Parent is not PredefinedTypeSyntax
-            && token.Parent is not ThisExpressionSyntax
-            && token.Parent is not BaseExpressionSyntax
-            && token.Parent is not ImplicitObjectCreationExpressionSyntax
-            && token.Parent is not AnonymousObjectCreationExpressionSyntax)
-            return null;
+        if (token.IsKind(SyntaxKind.IdentifierToken))
+            return true;
 
-        var node = GetMeaningfulNode(token);
+        return token.IsKeyword() && token.Parent is PredefinedTypeSyntax
+            or ThisExpressionSyntax
+            or BaseExpressionSyntax
+            or ImplicitObjectCreationExpressionSyntax
+            or AnonymousObjectCreationExpressionSyntax;
+    }
+
+    private static ISymbol? ResolveTokenSymbol(SyntaxToken token, SemanticModel model)
+    {
+        var node = token.Parent;
         if (node == null) return null;
 
-        var symbolInfo = model.GetSymbolInfo(node);
-        var symbol = symbolInfo.Symbol ?? symbolInfo.CandidateSymbols.FirstOrDefault();
+        // 'this' / 'base' show the type they refer to
+        if (node is ThisExpressionSyntax or BaseExpressionSyntax)
+            return model.GetTypeInfo(node).Type;
 
-        if (symbol == null)
-            symbol = model.GetDeclaredSymbol(node);
+        var info = model.GetSymbolInfo(node);
+        var symbol = info.Symbol ?? info.CandidateSymbols.FirstOrDefault();
+        symbol ??= model.GetDeclaredSymbol(node);
 
-        if (symbol == null)
-        {
-            for (var current = node.Parent; current != null && symbol == null; current = current.Parent)
-                symbol = model.GetDeclaredSymbol(current);
-        }
+        // Names that label something declared by their parent: anonymous type members
+        // (new { Name = x }), named tuple elements ((Name: x, ...)), named arguments.
+        if (symbol == null && node.Parent is NameEqualsSyntax or NameColonSyntax)
+            symbol = model.GetDeclaredSymbol(node.Parent.Parent!);
 
+        return symbol;
+    }
+
+    private static GloSharpHover? BuildHover(SyntaxToken token, SemanticModel model, int line, int character, bool persistent)
+    {
+        if (!IsHoverableToken(token))
+            return null;
+
+        var symbol = ResolveTokenSymbol(token, model);
         if (symbol == null) return null;
 
-        // Filter out the synthetic top-level-statements entry point method —
-        // it's an implementation detail, not meaningful type info.
-        // Roslyn names this "<Main>$" internally but displays it as "<top-level-statements-entry-point>"
+        // The synthetic top-level-statements entry point is an implementation detail
         if (symbol is IMethodSymbol { Name: "<Main>$" })
             return null;
 
-        // Filter out symbols with error types — when types can't be resolved
-        // (e.g. missing SDK references), showing a dashed underline with no
-        // useful info is misleading
+        // Unresolvable types would produce a misleading, info-free hover
         if (HasErrorType(symbol))
             return null;
 
-        var parts = symbol.ToDisplayParts(DisplayFormat);
-        var prefix = GetSymbolPrefix(symbol);
+        List<GloSharpDisplayPart> displayParts;
+        string text;
+        List<GloSharpTypeAnnotation>? typeAnnotations = null;
 
-        var hasAnonymousType = AnonymousTypeFormatter.FindAnonymousType(symbol) != null;
-        AnonymousTypeFormatter? formatter = hasAnonymousType ? new AnonymousTypeFormatter() : null;
-
-        var displayParts = new List<GloSharpDisplayPart>();
-        if (prefix != null)
+        if (symbol is IRangeVariableSymbol rangeVariable)
         {
-            displayParts.Add(new GloSharpDisplayPart { Kind = "punctuation", Text = "(" });
-            displayParts.Add(new GloSharpDisplayPart { Kind = "text", Text = prefix });
-            displayParts.Add(new GloSharpDisplayPart { Kind = "punctuation", Text = ")" });
-            displayParts.Add(new GloSharpDisplayPart { Kind = "space", Text = " " });
-        }
-
-        if (formatter != null)
-        {
-            displayParts.AddRange(formatter.TransformDisplayParts(parts, symbol));
+            (displayParts, text) = BuildRangeVariableDisplay(rangeVariable, token, model);
         }
         else
         {
-            foreach (var part in parts)
+            var parts = symbol.ToDisplayParts(DisplayFormat);
+            var prefix = GetSymbolPrefix(symbol);
+
+            var formatter = AnonymousTypeFormatter.FindAnonymousType(symbol) != null ? new AnonymousTypeFormatter() : null;
+
+            displayParts = PrefixParts(prefix);
+            if (formatter != null)
             {
-                displayParts.Add(new GloSharpDisplayPart
-                {
-                    Kind = SymbolDisplayPartKindMapping.ToJsonKind(part.Kind),
-                    Text = part.ToString(),
-                });
+                displayParts.AddRange(formatter.TransformDisplayParts(parts, symbol));
             }
+            else
+            {
+                foreach (var part in parts)
+                {
+                    displayParts.Add(new GloSharpDisplayPart
+                    {
+                        Kind = SymbolDisplayPartKindMapping.ToJsonKind(part.Kind),
+                        Text = part.ToString(),
+                    });
+                }
+            }
+
+            var rawDisplayString = symbol.ToDisplayString(DisplayFormat);
+            var display = formatter != null ? formatter.TransformDisplayString(rawDisplayString) : rawDisplayString;
+            text = prefix != null ? $"({prefix}) {display}" : display;
+            typeAnnotations = formatter?.GetAnnotations();
         }
 
-        var rawDisplayString = symbol.ToDisplayString(DisplayFormat);
-        var text = formatter != null
-            ? (prefix != null ? $"({prefix}) {formatter.TransformDisplayString(rawDisplayString)}" : formatter.TransformDisplayString(rawDisplayString))
-            : (prefix != null ? $"({prefix}) {rawDisplayString}" : rawDisplayString);
-
-        var typeAnnotations = formatter?.GetAnnotations();
-
         int? overloadCount = null;
-        if (symbol is IMethodSymbol method)
+        if (symbol is IMethodSymbol method && method.ContainingType != null)
         {
             var overloads = method.ContainingType.GetMembers(method.Name)
                 .OfType<IMethodSymbol>()
@@ -792,18 +888,16 @@ public class GloSharpProcessor
             if (overloads > 1)
             {
                 overloadCount = overloads;
-                text += $" (+ {overloads - 1} overloads)";
+                text += overloads == 2 ? " (+ 1 overload)" : $" (+ {overloads - 1} overloads)";
             }
         }
 
-        var docs = ExtractDocComment(symbol);
-        var tokenLineSpan = token.GetLocation().GetLineSpan();
-        var tokenCharacter = tokenLineSpan.StartLinePosition.Character;
+        var docs = DocCommentFormatter.Extract(symbol, model.Compilation);
 
         return new GloSharpHover
         {
             Line = line,
-            Character = tokenCharacter,
+            Character = character,
             Length = token.Text.Length,
             Text = text,
             Parts = displayParts,
@@ -816,42 +910,141 @@ public class GloSharpProcessor
         };
     }
 
-    private (List<GloSharpError> Errors, bool CompileSucceeded) ExtractDiagnostics(
-        CSharpCompilation compilation,
-        SemanticModel model,
-        MarkerParseResult markers,
-        string compilationCode)
+    private static List<GloSharpDisplayPart> PrefixParts(string? prefix)
     {
+        var parts = new List<GloSharpDisplayPart>();
+        if (prefix != null)
+        {
+            parts.Add(new GloSharpDisplayPart { Kind = "punctuation", Text = "(" });
+            parts.Add(new GloSharpDisplayPart { Kind = "text", Text = prefix });
+            parts.Add(new GloSharpDisplayPart { Kind = "punctuation", Text = ")" });
+            parts.Add(new GloSharpDisplayPart { Kind = "space", Text = " " });
+        }
+        return parts;
+    }
+
+    /// <summary>
+    /// Range variables (<c>from p in people</c>) have no type in their symbol; Roslyn's display
+    /// renders them as "? p". Show "(range variable) T p" like Visual Studio does instead.
+    /// </summary>
+    private static (List<GloSharpDisplayPart> Parts, string Text) BuildRangeVariableDisplay(
+        IRangeVariableSymbol rangeVariable, SyntaxToken token, SemanticModel model)
+    {
+        var type = GetRangeVariableType(rangeVariable, token, model);
+        var parts = PrefixParts("range variable");
+        var text = new StringBuilder("(range variable) ");
+
+        if (type != null)
+        {
+            foreach (var part in type.ToDisplayParts(DisplayFormat))
+            {
+                parts.Add(new GloSharpDisplayPart
+                {
+                    Kind = SymbolDisplayPartKindMapping.ToJsonKind(part.Kind),
+                    Text = part.ToString(),
+                });
+            }
+            parts.Add(new GloSharpDisplayPart { Kind = "space", Text = " " });
+            text.Append(type.ToDisplayString(DisplayFormat)).Append(' ');
+        }
+
+        parts.Add(new GloSharpDisplayPart { Kind = "localName", Text = rangeVariable.Name });
+        text.Append(rangeVariable.Name);
+        return (parts, text.ToString());
+    }
+
+    private static ITypeSymbol? GetRangeVariableType(IRangeVariableSymbol rangeVariable, SyntaxToken token, SemanticModel model)
+    {
+        // A usage binds directly
+        if (token.Parent is IdentifierNameSyntax usage)
+        {
+            var usageType = model.GetTypeInfo(usage).Type;
+            if (usageType is { TypeKind: not TypeKind.Error })
+                return usageType;
+        }
+
+        // Declaration: find a usage in the same query
+        var query = token.Parent?.FirstAncestorOrSelf<QueryExpressionSyntax>();
+        if (query != null)
+        {
+            foreach (var identifier in query.DescendantNodes().OfType<IdentifierNameSyntax>())
+            {
+                if (identifier.Identifier.ValueText != rangeVariable.Name) continue;
+                if (!SymbolEqualityComparer.Default.Equals(model.GetSymbolInfo(identifier).Symbol, rangeVariable)) continue;
+                var type = model.GetTypeInfo(identifier).Type;
+                if (type is { TypeKind: not TypeKind.Error })
+                    return type;
+            }
+        }
+
+        // Unused: derive from the declaring clause
+        return token.Parent switch
+        {
+            FromClauseSyntax { Type: { } explicitType } => model.GetTypeInfo(explicitType).Type,
+            FromClauseSyntax from => GetElementType(model.GetTypeInfo(from.Expression).Type),
+            JoinClauseSyntax { Type: { } explicitType } => model.GetTypeInfo(explicitType).Type,
+            JoinClauseSyntax join => GetElementType(model.GetTypeInfo(join.InExpression).Type),
+            LetClauseSyntax let => model.GetTypeInfo(let.Expression).Type,
+            _ => null,
+        };
+    }
+
+    private static ITypeSymbol? GetElementType(ITypeSymbol? type)
+    {
+        if (type == null) return null;
+        if (type is IArrayTypeSymbol array) return array.ElementType;
+
+        var enumerable = type.AllInterfaces
+            .Prepend(type as INamedTypeSymbol)
+            .OfType<INamedTypeSymbol>()
+            .FirstOrDefault(i => i.OriginalDefinition.SpecialType == SpecialType.System_Collections_Generic_IEnumerable_T);
+        return enumerable?.TypeArguments[0];
+    }
+
+    // ---- Diagnostics --------------------------------------------------
+
+    private static (List<GloSharpError> Errors, List<GloSharpError> HiddenErrors, bool CompileSucceeded) ExtractDiagnostics(
+        Snippet snippet,
+        SyntaxTree tree,
+        SemanticModel model,
+        LineIndex lines)
+    {
+        var markers = snippet.Markers;
         var errors = new List<GloSharpError>();
-        var compilationLines = compilationCode.Split('\n');
+        var hiddenErrors = new List<GloSharpError>();
+        var hasUnexpectedErrors = false;
+
+        // @errors expectations, keyed by the input line they target (which may be hidden)
+        var expectations = markers.ErrorExpectations
+            .GroupBy(e => e.InputLine)
+            .ToDictionary(g => g.Key, g => g.SelectMany(e => e.Codes).ToHashSet(StringComparer.Ordinal));
+        var matched = new HashSet<(int InputLine, string Code)>();
+
+        bool IsSuppressed(string code) =>
+            markers.SuppressAllErrors || markers.SuppressedErrorCodes.Contains(code);
 
         var diagnostics = model.GetDiagnostics()
             .Where(d => d.Severity >= DiagnosticSeverity.Info)
-            .Where(d => d.Location.IsInSource && d.Location.SourceTree?.FilePath != "__GlobalUsings.cs")
-            .ToList();
-
-        var hasUnexpectedErrors = false;
+            .Where(d => d.Location.IsInSource && d.Location.SourceTree == tree)
+            .OrderBy(d => d.Location.SourceSpan.Start);
 
         foreach (var diagnostic in diagnostics)
         {
-            var span = diagnostic.Location.GetLineSpan();
-            var compLine = span.StartLinePosition.Line;
-            var compChar = span.StartLinePosition.Character;
-
-            // Map compilation line to processed line
-            var processedLine = MapCompilationLineToProcessed(compLine, markers, compilationCode);
-            if (processedLine < 0) continue;
-
+            var span = diagnostic.Location.SourceSpan;
+            var (compLine, character) = lines.GetPosition(span.Start);
+            var inputLine = markers.CompilationLineMap[compLine];
+            var processedLine = markers.InputLineToProcessed[inputLine];
             var code = diagnostic.Id;
 
-            // Block-level diagnostic suppression (errors, warnings, and info)
-            if (markers.SuppressAllErrors)
-                continue;
-            if (markers.SuppressedErrorCodes.Contains(code))
-                continue;
+            // Expectations are matched before suppression so a suppressed diagnostic
+            // still satisfies its @errors line.
+            var expected = expectations.TryGetValue(inputLine, out var expectedCodes) && expectedCodes.Contains(code);
+            if (expected)
+                matched.Add((inputLine, code));
 
-            var expected = markers.ErrorExpectations.Any(e =>
-                e.OriginalLine == processedLine && e.Codes.Contains(code));
+            // Block-level suppression (@noErrors / @suppressErrors) hides errors, warnings and info
+            if (IsSuppressed(code))
+                continue;
 
             var severity = diagnostic.Severity switch
             {
@@ -861,136 +1054,99 @@ public class GloSharpProcessor
                 _ => "hidden",
             };
 
+            var sourceLine = snippet.ToSourceLine(inputLine);
+
+            if (processedLine < 0)
+            {
+                // Hidden (cut/region) code: errors still fail the snippet, but can't be placed
+                // in the rendered code. Warnings/info in setup code are not reported.
+                if (severity == "error")
+                {
+                    if (!expected) hasUnexpectedErrors = true;
+                    hiddenErrors.Add(new GloSharpError
+                    {
+                        Line = -1,
+                        Character = character,
+                        Length = Math.Max(1, span.Length),
+                        Code = code,
+                        Message = diagnostic.GetMessage(),
+                        Severity = severity,
+                        Expected = expected,
+                        SourceLine = sourceLine,
+                        SourceCharacter = character,
+                    });
+                }
+                continue;
+            }
+
             if (severity == "error" && !expected)
                 hasUnexpectedErrors = true;
 
-            // Extract end position for multi-line spans
-            var endSpan = span.EndLinePosition;
             int? endLine = null;
             int? endCharacter = null;
-
-            if (endSpan.Line != compLine)
+            var (endCompLine, endChar) = lines.GetPosition(span.End);
+            if (endCompLine != compLine)
             {
-                var processedEndLine = MapCompilationLineToProcessed(endSpan.Line, markers, compilationCode);
+                var processedEndLine = markers.InputLineToProcessed[markers.CompilationLineMap[endCompLine]];
                 if (processedEndLine >= 0)
                 {
                     endLine = processedEndLine;
-                    endCharacter = endSpan.Character;
+                    endCharacter = endChar;
                 }
             }
 
             errors.Add(new GloSharpError
             {
                 Line = processedLine,
-                Character = compChar,
-                Length = Math.Max(1, diagnostic.Location.SourceSpan.Length),
+                Character = character,
+                Length = Math.Max(1, span.Length),
                 EndLine = endLine,
                 EndCharacter = endCharacter,
                 Code = code,
                 Message = diagnostic.GetMessage(),
                 Severity = severity,
                 Expected = expected,
+                SourceLine = sourceLine,
+                SourceCharacter = character,
             });
         }
 
-        var compileSucceeded = !hasUnexpectedErrors;
-
-        return (errors, compileSucceeded);
-    }
-
-    private static int FindCompilationLine(string compilationCode, int originalLine, MarkerParseResult markers)
-    {
-        // The compilation code has marker lines removed
-        // We need to figure out which compilation line corresponds to the original line
-        var source = markers.OriginalCode;
-        var origLines = source.Split('\n');
-        var compLines = compilationCode.Split('\n');
-
-        // Build a map from original line to compilation line
-        var compLineIdx = 0;
-        for (var i = 0; i < origLines.Length && compLineIdx < compLines.Length; i++)
+        // @errors expectations that nothing satisfied: the snippet no longer demonstrates the
+        // error it documents.
+        foreach (var expectation in markers.ErrorExpectations)
         {
-            if (i == originalLine)
-                return compLineIdx;
-
-            // Check if this original line appears in compilation code
-            if (origLines[i] == compLines[compLineIdx])
-                compLineIdx++;
-        }
-
-        return -1;
-    }
-
-    private static int MapCompilationLineToProcessed(int compLine, MarkerParseResult markers, string compilationCode)
-    {
-        // Find which original line this compilation line corresponds to
-        var origLines = markers.OriginalCode.Split('\n');
-        var compLines = compilationCode.Split('\n');
-
-        if (compLine >= compLines.Length) return -1;
-
-        var compLineIdx = 0;
-        var originalLine = -1;
-        for (var i = 0; i < origLines.Length && compLineIdx < compLines.Length; i++)
-        {
-            if (origLines[i] == compLines[compLineIdx])
+            foreach (var code in expectation.Codes)
             {
-                if (compLineIdx == compLine)
+                if (matched.Contains((expectation.InputLine, code)) || IsSuppressed(code))
+                    continue;
+                matched.Add((expectation.InputLine, code)); // report each (line, code) once
+
+                hasUnexpectedErrors = true;
+                var compLine = markers.InputLineToCompilation[expectation.InputLine];
+                var lineText = compLine >= 0 ? lines.GetLineText(compLine) : "";
+                var indent = lineText.Length - lineText.TrimStart().Length;
+
+                var error = new GloSharpError
                 {
-                    originalLine = i;
-                    break;
-                }
-                compLineIdx++;
+                    Line = expectation.OriginalLine,
+                    Character = indent,
+                    Length = Math.Max(1, lineText.Trim().Length),
+                    Code = GloSharpDiagnosticCodes.UnmatchedExpectedError,
+                    Message = $"Expected error {code} (from '// @errors') was not reported on this line.",
+                    Severity = "error",
+                    Expected = false,
+                    SourceLine = snippet.ToSourceLine(expectation.InputLine),
+                    SourceCharacter = indent,
+                };
+
+                if (expectation.OriginalLine >= 0)
+                    errors.Add(error);
+                else
+                    hiddenErrors.Add(error);
             }
         }
 
-        if (originalLine < 0) return -1;
-
-        // Now map original line to processed line
-        var idx = Array.IndexOf(markers.LineMap, originalLine);
-        return idx;
-    }
-
-    private static int GetAbsolutePosition(string[] lines, int line, int character)
-    {
-        var pos = 0;
-        for (var i = 0; i < line && i < lines.Length; i++)
-        {
-            pos += lines[i].Length + 1; // +1 for newline
-        }
-        return pos + character;
-    }
-
-    private static SyntaxNode? GetMeaningfulNode(SyntaxToken token)
-    {
-        var node = token.Parent;
-        while (node != null)
-        {
-            if (node is IdentifierNameSyntax ||
-                node is PredefinedTypeSyntax ||
-                node is GenericNameSyntax ||
-                node is VariableDeclaratorSyntax ||
-                node is MethodDeclarationSyntax ||
-                node is LocalFunctionStatementSyntax ||
-                node is PropertyDeclarationSyntax ||
-                node is ParameterSyntax ||
-                node is MemberAccessExpressionSyntax ||
-                node is MemberBindingExpressionSyntax ||
-                node is InvocationExpressionSyntax ||
-                node is ImplicitObjectCreationExpressionSyntax ||
-                node is AnonymousObjectCreationExpressionSyntax)
-            {
-                return node;
-            }
-
-            // For simple names, the identifier name is good enough
-            if (node is SimpleNameSyntax)
-                return node;
-
-            node = node.Parent;
-        }
-
-        return token.Parent;
+        return (errors, hiddenErrors, !hasUnexpectedErrors);
     }
 
     private static bool HasErrorType(ISymbol symbol) => symbol switch
@@ -1009,6 +1165,7 @@ public class GloSharpProcessor
     {
         ILocalSymbol => "local variable",
         IParameterSymbol => "parameter",
+        IRangeVariableSymbol => "range variable",
         IFieldSymbol f => f.IsConst ? "constant" : "field",
         IPropertySymbol => "property",
         IMethodSymbol m => m.IsExtensionMethod ? "extension" : "method",
@@ -1025,101 +1182,4 @@ public class GloSharpProcessor
         INamespaceSymbol => "namespace",
         _ => null,
     };
-
-    private static GloSharpDocComment? ExtractDocComment(ISymbol symbol)
-    {
-        var xml = symbol.GetDocumentationCommentXml();
-        if (string.IsNullOrEmpty(xml)) return null;
-
-        try
-        {
-            var doc = XDocument.Parse(xml);
-
-            var summary = ExtractElementText(doc.Descendants("summary").FirstOrDefault());
-            var returns = ExtractElementText(doc.Descendants("returns").FirstOrDefault());
-            var remarks = ExtractElementText(doc.Descendants("remarks").FirstOrDefault());
-
-            var paramElements = doc.Descendants("param")
-                .Select(e => new GloSharpDocParam
-                {
-                    Name = e.Attribute("name")?.Value ?? "",
-                    Text = ExtractElementText(e) ?? "",
-                })
-                .Where(p => !string.IsNullOrEmpty(p.Name))
-                .ToList();
-
-            var examples = doc.Descendants("example")
-                .Select(e => ExtractElementText(e))
-                .Where(t => t != null)
-                .Cast<string>()
-                .ToList();
-
-            var exceptions = doc.Descendants("exception")
-                .Select(e => new GloSharpDocException
-                {
-                    Type = StripCrefPrefix(e.Attribute("cref")?.Value ?? ""),
-                    Text = ExtractElementText(e) ?? "",
-                })
-                .Where(e => !string.IsNullOrEmpty(e.Type))
-                .ToList();
-
-            // Return null if there's no meaningful content
-            if (summary == null && returns == null && remarks == null
-                && paramElements.Count == 0 && examples.Count == 0 && exceptions.Count == 0)
-                return null;
-
-            return new GloSharpDocComment
-            {
-                Summary = summary,
-                Params = paramElements,
-                Returns = returns,
-                Remarks = remarks,
-                Examples = examples,
-                Exceptions = exceptions,
-            };
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    private static string? ExtractElementText(XElement? element)
-    {
-        if (element == null) return null;
-
-        var text = string.Concat(element.Nodes().Select(ResolveNode)).Trim();
-        // Normalize internal whitespace (multi-line XML docs)
-        text = System.Text.RegularExpressions.Regex.Replace(text, @"\s+", " ");
-        return string.IsNullOrEmpty(text) ? null : text;
-    }
-
-    private static string ResolveNode(XNode node)
-    {
-        return node switch
-        {
-            XText textNode => textNode.Value,
-            XElement el => el.Name.LocalName switch
-            {
-                "see" => StripCrefPrefix(el.Attribute("cref")?.Value ?? el.Value),
-                "seealso" => StripCrefPrefix(el.Attribute("cref")?.Value ?? el.Value),
-                "paramref" => el.Attribute("name")?.Value ?? "",
-                "typeparamref" => el.Attribute("name")?.Value ?? "",
-                "c" => el.Value,
-                _ => el.Value,
-            },
-            _ => "",
-        };
-    }
-
-    private static string StripCrefPrefix(string cref)
-    {
-        // Strip documentation ID prefixes like "T:", "M:", "P:", "F:", "E:", "N:"
-        if (cref.Length > 2 && cref[1] == ':' && char.IsLetter(cref[0]))
-            cref = cref[2..];
-
-        // Strip namespace, keep just the type/member name
-        var lastDot = cref.LastIndexOf('.');
-        return lastDot >= 0 ? cref[(lastDot + 1)..] : cref;
-    }
 }

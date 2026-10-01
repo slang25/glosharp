@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Parse suppressErrors directive for all errors
-The system SHALL recognize `// @suppressErrors` as a block-level directive that suppresses all compilation errors for the code block. The directive line SHALL be removed from processed output and excluded from compilation code.
+The system SHALL recognize `// @suppressErrors` as a block-level directive that suppresses all compiler diagnostics for the code block — errors, warnings and info alike, including errors in hidden (cut/region) code and unmatched `@errors` expectations (GS0003). `compileSucceeded` stays true. The directive line SHALL be removed from processed output and excluded from compilation code.
 
 #### Scenario: Suppress all errors directive parsed
 - **WHEN** source contains `// @suppressErrors` on its own line
@@ -16,7 +16,7 @@ The system SHALL recognize `// @suppressErrors` as a block-level directive that 
 - **THEN** hovers are extracted for the resolvable symbols and no errors are reported
 
 ### Requirement: Parse suppressErrors directive with specific codes
-The system SHALL recognize `// @suppressErrors: CS0246, CS0103` as a block-level directive that suppresses only the specified error codes across the entire block. Multiple codes SHALL be supported as a comma-separated list. The directive line SHALL be removed from processed output.
+The system SHALL recognize `// @suppressErrors: CS0246, CS0103` as a block-level directive that suppresses only the specified error codes across the entire block. Multiple codes SHALL be supported, separated by commas and/or whitespace. The directive line SHALL be removed from processed output.
 
 #### Scenario: Suppress specific error codes block-wide
 - **WHEN** source contains `// @suppressErrors: CS0246` and the code has CS0246 errors on multiple lines
@@ -31,7 +31,7 @@ The system SHALL recognize `// @suppressErrors: CS0246, CS0103` as a block-level
 - **THEN** all three error codes are suppressed block-wide
 
 ### Requirement: suppressErrors coexists with per-line @errors
-The system SHALL support both `@suppressErrors` (block-level) and `@errors` (per-line) in the same code block. Block-level suppression applies first, then per-line expectations apply to any remaining errors.
+The system SHALL support both `@suppressErrors` (block-level) and `@errors` (per-line) in the same code block. Per-line expectations are matched first (so a suppressed diagnostic still satisfies its `@errors` line), then block-level suppression removes the suppressed codes from the output.
 
 #### Scenario: Block suppression with per-line errors
 - **WHEN** source contains `// @suppressErrors: CS0246` and also has `// @errors: CS1002` on a specific line
@@ -39,3 +39,9 @@ The system SHALL support both `@suppressErrors` (block-level) and `@errors` (per
 
 ### Requirement: noErrors is an alias for suppressErrors
 The system SHALL treat `@noErrors` as a twoslash-compatible alias for `@suppressErrors`. Both directives MAY be present simultaneously without conflict.
+
+#### Scenario: noErrors suppresses warnings too
+- **WHEN** source contains `// @noErrors` and the code produces a CS0219 warning and a CS0103 error
+- **THEN** neither is reported and `compileSucceeded` is true
+
+This matches twoslash, where `@noErrors` hides every diagnostic. (Earlier wording that limited suppression to error-severity diagnostics did not match the implementation and has been corrected.)

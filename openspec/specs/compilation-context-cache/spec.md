@@ -11,6 +11,20 @@ The system SHALL cache resolved `MetadataReference[]` arrays in memory, keyed by
 - **WHEN** file A targets `net8.0` and file B targets `net9.0` within the same process
 - **THEN** each framework resolves independently and both are cached separately
 
+### Requirement: Whole complog/.glocontext resolutions are cached
+For `--complog` (raw complog or .glocontext) the cache SHALL hold the complete resolution — references, compilation options, parse options, target framework and inferred packages — keyed by full path, selected project, file size and last-write time. A cache hit SHALL NOT reopen or re-read the file.
+
+#### Scenario: verify over many files with one complog
+- **WHEN** `glosharp verify` processes many files against the same `--complog`
+- **THEN** the complog/.glocontext is opened and resolved once
+
+### Requirement: Thread-safe cache
+The cache SHALL be safe to use from concurrent callers sharing one `GloSharpProcessor`. Concurrent requests for the same key SHALL share a single resolution; a resolution that throws SHALL NOT be cached.
+
+#### Scenario: Parallel processing
+- **WHEN** several snippets are processed concurrently with `Task.WhenAll` through one processor
+- **THEN** each context is resolved once and no cache corruption occurs
+
 ### Requirement: Compilation context cache is always active
 The in-process compilation context cache SHALL be active whenever `GloSharpProcessor` is used. No flag is required to enable it.
 

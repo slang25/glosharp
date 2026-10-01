@@ -61,8 +61,12 @@ When `#:package` directives are present and no `--project` flag is provided, the
 - **THEN** both packages and their transitive dependencies are resolved and available as references
 
 #### Scenario: Resolution failure
-- **WHEN** source contains `#:package NonExistent.Package@1.0.0` and SDK resolution fails
-- **THEN** the system reports an error to stderr and exits with non-zero code
+- **WHEN** source contains `#:package NonExistent.Package@1.0.0` and SDK resolution fails (including an SDK older than 10)
+- **THEN** processing continues with framework-only references and `meta.warnings` contains an entry naming the directives and carrying the resolver's message (failures are never silently swallowed)
+
+#### Scenario: Snippet read from stdin
+- **WHEN** a snippet with `#:` directives is processed without a source file path (e.g. `--stdin` from the Node bridge)
+- **THEN** only the directive lines are written to a stable temp file named by a hash of the directive set (`$TMPDIR/glosharp/file-based-apps/glosharp-<hash>.cs`), so identical directive sets reuse one SDK artifacts directory instead of leaking one per snippet, and the snippet's own (possibly intentionally broken) code cannot fail resolution
 
 ### Requirement: Require .NET 10+ SDK for file-based app directives
 When `#:` directives are detected, the system SHALL verify that the installed .NET SDK is version 10.0 or later. If an older SDK is installed, the system SHALL fail with a clear error message.

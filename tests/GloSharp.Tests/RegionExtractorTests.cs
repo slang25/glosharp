@@ -37,8 +37,7 @@ public class RegionExtractorTests
     public async Task ApplyRegion_ExtractsOnlyRegionContent()
     {
         var source = "using System;\n#region getting-started\nvar x = 42;\nConsole.WriteLine(x);\n#endregion\nvar y = 10;";
-        var transformed = RegionExtractor.ApplyRegion(source, "getting-started");
-        var result = MarkerParser.Parse(transformed);
+        var result = MarkerParser.Parse(source, RegionExtractor.GetHiddenLineMask(source, "getting-started"));
 
         await Assert.That(result.ProcessedCode).Contains("var x = 42;");
         await Assert.That(result.ProcessedCode).Contains("Console.WriteLine(x);");
@@ -52,8 +51,7 @@ public class RegionExtractorTests
     public async Task ApplyRegion_WithMarkersInside_PreservesMarkers()
     {
         var source = "using System;\n#region demo\nvar x = 42;\n//  ^?\n#endregion";
-        var transformed = RegionExtractor.ApplyRegion(source, "demo");
-        var result = MarkerParser.Parse(transformed);
+        var result = MarkerParser.Parse(source, RegionExtractor.GetHiddenLineMask(source, "demo"));
 
         await Assert.That(result.HoverQueries.Count).IsEqualTo(1);
         await Assert.That(result.ProcessedCode).Contains("var x = 42;");
@@ -63,8 +61,7 @@ public class RegionExtractorTests
     public async Task ApplyRegion_RegionDirectivesHiddenFromOutput()
     {
         var source = "#region test\nvar x = 42;\n#endregion";
-        var transformed = RegionExtractor.ApplyRegion(source, "test");
-        var result = MarkerParser.Parse(transformed);
+        var result = MarkerParser.Parse(source, RegionExtractor.GetHiddenLineMask(source, "test"));
 
         await Assert.That(result.ProcessedCode).DoesNotContain("#region");
         await Assert.That(result.ProcessedCode).DoesNotContain("#endregion");
