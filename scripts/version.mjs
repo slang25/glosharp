@@ -177,7 +177,8 @@ function problems(tag) {
   }
 
   const generated = existsSync(GENERATED) ? readFileSync(GENERATED, 'utf8') : ''
-  if (generated !== generatedSource(version)) out.push(`${rel(GENERATED)}: out of date`)
+  // Compare ignoring line endings: a Windows checkout may have converted the file to CRLF
+  if (generated.replace(/\r\n/g, '\n') !== generatedSource(version)) out.push(`${rel(GENERATED)}: out of date`)
 
   if (tag !== undefined) {
     const expected = `v${version}`

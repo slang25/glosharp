@@ -642,7 +642,9 @@ public class HtmlRenderer
         _ => "text",
     };
 
-    private static string PageStyles(GloSharpTheme theme) => $$"""
+    private static string PageStyles(GloSharpTheme theme) => PageStylesRaw(theme).ReplaceLineEndings("\n");
+
+    private static string PageStylesRaw(GloSharpTheme theme) => $$"""
         html {
           color-scheme: {{theme.ColorScheme}};
           background: {{theme.Background}};
@@ -1043,7 +1045,9 @@ public class HtmlRenderer
 
             """);
 
-        return sb.ToString();
+        // Raw string literals take their line endings from the source file, which a Windows
+        // checkout may have converted to CRLF; output must be byte-identical on every OS.
+        return sb.ToString().ReplaceLineEndings("\n");
     }
 
     /// <summary>Escapes a value for a double-quoted CSS string.</summary>

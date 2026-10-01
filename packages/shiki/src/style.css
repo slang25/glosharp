@@ -135,6 +135,9 @@ pre:hover .glosharp-hover:not(:hover):not(.glosharp-hover-persistent) {
   margin: 4px 8px 4px 0;
   z-index: 100;
   width: max-content;
+  /* border-box so padding and border count towards the cap (otherwise a capped
+     popup is ~20px wider than the viewport allows) */
+  box-sizing: border-box;
   max-width: min(600px, calc(100vw - 16px));
   max-height: 40vh;
   overflow-y: auto;
@@ -165,6 +168,9 @@ pre:hover .glosharp-hover:not(:hover):not(.glosharp-hover-persistent) {
     margin: 0;
     /* Size to content, not to the (tiny) inline hover wrapper */
     width: max-content;
+    /* Without anchor positioning the popup starts at the token, not the
+       viewport edge, so leave room for the page and code block padding */
+    max-width: min(600px, calc(100vw - 48px));
   }
 }
 

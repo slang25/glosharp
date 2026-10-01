@@ -1,0 +1,9 @@
+# Check out text files with LF on every OS. Raw string literals in C# and generated
+# files compared byte-for-byte (rendering fixtures, version.generated.ts) must not
+# pick up CRLF from a Windows checkout.
+* text=auto eol=lf
+*.png binary
+*.ico binary
+*.glocontext binary
+*.complog binary
+*.nupkg binary
