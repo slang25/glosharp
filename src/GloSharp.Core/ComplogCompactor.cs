@@ -75,10 +75,20 @@ public static class ComplogCompactor
 
         var inputSize = new FileInfo(inputPath).Length;
 
+        Span<byte> magic = stackalloc byte[GloContextFormat.HeaderSize];
+        using (var fs = File.OpenRead(inputPath))
+        {
+            if (GloContextFormat.LooksLikeGloContext(magic[..fs.Read(magic)]))
+                throw new InvalidDataException(
+                    $"'{inputPath}' is already a .glocontext. compact-complog takes a .complog or .binlog as input.");
+        }
+
         using var reader = CompilerCallReaderUtil.Create(inputPath, BasicAnalyzerKind.None);
         var calls = reader.ReadAllCompilerCalls(c => c.IsCSharp);
         if (calls.Count == 0)
-            throw new InvalidOperationException("Complog contains no C# compilations");
+            throw new InvalidOperationException(
+                "Complog contains no C# compilations. If it came from an incremental (up-to-date) build, " +
+                "rebuild with 'dotnet build --no-incremental -bl' so every project is compiled.");
 
         var packResolver = options.SelfContained
             ? null
