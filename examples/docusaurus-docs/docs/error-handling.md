@@ -4,12 +4,13 @@ sidebar_position: 3
 
 # Error Handling
 
-GloSharp can display compiler errors inline — useful for showing what _not_ to do.
+Glo# can display compiler errors inline, which is useful for showing what _not_ to do.
 
 ## Expected Errors
 
-Use `// @errors: CS0103` to mark errors as intentional. They render inline without
-failing your build:
+Use `// @errors: CS0103` to declare the errors you expect on the next line. They
+still render inline, and `glosharp verify` treats them as intended instead of
+failing:
 
 ```csharp
 // @errors: CS0103
@@ -18,22 +19,23 @@ Console.WriteLine(oops);
 
 ## Nullable Warnings
 
-Show nullable reference type warnings:
+Nullable reference types are enabled by default, so the compiler's nullable
+analysis shows up in hovers and warnings:
 
 ```csharp
-// @noErrors
-// @nullable: enable
 string? name = null;
 //      ^?
-string definite = "hello";
+string definite = name ?? "hello";
 //       ^?
+Console.WriteLine(definite);
 ```
 
 ## Completions
 
-Use `^|` to show IntelliSense completions at a position:
+Put `^|` under a position to show the completion list there:
 
 ```csharp
-Console.
-//      ^|
+var message = "Hello";
+Console.WriteLine(message.ToUpper());
+//                        ^|
 ```

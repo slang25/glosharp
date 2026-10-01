@@ -1,8 +1,10 @@
-public class User {
-  public string First { get; set; }
-  public string Last { get; set; }
-  #region FullName
-  public string FullName
-    => $"{First} {Last}";
-  #endregion
+public class User
+{
+    public required string First { get; init; }
+    public required string Last { get; init; }
+
+    #region FullName
+    public string FullName
+        => $"{First} {Last}";
+    #endregion
 }

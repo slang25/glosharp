@@ -2,15 +2,17 @@
 import { Code } from 'astro-expressive-code/components'
 
 // Load code examples from separate .cs files
-import heroCode from '../examples/hero.cs?raw'
-import heroSource from '../examples/hero-source.cs?raw'
+// Every example is compiled by `glosharp verify website/src/examples` in CI,
+// and each card renders the same file its "Source" tab shows.
+import heroSource from '../examples/hero.cs?raw'
 import hoverSource from '../examples/hover.cs?raw'
 import xmldocSource from '../examples/xmldoc.cs?raw'
 import errorsSource from '../examples/errors.cs?raw'
-import noErrorsSource from '../examples/no-errors.cs?raw'
+import verifySource from '../examples/verify.cs?raw'
 import highlightSource from '../examples/highlight.cs?raw'
 import customTagsSource from '../examples/custom-tags.cs?raw'
 import regionSource from '../examples/region.cs?raw'
+import regionOutputSource from '../examples/region-output.cs?raw'
 import cutSource from '../examples/cut.cs?raw'
 import pkgSource from '../examples/pkg.cs?raw'
 
@@ -20,7 +22,7 @@ const sources = {
   hover: wrapSource(hoverSource),
   xmldoc: wrapSource(xmldocSource),
   errors: wrapSource(errorsSource),
-  noErrors: wrapSource(noErrorsSource),
+  verify: wrapSource(verifySource),
   highlight: wrapSource(highlightSource),
   customTags: wrapSource(customTagsSource),
   region: wrapSource(regionSource),
@@ -92,7 +94,7 @@ const sources = {
 						</div>
 						<div class="example-content-wrapper">
 							<div class="feature-example example-rendered">
-								<Code lang="csharp" code={heroCode} />
+								<Code lang="csharp" code={heroSource} />
 							</div>
 							<pre class="feature-example example-source"><code>{wrapSource(heroSource)}</code></pre>
 						</div>
@@ -150,7 +152,7 @@ const sources = {
 							</div>
 							<div class="example-content-wrapper">
 								<div class="feature-example example-rendered">
-									<Code lang="csharp" code={`// @noErrors\nvar items = new List<int> { 1, 2, 3 };\nvar count = items.Count;\n//  ^?`} />
+									<Code lang="csharp" code={hoverSource} />
 								</div>
 								<pre class="feature-example example-source"><code>{sources.hover}</code></pre>
 							</div>
@@ -171,7 +173,7 @@ const sources = {
 							</div>
 							<div class="example-content-wrapper">
 								<div class="feature-example example-rendered">
-									<Code lang="csharp" code={`// @noErrors\nvar items = new List<int> { 1, 2, 3 };\n//              ^?\nvar total = items.Sum();`} />
+									<Code lang="csharp" code={xmldocSource} />
 								</div>
 								<pre class="feature-example example-source"><code>{sources.xmldoc}</code></pre>
 							</div>
@@ -183,7 +185,7 @@ const sources = {
 							<span class="feature-icon">@errors</span>
 							<h3>Error assertions</h3>
 						</div>
-						<p>Expect specific compiler errors with <code>// @errors: CS1002</code>. Verify error messages and severity. Use <code>// @noErrors</code> to assert clean compilation.</p>
+						<p>Show a compiler error on purpose with <code>// @errors: CS0029</code> on the line above it. The error renders inline, and verification fails if it ever stops happening.</p>
 						<div class="example-container">
 							<div class="example-tabs">
 								<div class="example-tab-pill"></div>
@@ -192,7 +194,7 @@ const sources = {
 							</div>
 							<div class="example-content-wrapper">
 								<div class="feature-example example-rendered">
-									<Code lang="csharp" code={`// @errors: CS0029\nint x = "hello";`} />
+									<Code lang="csharp" code={errorsSource} />
 								</div>
 								<pre class="feature-example example-source"><code>{sources.errors}</code></pre>
 							</div>
@@ -201,10 +203,10 @@ const sources = {
 
 					<div class="feature-card">
 						<div class="feature-header">
-							<span class="feature-icon">@noErrors</span>
+							<span class="feature-icon">verify</span>
 							<h3>Compile verification</h3>
 						</div>
-						<p>Assert your snippets compile cleanly with <code>// @noErrors</code>. Catch documentation bugs in CI before your readers find them.</p>
+						<p>Every snippet is compiled. Run <code>glosharp verify</code> in CI and any error you didn't declare with <code>@errors</code> fails the build, so documentation bugs are caught before your readers find them.</p>
 						<div class="example-container">
 							<div class="example-tabs">
 								<div class="example-tab-pill"></div>
@@ -213,9 +215,9 @@ const sources = {
 							</div>
 							<div class="example-content-wrapper">
 								<div class="feature-example example-rendered">
-									<Code lang="csharp" code={`// @noErrors\nvar items = new List<int> { 1, 2, 3 };\nvar sum = items.Sum();\nConsole.WriteLine($"Sum: {sum}");`} />
+									<Code lang="csharp" code={verifySource} />
 								</div>
-								<pre class="feature-example example-source"><code>{sources.noErrors}</code></pre>
+								<pre class="feature-example example-source"><code>{sources.verify}</code></pre>
 							</div>
 						</div>
 					</div>
@@ -225,7 +227,7 @@ const sources = {
 							<span class="feature-icon">@highlight</span>
 							<h3>Visual annotations</h3>
 						</div>
-						<p>Highlight, focus, and diff lines with <code>// @highlight</code>, <code>// @focus</code>, and <code>// @diff: +/-</code>. Guide your reader's attention to what matters.</p>
+						<p>Highlight, focus, or diff the next line with <code>// @highlight</code>, <code>// @focus</code>, and <code>// @diff: +/-</code>. Guide your reader's attention to what matters.</p>
 						<div class="example-container">
 							<div class="example-tabs">
 								<div class="example-tab-pill"></div>
@@ -234,7 +236,7 @@ const sources = {
 							</div>
 							<div class="example-content-wrapper">
 								<div class="feature-example example-rendered">
-									<Code lang="csharp" code={`// @suppressErrors\nvar config = LoadConfig();\nvar conn = config.GetConnection();\n// @highlight\nvar db = new DbContext(conn);`} />
+									<Code lang="csharp" code={highlightSource} />
 								</div>
 								<pre class="feature-example example-source"><code>{sources.highlight}</code></pre>
 							</div>
@@ -246,7 +248,7 @@ const sources = {
 							<span class="feature-icon">@log</span>
 							<h3>Custom callouts</h3>
 						</div>
-						<p>Add inline annotations with <code>// @log</code>, <code>// @warn</code>, <code>// @error</code>, and <code>// @annotate</code>. Each renders as a styled callout with a distinctive icon and color.</p>
+						<p>Attach a callout to the line above with <code>// @log:</code>, <code>// @warn:</code>, <code>// @error:</code>, or <code>// @annotate:</code>. Each renders with a distinctive icon and color.</p>
 						<div class="example-container">
 							<div class="example-tabs">
 								<div class="example-tab-pill"></div>
@@ -267,7 +269,7 @@ const sources = {
 							<span class="feature-icon">#region</span>
 							<h3>Region extraction</h3>
 						</div>
-						<p>Extract named <code>#region</code> blocks from full source files. The entire file compiles for accurate types, but only the region appears in output.</p>
+						<p>Extract a named <code>#region</code> from a full source file with <code>--region</code>. The entire file compiles for accurate types, but only the region appears in output.</p>
 						<div class="example-container">
 							<div class="example-tabs">
 								<div class="example-tab-pill"></div>
@@ -276,7 +278,7 @@ const sources = {
 							</div>
 							<div class="example-content-wrapper">
 								<div class="feature-example example-rendered">
-									<Code lang="csharp" code={`// @suppressErrors\n// ---cut-start---\npublic class User {\n  public string First { get; set; }\n  public string Last { get; set; }\n// ---cut-end---\n  public string FullName\n    => $"{First} {Last}";\n// ---cut-start---\n}`} />
+									<Code lang="csharp" code={regionOutputSource} />
 								</div>
 								<pre class="feature-example example-source"><code>{sources.region}</code></pre>
 							</div>
@@ -297,7 +299,7 @@ const sources = {
 							</div>
 							<div class="example-content-wrapper">
 								<div class="feature-example example-rendered">
-									<Code lang="csharp" code={`#:sdk Microsoft.NET.Sdk.Web\nvar builder = WebApplication.CreateBuilder(args);\nvar app = builder.Build();\n// ---cut---\napp.MapGet("/", () => "Hello");\napp.Run();`} />
+									<Code lang="csharp" code={cutSource} />
 								</div>
 								<pre class="feature-example example-source"><code>{sources.cut}</code></pre>
 							</div>
@@ -318,7 +320,7 @@ const sources = {
 							</div>
 							<div class="example-content-wrapper">
 								<div class="feature-example example-rendered">
-									<Code lang="csharp" code={`#:package Newtonsoft.Json@13.0.3\nusing Newtonsoft.Json;\nvar json = JsonConvert.SerializeObject(new { x = 1 });`} />
+									<Code lang="csharp" code={pkgSource} />
 								</div>
 								<pre class="feature-example example-source"><code>{sources.pkg}</code></pre>
 							</div>
@@ -330,11 +332,10 @@ const sources = {
 							<span class="feature-icon fast-icon">&harr;</span>
 							<h3>Two-layer caching</h3>
 						</div>
-						<p>In-process compilation context cache plus SHA256-keyed disk cache. Rebuilds are fast. Atomic writes handle concurrent processes safely.</p>
+						<p>In-process compilation context cache plus a SHA-256-keyed disk cache. Rebuilds are fast, and atomic writes handle concurrent processes safely.</p>
 						<div class="feature-example">
-							<Code lang="bash" code={`$ glosharp verify samples/ --cache-dir .glosharp-cache
-✓ 24 files verified (18 cached)
-  Completed in 1.2s`} />
+							<Code lang="bash" code={`# Reuse results across runs (or set "cacheDir" in glosharp.config.json)
+glosharp verify docs/snippets --cache-dir .glosharp-cache`} />
 						</div>
 					</div>
 				</div>
@@ -383,15 +384,24 @@ const sources = {
 					<div class="integration-card">
 						<h3>Shiki transformer</h3>
 						<p class="pkg-name">@glosharp/shiki</p>
-						<p>Drop into any Shiki-powered pipeline. Works with Astro, VitePress, and any framework that uses Shiki for syntax highlighting.</p>
+						<p>Drop into any Shiki-powered pipeline: Astro, VitePress, Docusaurus, or a plain Node script. Run glosharp first, then let the transformer add the hovers.</p>
 						<div class="integration-code">
-							<Code lang="js" code={`import { transformerGloSharp } from '@glosharp/shiki'
+							<Code lang="js" code={`import { codeToHtml } from 'shiki'
+import {
+  processGloSharpBlocks,
+  transformerGloSharpFromMap,
+} from '@glosharp/shiki'
 
+// 1. Compile the snippets (async: runs Roslyn)
+const results = await processGloSharpBlocks([code], {
+  project: './My.csproj',
+})
+
+// 2. Highlight; the transformer adds the hovers
 const html = await codeToHtml(code, {
   lang: 'csharp',
-  transformers: [transformerGloSharp({
-    project: './My.csproj'
-  })]
+  theme: 'github-dark',
+  transformers: [transformerGloSharpFromMap(results)],
 })`} />
 						</div>
 					</div>
@@ -401,16 +411,14 @@ const html = await codeToHtml(code, {
 						<p class="pkg-name">@glosharp/expressive-code</p>
 						<p>Full Expressive Code integration with auto-hover extraction. Every C# block gets rich tooltips automatically. Perfect for Starlight docs.</p>
 						<div class="integration-code">
-							<Code lang="js" code={`import { pluginGloSharp } from '@glosharp/expressive-code'
+							<Code lang="js" code={`// ec.config.mjs
+import { defineEcConfig } from 'astro-expressive-code'
+import { pluginGloSharp } from '@glosharp/expressive-code'
 
-export default defineConfig({
-  integrations: [starlight({
-    expressiveCode: {
-      plugins: [pluginGloSharp({
-        project: './My.csproj'
-      })]
-    }
-  })]
+export default defineEcConfig({
+  plugins: [pluginGloSharp({
+    project: './My.csproj',
+  })],
 })`} />
 						</div>
 					</div>
@@ -420,7 +428,7 @@ export default defineConfig({
 						<p class="pkg-name">glosharp CLI</p>
 						<p>Generate self-contained HTML with no external dependencies. Perfect for Hugo, Jekyll, or any static site. Just embed the output.</p>
 						<div class="integration-code">
-							<Code lang="bash" code={`$ glosharp render snippet.cs \\
+							<Code lang="bash" code={`glosharp render snippet.cs \\
     --theme github-dark \\
     --standalone \\
     --output snippet.html`} />
@@ -434,12 +442,12 @@ export default defineConfig({
 						<div class="integration-code">
 							<Code lang="js" code={`import { createGloSharp } from '@glosharp/core'
 
-const glosharp = createGloSharp({
-  project: './My.csproj'
-})
+const glosharp = createGloSharp()
 const result = await glosharp.process({
-  code: 'var x = 42; // ^?'
-})`} />
+  code: 'var x = 42;\\n//  ^?',
+  project: './My.csproj',
+})
+// result.hovers[0].text: "(local variable) int x"`} />
 						</div>
 					</div>
 				</div>
@@ -450,7 +458,7 @@ const result = await glosharp.process({
 		<section id="setup" class="setup">
 			<div class="container">
 				<h2 class="section-title">Get started in minutes</h2>
-				<p class="section-subtitle">Pick the integration that fits your workflow.</p>
+				<p class="section-subtitle">Pick the integration that fits your workflow. Glo# is in preview, so install the prerelease CLI.</p>
 
 				<div class="setup-tabs">
 					<div class="tab-buttons">
@@ -464,34 +472,53 @@ const result = await glosharp.process({
 						<div class="setup-step">
 							<h4>1. Install the .NET tool and npm packages</h4>
 							<div class="setup-code">
-								<Code lang="bash" code={`dotnet tool install --global GloSharp.Cli
-npm install @glosharp/shiki`} />
+								<Code lang="bash" code={`dotnet tool install --global GloSharp.Cli --prerelease
+npm install @glosharp/shiki unist-util-visit @astrojs/markdown-remark`} />
 							</div>
 						</div>
 						<div class="setup-step">
-							<h4>2. Configure your Astro Shiki setup</h4>
+							<h4>2. Run glosharp from a remark plugin, then hand the results to Shiki</h4>
 							<div class="setup-code">
 								<Code lang="js" code={`// astro.config.mjs
-import { transformerGloSharp } from '@glosharp/shiki'
+import { defineConfig } from 'astro/config'
+import { visit } from 'unist-util-visit'
+import {
+  processGloSharpBlocks,
+  transformerGloSharpFromMap,
+} from '@glosharp/shiki'
+
+const results = new Map()
+
+// Shiki transforms synchronously, so compile the C# blocks first
+function remarkGloSharp() {
+  return async (tree) => {
+    const blocks = []
+    visit(tree, 'code', (node) => {
+      if (node.lang === 'csharp') blocks.push(node.value)
+    })
+    const batch = await processGloSharpBlocks(blocks)
+    for (const [key, result] of batch) results.set(key, result)
+  }
+}
 
 export default defineConfig({
   markdown: {
+    remarkPlugins: [remarkGloSharp],
     shikiConfig: {
-      transformers: [transformerGloSharp({
-        project: './samples/Samples.csproj'
-      })]
-    }
-  }
+      transformers: [transformerGloSharpFromMap(results)],
+    },
+  },
 })`} />
 							</div>
+							<p class="setup-note">Then add <code>import '@glosharp/shiki/style.css'</code> to your layout; it positions the popups.</p>
 						</div>
 						<div class="setup-step">
 							<h4>3. Write C# code blocks with markers</h4>
 							<div class="setup-code">
 								<Code lang="md" code={`\`\`\`csharp
 var greeting = "Hello, world!";
-greeting.Length;
-// ^?
+var length = greeting.Length;
+//                    ^?
 \`\`\``} />
 							</div>
 						</div>
@@ -499,32 +526,30 @@ greeting.Length;
 
 					<div class="tab-content" id="tab-ec">
 						<div class="setup-step">
-							<h4>1. Install the .NET tool and npm packages</h4>
+							<h4>1. Install the .NET tool and npm package</h4>
 							<div class="setup-code">
-								<Code lang="bash" code={`dotnet tool install --global GloSharp.Cli
+								<Code lang="bash" code={`dotnet tool install --global GloSharp.Cli --prerelease
 npm install @glosharp/expressive-code`} />
 							</div>
 						</div>
 						<div class="setup-step">
-							<h4>2. Configure the Expressive Code plugin</h4>
+							<h4>2. Add the plugin in ec.config.mjs (next to astro.config.mjs)</h4>
 							<div class="setup-code">
-								<Code lang="js" code={`// astro.config.mjs
+								<Code lang="js" code={`// ec.config.mjs
+import { defineEcConfig } from '@astrojs/starlight/expressive-code'
 import { pluginGloSharp } from '@glosharp/expressive-code'
 
-export default defineConfig({
-  integrations: [starlight({
-    expressiveCode: {
-      plugins: [pluginGloSharp({
-        project: './samples/Samples.csproj'
-      })]
-    }
-  })]
+export default defineEcConfig({
+  plugins: [pluginGloSharp({
+    // Optional: resolve NuGet packages from a project
+    project: './samples/Samples.csproj',
+  })],
 })`} />
 							</div>
 						</div>
 						<div class="setup-step">
 							<h4>3. Every C# code block is enhanced automatically</h4>
-							<p class="setup-note">With auto-hover extraction, all C# blocks get rich tooltips without any markers. Add <code>// ^?</code> for persistent, always-visible hovers.</p>
+							<p class="setup-note">With auto-hover extraction, all C# blocks get rich tooltips without any markers. Add <code>// ^?</code> on its own line, under a token, for a persistent, always-visible hover.</p>
 						</div>
 					</div>
 
@@ -532,22 +557,25 @@ export default defineConfig({
 						<div class="setup-step">
 							<h4>1. Install the .NET tool</h4>
 							<div class="setup-code">
-								<Code lang="bash" code="dotnet tool install --global GloSharp.Cli" />
+								<Code lang="bash" code="dotnet tool install --global GloSharp.Cli --prerelease" />
 							</div>
 						</div>
 						<div class="setup-step">
 							<h4>2. Process a file</h4>
 							<div class="setup-code">
-								<Code lang="bash" code={`# Output JSON with type info, hovers, errors
+								<Code lang="bash" code={`# JSON with hovers, errors and completions
+glosharp process snippet.cs
+
+# Resolve NuGet packages from a project
 glosharp process snippet.cs --project ./My.csproj
 
-# Generate standalone HTML
-glosharp render snippet.cs --theme github-dark --standalone
+# A self-contained HTML page
+glosharp render snippet.cs --standalone --output snippet.html
 
-# Process from stdin
-echo 'var x = 42; // ^?' | glosharp process --stdin
+# From stdin (markers go on their own line)
+printf 'var x = 42;\\n//  ^?\\n' | glosharp process --stdin
 
-# Scaffold a config file
+# Scaffold a glosharp.config.json
 glosharp init`} />
 							</div>
 						</div>
@@ -557,21 +585,21 @@ glosharp init`} />
 						<div class="setup-step">
 							<h4>1. Add Glo# to your CI pipeline</h4>
 							<div class="setup-code">
-								<Code lang="bash" code="dotnet tool install --global GloSharp.Cli" />
+								<Code lang="bash" code="dotnet tool install --global GloSharp.Cli --prerelease" />
 							</div>
 						</div>
 						<div class="setup-step">
 							<h4>2. Verify all snippets compile</h4>
 							<div class="setup-code">
-								<Code lang="bash" code={`# Fail the build if any snippet has unexpected errors
-glosharp verify samples/ --project ./Samples.csproj
+								<Code lang="bash" code={`# Exit code 1 if any snippet has an unexpected error
+glosharp verify docs/snippets --project ./Samples.csproj
 
-# With caching for faster CI runs
-glosharp verify samples/ --cache-dir .glosharp-cache`} />
+# Errors are reported as path(line,col): error CODE: message
+# docs/snippets/intro.cs(3,9): error CS0029: Cannot implicitly convert type 'string' to 'int'`} />
 							</div>
 						</div>
 						<div class="setup-step">
-							<p class="setup-note">Use <code>// @errors: CS0029</code> to mark expected errors and <code>// @noErrors</code> to assert clean compilation. Unexpected errors will fail the build.</p>
+							<p class="setup-note">Declare intended errors with <code>// @errors: CS0029</code> on the line above them. <code>verify</code> fails on any other error, on errors in hidden (cut) code, and on an <code>@errors</code> expectation that doesn't happen. Leave <code>// @noErrors</code> off snippets you want checked: it suppresses errors.</p>
 						</div>
 					</div>
 				</div>
@@ -582,42 +610,43 @@ glosharp verify samples/ --cache-dir .glosharp-cache`} />
 		<section class="markers-ref">
 			<div class="container">
 				<h2 class="section-title">Marker reference</h2>
-				<p class="section-subtitle">The full set of markers you can use in your C# snippets.</p>
+				<p class="section-subtitle">The full set of markers you can use in your C# snippets. Marker lines are removed from the rendered code.</p>
 
 				<div class="markers-grid">
 					<div class="marker-group">
 						<h3>Query markers</h3>
-						<div class="marker"><code>// ^?</code> <span>Show type/hover info at this column</span></div>
-						<div class="marker"><code>// ^|</code> <span>Show IntelliSense completions at this column</span></div>
+						<div class="marker"><code>// ^?</code> <span>On its own line: pin the hover for the token above the caret</span></div>
+						<div class="marker"><code>// ^|</code> <span>On its own line: show completions at the caret position above</span></div>
 					</div>
 					<div class="marker-group">
 						<h3>Error handling</h3>
-						<div class="marker"><code>// @errors: CS1002</code> <span>Assert specific compiler errors are expected</span></div>
-						<div class="marker"><code>// @noErrors</code> <span>Assert the snippet compiles cleanly</span></div>
-						<div class="marker"><code>// @suppressErrors</code> <span>Suppress all or specific error codes</span></div>
+						<div class="marker"><code>// @errors: CS0029, CS1503</code> <span>Expect these errors on the next line; verification fails if one doesn't occur</span></div>
+						<div class="marker"><code>// @suppressErrors: CS0168</code> <span>Hide the listed diagnostics, or all of them with no list</span></div>
+						<div class="marker"><code>// @noErrors</code> <span>Suppress all errors (twoslash-compatible); turns verification off for the snippet</span></div>
 					</div>
 					<div class="marker-group">
 						<h3>Visual annotations</h3>
-						<div class="marker"><code>// @highlight</code> <span>Highlight this line (or a range)</span></div>
-						<div class="marker"><code>// @focus</code> <span>Focus on this line, dim others</span></div>
-						<div class="marker"><code>// @diff: +</code> <span>Mark as added line in a diff view</span></div>
-						<div class="marker"><code>// @diff: -</code> <span>Mark as removed line in a diff view</span></div>
+						<div class="marker"><code>// @highlight</code> <span>Highlight the next line; <code>@highlight: 2-4</code> highlights output lines 2&ndash;4</span></div>
+						<div class="marker"><code>// @focus</code> <span>Focus the next line (or <code>@focus: N-M</code>), dim others</span></div>
+						<div class="marker"><code>// @diff: +</code> <span>Mark the next line as added</span></div>
+						<div class="marker"><code>// @diff: -</code> <span>Mark the next line as removed</span></div>
+						<div class="marker"><code>// @log: text</code> <span>Callout on the line above; also <code>@warn</code>, <code>@error</code>, <code>@annotate</code></span></div>
 					</div>
 					<div class="marker-group">
 						<h3>Visibility</h3>
-						<div class="marker"><code>// ---cut---</code> <span>Hide everything above this line</span></div>
+						<div class="marker"><code>// ---cut---</code> <span>Hide everything above this line (still compiled)</span></div>
 						<div class="marker"><code>// ---cut-before---</code> <span>Same as ---cut--- (long form)</span></div>
 						<div class="marker"><code>// ---cut-after---</code> <span>Hide everything below this line</span></div>
 						<div class="marker"><code>// ---cut-start---</code> / <code>// ---cut-end---</code> <span>Hide a section of code</span></div>
 					</div>
 					<div class="marker-group">
 						<h3>Compiler control</h3>
-						<div class="marker"><code>// @nullable: enable</code> <span>Set nullable context</span></div>
-						<div class="marker"><code>// @langVersion: 12</code> <span>Set C# language version</span></div>
+						<div class="marker"><code>// @nullable: disable</code> <span>Nullable context: enable (default), disable, warnings, annotations</span></div>
+						<div class="marker"><code>// @langVersion: 12</code> <span>C# version: 7&ndash;13, latest (default), preview, default</span></div>
 					</div>
 					<div class="marker-group">
 						<h3>File-based app directives <span class="badge">.NET 10+</span></h3>
-						<div class="marker"><code>#:package Newtonsoft.Json</code> <span>Declare a NuGet package</span></div>
+						<div class="marker"><code>#:package Newtonsoft.Json@13.0.3</code> <span>Reference a NuGet package</span></div>
 						<div class="marker"><code>#:sdk Microsoft.NET.Sdk.Web</code> <span>Set the SDK type</span></div>
 						<div class="marker"><code>#:property Key=Value</code> <span>Set project properties</span></div>
 					</div>
@@ -632,7 +661,7 @@ glosharp verify samples/ --cache-dir .glosharp-cache`} />
 				<p>Glo# is open source and ready to use today.</p>
 				<div class="hero-actions">
 					<a href="https://github.com/slang25/glosharp" class="btn btn-primary">View on GitHub</a>
-					<a href="https://www.nuget.org/packages/glosharp" class="btn btn-secondary">NuGet package</a>
+					<a href="https://www.nuget.org/packages/GloSharp.Cli" class="btn btn-secondary">NuGet package</a>
 				</div>
 			</div>
 		</section>

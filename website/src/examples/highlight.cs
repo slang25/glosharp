@@ -1,4 +1,4 @@
-var config = LoadConfig();
-var conn = config.GetConnection();
+var settings = new Dictionary<string, string> { ["Env"] = "prod" };
+var env = settings["Env"];
 // @highlight
-var db = new DbContext(conn);
+Console.WriteLine($"Running in {env}");
