@@ -10,13 +10,19 @@ public record ClassifiedToken(int Start, int Length, string Kind, string Text);
 
 public class SyntaxClassifier
 {
+    // Composing the MEF host scans every default Roslyn assembly; it is immutable
+    // and thread-safe once built, so one instance serves every call.
+    private static readonly Lazy<MefHostServices> LazyHost =
+        new(() => MefHostServices.Create(MefHostServices.DefaultAssemblies));
+
+    internal static MefHostServices Host => LazyHost.Value;
+
     public static async Task<List<ClassifiedToken>> ClassifyAsync(
         string sourceCode,
         CSharpCompilation compilation,
         SyntaxTree tree)
     {
-        var host = MefHostServices.Create(MefHostServices.DefaultAssemblies);
-        using var workspace = new AdhocWorkspace(host);
+        using var workspace = new AdhocWorkspace(Host);
 
         var project = workspace.AddProject("GloSharpClassification", LanguageNames.CSharp);
         project = project
