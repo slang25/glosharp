@@ -1,6 +1,3 @@
-using System.Security.Cryptography;
-using System.Text;
-
 namespace GloSharp.Core;
 
 /// <summary>
@@ -26,7 +23,8 @@ internal sealed class FileBasedAppContextProvider(
 
         try
         {
-            var resolveFilePath = sourceFilePath ?? WriteDirectiveStub(directives);
+            // Snippets without a file (stdin) restore a stand-in holding just their directives
+            var resolveFilePath = sourceFilePath ?? FileBasedAppResolver.WriteDirectivesFile(directives.DirectiveLines);
             assets = FileBasedAppResolver.ResolveReferences(resolveFilePath, targetFramework, noRestore);
             tfm = targetFramework ?? tfmProperty ?? assets.TargetFramework;
             warnings.AddRange(assets.Warnings);
@@ -42,31 +40,5 @@ internal sealed class FileBasedAppContextProvider(
         }
 
         return new ResolvedAssets(assets, AssetsFilePath: null, tfm, directives.GetPackageReferences(), warnings);
-    }
-
-    /// <summary>
-    /// For snippets read from stdin, writes the directive lines to a stable temp file named by a
-    /// hash of the directive set. The SDK keys its file-based-app artifacts on the file path, so
-    /// identical directive sets reuse one restore instead of leaking a new artifacts directory
-    /// per snippet. Only the directives are written, so concurrent writers produce identical
-    /// content and the snippet's own (possibly intentionally broken) code never affects restore.
-    /// </summary>
-    private static string WriteDirectiveStub(FileDirectiveResult directives)
-    {
-        var content = string.Join('\n', directives.DirectiveLines) + "\n\nreturn;\n";
-        var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(content)))[..16].ToLowerInvariant();
-
-        var dir = Path.Combine(Path.GetTempPath(), "glosharp", "file-based-apps");
-        Directory.CreateDirectory(dir);
-        var path = Path.Combine(dir, $"glosharp-{hash}.cs");
-
-        if (!File.Exists(path) || File.ReadAllText(path) != content)
-        {
-            var temp = path + "." + Guid.NewGuid().ToString("N")[..8] + ".tmp";
-            File.WriteAllText(temp, content);
-            File.Move(temp, path, overwrite: true);
-        }
-
-        return path;
     }
 }
