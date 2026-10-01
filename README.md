@@ -12,7 +12,8 @@ your CI build instead of reaching readers.
 
 > **Status: preview.** Only prerelease packages are published, so install with
 > `--prerelease` (NuGet). Expect breaking changes between prereleases, and keep the CLI and the
-> npm packages on matching versions.
+> npm packages on matching versions (they're released together, and `@glosharp/core` warns when
+> the CLI it finds doesn't match).
 
 ## How it works
 

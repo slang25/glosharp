@@ -87,6 +87,12 @@ jobs:
           node-version: '24'
           cache: npm
 
+      # src/Directory.Build.props is the one version; the npm packages, their
+      # @glosharp/* pins, package-lock.json and @glosharp/core's expected CLI
+      # version must match it (`npm run version:set <v>` keeps them in step).
+      - name: Check versions are in step
+        run: node scripts/version.mjs check
+
       - name: Install glosharp CLI from source
         uses: ./.github/actions/glosharp-cli-from-source
 

@@ -15,7 +15,6 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>glosharp</ToolCommandName>
     <PackageId>GloSharp.Cli</PackageId>
-    <Version>0.1.0</Version>
     <Description>C# twoslash — compiler-driven type information for documentation</Description>
     <Authors>Stuart Lang</Authors>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

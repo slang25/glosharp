@@ -67,8 +67,10 @@ inputs:
     default: latest
   glosharp-version:
     description: >-
-      Version of the GloSharp.Cli dotnet tool to install. Empty means the newest
-      published version, including prereleases (only prereleases exist today).
+      Version of the GloSharp.Cli dotnet tool to install. Empty means the CLI
+      released together with the resolved package-version (the npm packages and
+      the CLI share one version), or the newest published prerelease if that
+      can't be resolved.
     required: false
     default: ''
   setup-dotnet:
@@ -96,9 +98,21 @@ runs:
       # Inputs reach bash through env, never through ${{ }} interpolation:
       # interpolation splices the value into the script source, so a value
       # containing $(...) or a quote runs as code.
+      id: cli
       env:
         GLOSHARP_VERSION: ${{ inputs.glosharp-version }}
+        GB_PACKAGE_VERSION: ${{ inputs.package-version }}
       run: |
+        # The @glosharp/* packages and GloSharp.Cli are released together at one
+        # version, so resolve the package version (a dist-tag or range) once and,
+        # unless told otherwise, install the CLI from the same release.
+        resolved=$(npm view "@glosharp/gitbook@$GB_PACKAGE_VERSION" version --json 2>/dev/null \
+          | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const v=[].concat(JSON.parse(s)).filter(x=>typeof x==="string");console.log(v.at(-1)??"")}catch{}})' \
+          || true)
+        if [ -n "$resolved" ]; then
+          echo "package-version=$resolved" >> "$GITHUB_OUTPUT"
+          if [ -z "$GLOSHARP_VERSION" ]; then GLOSHARP_VERSION="$resolved"; fi
+        fi
         if [ -n "$GLOSHARP_VERSION" ]; then
           dotnet tool install --global GloSharp.Cli --version "$GLOSHARP_VERSION"
         else
@@ -123,7 +137,7 @@ runs:
         GB_ALLOW_ERRORS: ${{ inputs.allow-errors }}
         GB_CHECK: ${{ inputs.check }}
         GB_PRUNE: ${{ inputs.prune }}
-        GB_PACKAGE_VERSION: ${{ inputs.package-version }}
+        GB_PACKAGE_VERSION: ${{ steps.cli.outputs.package-version || inputs.package-version }}
       run: |
         # $GB_PATHS and $GB_THEMES are intentionally unquoted — both are
         # space-separated lists and word splitting is the point. Expansion

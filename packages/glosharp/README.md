@@ -89,6 +89,18 @@ dotnet build src/GloSharp.Cli -c Release
 GLOSHARP_EXECUTABLE=$PWD/src/GloSharp.Cli/bin/Release/net8.0/GloSharp.Cli npm run build
 ```
 
+### Version check
+
+`@glosharp/core` and `GloSharp.Cli` are released together at the same version.
+`EXPECTED_CLI_VERSION` is the CLI version this package was released with. The
+first time the bridge uses a CLI it found (or one from `GLOSHARP_EXECUTABLE`), it
+runs `glosharp --version` in the background. If that CLI is from a different
+release line, the bridge emits one `GloSharpVersionWarning` saying which version
+to install. A different release line means a different `major.minor`, or a
+different prerelease id such as `alpha` or `beta`. The check is skipped for CLIs
+passed as the `executable` option, for `0.0.0-*` development builds, and when
+`GLOSHARP_SKIP_VERSION_CHECK=1` is set.
+
 ### Concurrency, timeouts and caching
 
 - Every CLI run is a full Roslyn compilation (about 100 MB). All instances in

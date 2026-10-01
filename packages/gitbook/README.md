@@ -94,9 +94,10 @@ With the composite action:
     path: glosharp-artifacts
 ```
 
-The action installs the CLI with `dotnet tool install --global GloSharp.Cli
---prerelease` (set `glosharp-version` to pin one) and runs `glosharp-gitbook
-build`. Inputs mirror the CLI options below (`allow-errors`, `complog-project`,
+The action resolves `package-version` (default `latest`) to an exact
+`@glosharp/gitbook` version and installs the `GloSharp.Cli` release with the same
+version, since the two are released together. Set `glosharp-version` to choose a
+different CLI. Then it runs `glosharp-gitbook build`. Inputs mirror the CLI options below (`allow-errors`, `complog-project`,
 `check`, `prune`, …).
 
 Or directly (while Glo# is pre-1.0, install the prerelease tags):

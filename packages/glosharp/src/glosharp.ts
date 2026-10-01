@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import { stat } from 'node:fs/promises'
 import path from 'node:path'
+import { checkCliVersion } from './compat.js'
 import { GloSharpCliError } from './errors.js'
 import { resolveExecutable } from './executable.js'
 import { globalLimiter, Limiter } from './limiter.js'
@@ -82,7 +83,9 @@ export function createGloSharp(options: GloSharpOptions = {}): GloSharpInstance 
   }
 
   async function run(args: string[], opts: GloSharpProcessOptions): Promise<string> {
-    const { command, prefix } = await resolveExecutable(options.executable)
+    const resolved = await resolveExecutable(options.executable)
+    void checkCliVersion(resolved) // once per executable, in the background; warns on a mismatch
+    const { command, prefix } = resolved
     const task = () =>
       globalLimiter.run(() =>
         runCli(command, [...prefix, ...args], {

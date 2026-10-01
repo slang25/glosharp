@@ -21,7 +21,7 @@
       "groupName": "TypeScript"
     },
     {
-      "description": "Our own packages are workspace links or set at publish time",
+      "description": "Our own packages are workspace links, versioned by scripts/version.mjs",
       "matchPackageNames": ["@glosharp/**", "GloSharp.Cli", "GloSharp.Core"],
       "enabled": false
     }

@@ -131,15 +131,116 @@ npm run render -w examples/standalone
 
 CI builds all of them and fails if the output contains no hovers.
 
-## CI and releases
+## CI
 
 - `.github/workflows/ci.yml` runs on every PR: .NET tests on Linux, Windows and macOS; package
   tests on Linux and Windows; snippet verification, website and example builds; the Playwright
-  suite.
+  suite. It also fails if the package versions drift from the release version (below).
 - The website deploys from `main` only after CI passes.
-- `Publish NuGet packages` and `Publish npm packages` are manual (`workflow_dispatch`). Both run CI
-  first. Leave `version` empty to publish the next `alpha.N`, or give the same explicit version to
-  both so the CLI and the npm packages match.
+
+## Releases
+
+Glo# ships six packages that release together, at one version: `GloSharp.Cli` and
+`GloSharp.Core` on NuGet, and `@glosharp/core`, `@glosharp/shiki`, `@glosharp/expressive-code`
+and `@glosharp/gitbook` on npm. The npm packages run the CLI and read its JSON, so they're only
+tested against the CLI from the same commit.
+
+### The version
+
+The version is set in one place, `<Version>` in [`src/Directory.Build.props`](src/Directory.Build.props).
+The two .NET projects (and `glosharp --version`) read it from there. Everything else is stamped from
+it by a script:
+
+```sh
+npm run version:set 0.1.0-alpha.3   # or 0.1.0, 0.2.0-beta.1, ...
+npm run version:check               # what CI runs
+```
+
+`version:set` writes the version to `src/Directory.Build.props`, the `version` of each
+`packages/*/package.json`, their exact `@glosharp/*` dependency pins, the matching
+`package-lock.json` entries, and `packages/glosharp/src/version.generated.ts`. That last file is
+the CLI version `@glosharp/core` expects. Don't edit any of these by hand; `version:check` (in CI)
+fails if they disagree.
+
+`@glosharp/core` runs `glosharp --version` once per process. If the CLI it finds is from a
+different release line, it prints one warning saying which CLI to install. A different release
+line means a different `major.minor`, or a different prerelease id (`alpha`, `beta`, `rc`).
+CLIs built from source in CI report `0.0.0-ci.*`, and those aren't checked.
+`GLOSHARP_SKIP_VERSION_CHECK=1` turns the check off.
+
+### Cutting a release
+
+Releases are cut by a tag. `.github/workflows/release.yml` runs when a `v*` tag is pushed:
+
+1. **Prepare.** Checks that the tag is exactly `v<Version>`, that all the versions agree, and that
+   the tagged commit is on `main`.
+2. **CI.** Runs the whole of `ci.yml`.
+3. **Pack.** Packs both nupkgs and installs the tool from them. It checks that `glosharp --version`
+   reports the release version and that a snippet compiles. Then it packs the four npm tarballs,
+   checks their versions and internal pins, installs all four into a scratch project and renders a
+   hover through `@glosharp/core`. These exact files become the release artifacts.
+4. **NuGet.** Pushes `GloSharp.Core` and then `GloSharp.Cli` (`--skip-duplicate`).
+5. **npm.** Publishes core, shiki, expressive-code and gitbook in that order, with
+   `--provenance`. Prereleases get a dist-tag named after their prerelease id (`0.2.0-beta.1` →
+   `beta`); stable versions get `latest`. Until a stable version exists, `latest` is moved to each
+   new prerelease too, so a bare `npm install @glosharp/shiki` doesn't stay on an old build.
+   Versions that are already published are skipped.
+6. **GitHub Release.** Creates the release with generated notes, marks it as a prerelease when it
+   is one, and attaches the nupkgs and tarballs.
+
+To cut a prerelease:
+
+```sh
+git switch main && git pull
+git switch -c release/0.1.0-alpha.3
+npm run version:set 0.1.0-alpha.3
+git commit -am "Release 0.1.0-alpha.3"
+# open a PR, let CI pass, merge it, then tag the merged commit on main:
+git switch main && git pull
+git tag v0.1.0-alpha.3
+git push origin v0.1.0-alpha.3
+```
+
+To promote to stable, do the same with the stable version: `npm run version:set 0.1.0`, merge,
+then tag `v0.1.0`. That publishes to npm's `latest` and creates a regular (non-prerelease) GitHub
+Release. Prerelease and stable builds are built separately; nothing gets re-tagged.
+
+**Dry run.** Run the `Release` workflow by hand (Actions → Release → Run workflow) from any
+branch. `dry-run` is ticked by default. It runs everything up to and including the pack and smoke
+tests, uploads the would-be artifacts, and publishes nothing. When run from a branch it is always a
+dry run.
+
+**A release that failed part-way.** Use "Re-run failed jobs" on the run, which reuses the packed
+artifacts. Every publish step skips what is already on the registry, so a re-run only finishes the
+release. If the run can't be re-run, dispatch `Release` on the tag (pick the tag under "Use
+workflow from") and untick `dry-run`. Never reuse a version that's already been published:
+registries don't allow a version to be replaced, so bump the version and cut a new tag.
+
+### Repository settings and secrets
+
+Set these up once, before the first release:
+
+- **Environment `release`** (Settings → Environments). Both publish jobs run in it. Add required
+  reviewers if releases should wait for approval, and limit it to `v*` tags.
+- **NuGet trusted publishing.** On nuget.org, add a trusted publishing policy for owner
+  `slang25`, repository `glosharp`, workflow file **`release.yml`**, environment `release`.
+  Policies are tied to a workflow file, so a policy for the old `publish-nuget.yml` no longer
+  matches. Then add the repository secret **`NUGET_USER`**: the nuget.org account name that owns
+  the policy. `NuGet/login` exchanges the job's OIDC token for a short-lived API key, so no
+  long-lived NuGet API key is stored.
+- **npm trusted publishing.** For each of the four packages on npmjs.com (Settings → Trusted
+  publishing → GitHub Actions), set organization/user `slang25`, repository `glosharp`, workflow
+  **`release.yml`** and environment `release`. `@glosharp/gitbook` has never been published, and
+  trusted publishing can only be configured for a package that already exists. For its first
+  publish, either publish it once by hand or set `NPM_TOKEN` (below). Trusted publishing needs
+  npm 11.5.1 or later; the workflow upgrades npm when it has to.
+- **`NPM_TOKEN`** (optional): a granular npm token with publish rights on the `@glosharp` scope.
+  It's used as a fallback for packages without trusted publishing, and for moving the `latest`
+  dist-tag while there's no stable release (dist-tag changes can't use trusted publishing). If it
+  isn't set, the release still succeeds and the run shows the `npm dist-tag add` commands to run by
+  hand. Remove it once trusted publishing is set up and a stable release exists.
+- The `GITHUB_TOKEN` creates the GitHub Release; the workflow requests `contents: write` for that
+  job only.
 
 ## OpenSpec workflow
 

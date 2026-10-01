@@ -315,3 +315,18 @@ The instance SHALL expose a `render()` method that invokes the CLI's `render` co
 #### Scenario: Reporting a compile failure
 - **WHEN** `meta.compileSucceeded` is false because of an unexpected error in visible code and one in cut code
 - **THEN** `unexpectedErrors(result)` returns both, and neither expected (`@errors`) diagnostics nor warnings
+
+### Requirement: CLI version compatibility check
+`@glosharp/core` SHALL export `EXPECTED_CLI_VERSION`, the GloSharp.Cli version it was released with, generated from the single release version in `src/Directory.Build.props`. The first time an instance runs a CLI that was discovered (PATH, `~/.dotnet/tools`, local tool) or taken from `GLOSHARP_EXECUTABLE`, the bridge SHALL run `<cli> --version` in the background and, when the reported version's release line (`major.minor`, plus the prerelease identifier for prereleases) differs from `EXPECTED_CLI_VERSION`'s, emit one `GloSharpVersionWarning` per distinct mismatch naming both versions and the `dotnet tool update` command that installs the expected one. The check SHALL NOT delay or fail CLI runs, and SHALL be skipped for executables passed through the `executable` option, for `0.0.0-*` development builds, for output it cannot parse, and when `GLOSHARP_SKIP_VERSION_CHECK` is set to a value other than `0`/`false`.
+
+#### Scenario: CLI from another release line
+- **WHEN** `@glosharp/core` 0.1.0-alpha.2 finds a global `glosharp` that reports `0.2.0-alpha.1+abc`
+- **THEN** a single warning names both versions and suggests `dotnet tool update --global GloSharp.Cli --version 0.1.0-alpha.2`, and every `process()` call still runs
+
+#### Scenario: Same release line
+- **WHEN** `@glosharp/core` 0.1.0-alpha.2 finds a CLI reporting `0.1.0-alpha.5`
+- **THEN** no warning is emitted
+
+#### Scenario: Explicit executable or development build
+- **WHEN** the CLI is passed as the `executable` option, or reports `0.0.0-ci.42.1`
+- **THEN** no warning is emitted
