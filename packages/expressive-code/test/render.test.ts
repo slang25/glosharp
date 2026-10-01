@@ -152,7 +152,7 @@ describe('error rendering', () => {
     const { ast } = await render('missingVar;')
     const link = select(ast, 'a.glosharp-error-code')
     expect(link).toHaveLength(1)
-    expect(link[0].properties.href).toBe('https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/cs0103')
+    expect(link[0].properties.href).toBe('https://msdn.microsoft.com/query/roslyn.query?appId=roslyn&k=k(CS0103)')
   })
 })
 

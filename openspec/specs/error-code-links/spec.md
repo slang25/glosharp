@@ -5,11 +5,11 @@ Link compiler error codes in rendered output to their documentation.
 
 ## Requirements
 ### Requirement: Clickable error codes linking to Microsoft docs
-When an error code matches the pattern `CS` followed by digits (e.g., `CS1002`, `CS0246`), renderers SHALL wrap the error code in an `<a>` element linking to `https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/{code}` where `{code}` is the lowercased error code (e.g., `cs1002`).
+When an error code matches the pattern `CS` followed by digits (e.g., `CS1002`, `CS0246`), renderers SHALL wrap the error code in an `<a>` element linking to Roslyn's help link `https://msdn.microsoft.com/query/roslyn.query?appId=roslyn&k=k({code})` (e.g., `k(CS1002)`), which Microsoft redirects to the page documenting that code wherever it lives (a fixed `compiler-messages/{code}` path 404s for codes documented under `misc/` or on grouped pages such as nullable-warnings).
 
 #### Scenario: CS error code rendered as link
 - **WHEN** a diagnostic with code `CS1002` is rendered
-- **THEN** the error code is wrapped in `<a href="https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/cs1002" target="_blank" rel="noopener">CS1002</a>`
+- **THEN** the error code is wrapped in `<a href="https://msdn.microsoft.com/query/roslyn.query?appId=roslyn&amp;k=k(CS1002)" target="_blank" rel="noopener">CS1002</a>`
 
 #### Scenario: Non-CS error code rendered as plain text
 - **WHEN** a diagnostic with code `CA1234` (analyzer code) is rendered

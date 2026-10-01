@@ -346,7 +346,7 @@ Highlight background, focus dimmed opacity, and diff colors SHALL be glosharp st
 - **THEN** highlighted lines use a dark-appropriate background color
 
 ### Requirement: Render clickable error codes in error messages
-Error messages SHALL render error codes matching `CS\d+` as `<a>` elements linking to `https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/{code}`. Links SHALL open in a new tab with `rel="noopener"`. Non-CS codes SHALL remain plain text.
+Error messages SHALL render error codes matching `CS\d+` as `<a>` elements linking to `https://msdn.microsoft.com/query/roslyn.query?appId=roslyn&k=k({code})`. Links SHALL open in a new tab with `rel="noopener"`. Non-CS codes SHALL remain plain text.
 
 #### Scenario: CS error code linked
 - **WHEN** an error message with code `CS1002` is rendered in the EC pipeline

@@ -101,7 +101,7 @@ The renderer SHALL render diagnostics as a layer independent of tokens and hover
 
 #### Scenario: Error code rendered as link
 - **WHEN** a diagnostic has code `CS0246`
-- **THEN** the error code in the message is an `<a>` linking to `https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/cs0246`
+- **THEN** the error code in the message is an `<a>` linking to `https://msdn.microsoft.com/query/roslyn.query?appId=roslyn&k=k(CS0246)`
 
 ### Requirement: Render persistent query results
 For each hover with `persistent: true` (a `^?` query), the renderer SHALL render an always-visible `<span class="glosharp-callout glosharp-static">` after the hover's line, indented to the hover's column (capped so the callout keeps at least 34 characters of width), containing a `glosharp-static-container` with the signature, overload count, and summary.

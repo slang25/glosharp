@@ -471,7 +471,10 @@ public class HtmlRenderer
             _sb.Append("<span class=\"glosharp-callout-text\">");
             if (CsCodeRegex.IsMatch(error.Code))
             {
-                var codeUrl = $"https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/{error.Code.ToLowerInvariant()}";
+                // Roslyn's own help link: Microsoft's F1 redirect finds the right page wherever
+                // the code is documented (compiler-messages/, misc/, grouped pages such as
+                // nullable-warnings), where a fixed path pattern 404s for many codes.
+                var codeUrl = $"https://msdn.microsoft.com/query/roslyn.query?appId=roslyn&k=k({error.Code.ToUpperInvariant()})";
                 _sb.Append($"<a class=\"glosharp-error-code\" href=\"{Encode(codeUrl)}\" target=\"_blank\" rel=\"noopener\">{Encode(error.Code)}</a>");
             }
             else

@@ -598,7 +598,8 @@ const CS_CODE_REGEX = /^CS\d+$/
 function buildErrorCodeNode(code: string): Element {
   if (CS_CODE_REGEX.test(code)) {
     return h('a.glosharp-error-code', {
-      href: `https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/${code.toLowerCase()}`,
+      // Roslyn's own help link; the F1 redirect finds the page wherever the code is documented
+      href: `https://msdn.microsoft.com/query/roslyn.query?appId=roslyn&k=k(${code.toUpperCase()})`,
       target: '_blank',
       rel: 'noopener',
     }, code)

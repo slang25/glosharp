@@ -451,7 +451,7 @@ public class HtmlRendererTests
         var tokens = CreateSimpleTokens("var x = 42;");
         var html = HtmlRenderer.Render(result, tokens, GloSharpTheme.GithubDark);
 
-        await Assert.That(html).Contains("<a class=\"glosharp-error-code\" href=\"https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/cs0246\"");
+        await Assert.That(html).Contains("<a class=\"glosharp-error-code\" href=\"https://msdn.microsoft.com/query/roslyn.query?appId=roslyn&amp;k=k(CS0246)\"");
         await Assert.That(html).Contains("target=\"_blank\"");
         await Assert.That(html).Contains("rel=\"noopener\"");
     }
