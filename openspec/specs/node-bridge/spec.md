@@ -5,11 +5,26 @@ The package SHALL export a `createGloSharp()` function that accepts configuratio
 
 #### Scenario: Create default instance
 - **WHEN** `createGloSharp()` is called with no options
-- **THEN** a glosharp instance is returned that auto-detects the `glosharp` CLI on PATH
+- **THEN** a glosharp instance is returned that auto-detects the CLI: `$GLOSHARP_EXECUTABLE`, then `glosharp` on PATH, then `~/.dotnet/tools/glosharp`, then a local dotnet tool (`dotnet glosharp`)
 
 #### Scenario: Custom executable path
 - **WHEN** `createGloSharp({ executable: '/path/to/glosharp' })` is called
 - **THEN** the instance uses the specified path to spawn the CLI
+
+#### Scenario: Executable as a .dll or argv prefix
+- **WHEN** `executable` is a path ending in `.dll`, or an array such as `['dotnet', 'GloSharp.Cli.dll']`
+- **THEN** the CLI is started as `dotnet <dll> …` (respectively the given command with the given leading arguments)
+
+### Requirement: Executable discovery is portable and memoised
+Discovery SHALL split PATH on the platform delimiter (`;` on Windows) and, on Windows, try PATHEXT extensions (`.exe`/`.com` only, since Node cannot spawn `.cmd`/`.bat` without a shell). A local tool SHALL be detected from a `dotnet tool list --local` row for package `glosharp.cli` or command `glosharp`, not from a substring match. The discovery outcome SHALL be memoised per process (keyed by the explicit executable, `GLOSHARP_EXECUTABLE`, PATH, platform and working directory), so `dotnet tool list` runs at most once rather than once per snippet.
+
+#### Scenario: Windows PATH
+- **WHEN** PATH is `C:\tools;"C:\Program Files\dotnet tools"` and `glosharp.exe` exists in the second directory
+- **THEN** discovery returns `C:\Program Files\dotnet tools\glosharp.exe`
+
+#### Scenario: Many snippets
+- **WHEN** 50 snippets are processed with a local-tool installation
+- **THEN** `dotnet tool list` runs once
 
 ### Requirement: Process method invokes CLI and returns typed result
 The `process()` method SHALL spawn the CLI as a child process, pass source code, and return a parsed `GloSharpResult` object matching the JSON output schema.
@@ -42,22 +57,66 @@ The package SHALL export TypeScript interfaces for `GloSharpResult`, `GloSharpHo
 - **THEN** TypeScript types the field as `string`
 
 ### Requirement: Cache results during build
-The instance SHALL cache results by source code hash to avoid re-processing identical snippets within a single build.
+The instance SHALL cache results keyed on everything that affects the output: the source code (or, for `file`, the resolved path, size and modification time), every CLI argument (framework, project, region, no-restore, cache dir, config, complog, complog project) and the working directory. The cache SHALL store the in-flight promise so concurrent identical calls share one CLI run, SHALL evict failed runs, and SHALL be bounded (LRU, `cacheSize`, default 1000).
 
 #### Scenario: Duplicate snippet skips CLI
-- **WHEN** `process()` is called twice with identical source code
+- **WHEN** `process()` is called twice with identical source code and options
 - **THEN** the second call returns the cached result without spawning the CLI
 
+#### Scenario: Same code, different options
+- **WHEN** `process({ code })` is followed by `process({ code, framework: 'net10.0' })` or `process({ code, project: './B.csproj' })`
+- **THEN** each call runs the CLI and returns its own result
+
+#### Scenario: File changed on disk
+- **WHEN** `process({ file })` is called, the file is edited, and `process({ file })` is called again
+- **THEN** the second call runs the CLI again
+
 ### Requirement: Error handling for CLI failures
-The package SHALL throw a typed error when the CLI is not found, exits with non-zero, or produces invalid JSON.
+The package SHALL throw a `GloSharpCliError` (with `kind`: `not-found`, `spawn`, `exit`, `timeout`, `aborted` or `invalid-output`, plus `exitCode`, `stderr` and a snippet excerpt where available) when the CLI is not found, cannot start, exits with non-zero, times out, is aborted, or produces invalid JSON. Compile errors in a snippet are not exceptions.
 
 #### Scenario: CLI not found
 - **WHEN** the `glosharp` CLI is not on PATH and no custom path is configured
-- **THEN** `process()` throws an error indicating the CLI was not found with installation instructions
+- **THEN** `process()` throws an error indicating the CLI was not found with installation instructions (global and local tool, `--prerelease`, and the `executable` / `GLOSHARP_EXECUTABLE` overrides)
 
 #### Scenario: CLI exits with error
 - **WHEN** the CLI exits with non-zero code
-- **THEN** `process()` throws an error containing stderr output
+- **THEN** `process()` throws an error containing the exit code, stderr output and the first line of the snippet
+
+#### Scenario: CLI exits before reading stdin
+- **WHEN** the CLI exits early while a large snippet is still being written to its stdin
+- **THEN** the resulting `EPIPE` is handled and `process()` rejects with the exit code and stderr; the host process does not crash
+
+### Requirement: Bounded concurrency
+CLI processes SHALL be limited process-wide (shared by every instance) to `$GLOSHARP_CONCURRENCY` or `max(1, min(cpus - 1, 8))` by default, adjustable with `configureGloSharp({ concurrency })`. An instance MAY add its own lower cap with the `concurrency` option.
+
+#### Scenario: Many snippets at once
+- **WHEN** 40 snippets are processed concurrently with a limit of 4
+- **THEN** at most 4 CLI processes run at any time
+
+### Requirement: Timeouts and cancellation
+Each CLI run SHALL be killed (the whole process tree on Windows) after `timeoutMs` (instance or per-call option, else `$GLOSHARP_TIMEOUT_MS`, else 180000; `0` disables) and the call SHALL reject with a `timeout` error naming the snippet. A per-call `signal` (AbortSignal) SHALL kill the run and reject with an `aborted` error. Running CLI processes SHALL be killed when the Node process exits.
+
+#### Scenario: Hung restore
+- **WHEN** the CLI does not finish within `timeoutMs`
+- **THEN** the child is killed and `process()` rejects with a message saying it timed out and how to raise the limit
+
+### Requirement: Output decoding
+CLI stdout SHALL be collected as bytes and decoded as UTF-8 once, so multi-byte characters split across chunks are preserved.
+
+#### Scenario: Non-ASCII output in small chunks
+- **WHEN** the CLI writes non-ASCII JSON in chunks that split multi-byte characters
+- **THEN** the parsed result contains no U+FFFD replacement characters
+
+### Requirement: Shared snippet key
+The package SHALL export `canonicalizeSnippet(code)` (CRLF → LF, leading/trailing blank space removed; also from the Node-free subpath `@glosharp/core/snippet`), `snippetKey(code, options?)` (SHA-256 hex of the canonical snippet, plus the result-affecting options `framework`, `project`, `region`, `noRestore`, `configFile`, `complog`, `complogProject` when any are set) and `hasGloSharpMarkers(code)`, so integrations key results identically on both sides of a lookup.
+
+#### Scenario: Pipelines disagree on the trailing newline
+- **WHEN** one side keys `"var x = 1;\n"` and the other looks up `"var x = 1;"` (or the CRLF form)
+- **THEN** both produce the same key
+
+#### Scenario: No options
+- **WHEN** `snippetKey(code)` is called without options
+- **THEN** it equals `sha256(canonicalizeSnippet(code))`, the GitBook artifact key
 
 ### Requirement: Project option in process call
 The `process()` method SHALL accept a `project` option in `GloSharpProcessOptions` and pass it as `--project <path>` to the CLI.
@@ -83,6 +142,10 @@ The `process()` method SHALL accept a `region` option in `GloSharpProcessOptions
 #### Scenario: Process with region
 - **WHEN** `glosharp.process({ file: 'src/Example.cs', region: 'getting-started' })` is called
 - **THEN** the CLI is spawned with `--region getting-started` argument
+
+#### Scenario: Region with inline code
+- **WHEN** `glosharp.process({ code, region: 'demo' })` is called
+- **THEN** the CLI is spawned with `--stdin --region demo` (region extraction is text-based)
 
 #### Scenario: Process without region
 - **WHEN** `glosharp.process({ file: 'src/Example.cs' })` is called without a `region` option
@@ -175,3 +238,14 @@ The package SHALL export a `GloSharpTag` interface with `name` (`'log' | 'warn' 
 #### Scenario: Type-safe tag line
 - **WHEN** a consumer accesses `result.tags[0].line`
 - **THEN** TypeScript types the field as `number`
+
+### Requirement: TypeScript types include diagnostics extensions
+`GloSharpResult` SHALL include `hiddenErrors: GloSharpError[]` (diagnostics in cut code), `GloSharpError` SHALL include optional `sourceLine` / `sourceCharacter` (0-based position in the original input), and `GloSharpMeta` SHALL include `warnings: string[]`. The bridge SHALL fill in `[]` for `hiddenErrors` and `meta.warnings` when an older CLI omits them. `GloSharpHover.docs` SHALL be optional (the JSON omits it when a symbol has no docs). The package SHALL export `unexpectedErrors(result)`, returning the errors that made `meta.compileSucceeded` false.
+
+#### Scenario: Older CLI output
+- **WHEN** the CLI output has no `hiddenErrors` or `meta.warnings`
+- **THEN** the result has both as empty arrays
+
+#### Scenario: Reporting a compile failure
+- **WHEN** `meta.compileSucceeded` is false because of an unexpected error in visible code and one in cut code
+- **THEN** `unexpectedErrors(result)` returns both, and neither expected (`@errors`) diagnostics nor warnings
