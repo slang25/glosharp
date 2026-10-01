@@ -128,7 +128,7 @@ public class HtmlRendererTests
         var html = HtmlRenderer.Render(result, tokens, GloSharpTheme.GithubDark);
 
         var hoverStart = html.IndexOf("<span class=\"glosharp-hover\"", StringComparison.Ordinal);
-        var popupStart = html.IndexOf("<div class=\"glosharp-popup\"", StringComparison.Ordinal);
+        var popupStart = html.IndexOf("<span class=\"glosharp-popup\"", StringComparison.Ordinal);
         var codeEnd = html.IndexOf("</code></pre>", StringComparison.Ordinal);
 
         await Assert.That(hoverStart).IsGreaterThan(-1);
@@ -380,7 +380,7 @@ public class HtmlRendererTests
         var html = HtmlRenderer.Render(result, tokens, GloSharpTheme.GithubLight);
 
         await Assert.That(html).Contains("data-theme=\"github-light\"");
-        await Assert.That(html).Contains($"background:{GloSharpTheme.GithubLight.Background}");
+        await Assert.That(html).Contains($"background: {GloSharpTheme.GithubLight.Background}");
     }
 
     [Test]
