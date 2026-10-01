@@ -133,8 +133,35 @@ internal static class CliApp
                 "5 reference rewriting failed, 6 invalid input data.",
     };
 
+    internal static readonly CommandSpec ServeSpec = new()
+    {
+        Name = "serve",
+        Synopsis = "[options]",
+        Summary = "Answer process/render requests as JSON lines on stdin/stdout (for build tools).",
+        Options =
+        [
+            new("--concurrency", "Requests processed at once (default: the number of CPUs)", "n"),
+        ],
+        Notes =
+            "A long-running worker that keeps the compiler, references and caches warm between\n" +
+            "snippets; @glosharp/core starts a few of these instead of one process per snippet.\n\n" +
+            "Protocol (one JSON object per line, UTF-8). The first line written is a handshake:\n" +
+            "  {\"type\":\"ready\",\"protocol\":" + ServeServer.ProtocolVersion + ",\"version\":\"<glosharp version>\",...}\n" +
+            "Requests:\n" +
+            "  {\"id\":1,\"command\":\"process\"|\"render\",\"code\":\"...\",\"options\":{...}}\n" +
+            "options take the CLI options in camelCase (file, framework, project, complog,\n" +
+            "complogProject, region, noRestore, cacheDir, config; render adds theme, standalone)\n" +
+            "plus cwd, the directory relative paths and config discovery start from. Responses,\n" +
+            "in completion order:\n" +
+            "  {\"id\":1,\"ok\":true,\"result\":<process JSON | render HTML string>}\n" +
+            "  {\"id\":1,\"ok\":false,\"error\":{\"kind\":\"usage\"|\"failure\"|\"protocol\",\"message\":\"...\",\n" +
+            "   \"exitCode\":2|1,\"stderr\":\"<what the one-shot command would have printed>\"}}\n" +
+            "Only protocol messages go to stdout; logs go to stderr. Exits 0 at end of input,\n" +
+            "after answering every request.",
+    };
+
     internal static readonly IReadOnlyList<CommandSpec> Commands =
-        [ProcessSpec, VerifySpec, RenderSpec, InitSpec, CompactComplogSpec];
+        [ProcessSpec, VerifySpec, RenderSpec, InitSpec, CompactComplogSpec, ServeSpec];
 
     // ---------------------------------------------------------------------------------
     // Entry point
@@ -198,6 +225,7 @@ internal static class CliApp
                 "verify" => await RunVerify(parsed, console),
                 "init" => RunInit(parsed.Has("--force"), console),
                 "compact-complog" => RunCompactComplog(parsed, console),
+                "serve" => await ServeServer.RunAsync(parsed, console),
                 _ => throw new UnreachableException(),
             };
         }
@@ -207,7 +235,7 @@ internal static class CliApp
         }
     }
 
-    private static int UsageError(CliConsole console, CommandSpec spec, string message)
+    internal static int UsageError(CliConsole console, CommandSpec spec, string message)
     {
         console.Error.WriteLine($"glosharp {spec.Name}: error: {message}");
         console.Error.WriteLine($"Usage: glosharp {spec.Name} {spec.Synopsis}");
@@ -416,10 +444,10 @@ internal static class CliApp
         return (await File.ReadAllTextAsync(filePath), filePath);
     }
 
-    private static string ConfigStartDirectory(string? filePath) =>
+    private static string ConfigStartDirectory(string? filePath, string? workingDirectory = null) =>
         filePath != null
             ? Path.GetDirectoryName(Path.GetFullPath(filePath))!
-            : Directory.GetCurrentDirectory();
+            : workingDirectory ?? Directory.GetCurrentDirectory();
 
     // ---------------------------------------------------------------------------------
     // Commands
@@ -429,12 +457,7 @@ internal static class CliApp
     {
         try
         {
-            var (source, filePath) = await ReadInputAsync(parsed, console);
-            var settings = await PrepareAsync(LoadCompileSettings(parsed, ConfigStartDirectory(filePath)), console);
-
-            var processor = new GloSharpProcessor();
-            var result = await processor.ProcessAsync(source, settings.ToProcessorOptions(filePath));
-
+            var result = await ProcessAsync(parsed, console, new GloSharpProcessor());
             console.Out.WriteLine(JsonOutput.Serialize(result));
             // Exit 0 when JSON was produced; meta.compileSucceeded carries the compile status.
             return ExitCodes.Success;
@@ -445,34 +468,59 @@ internal static class CliApp
         }
     }
 
+    /// <summary>
+    /// The work behind <c>glosharp process</c>, shared with <c>glosharp serve</c>: reads the input,
+    /// loads the config (discovered upwards from the input file's directory, else from
+    /// <paramref name="workingDirectory"/> or the current directory), restores a --project and
+    /// processes the snippet. Throws <see cref="UsageException"/> for usage errors and any other
+    /// exception for failures.
+    /// </summary>
+    internal static async Task<GloSharpResult> ProcessAsync(
+        ParsedCommand parsed, CliConsole console, GloSharpProcessor processor, string? workingDirectory = null)
+    {
+        var (source, filePath) = await ReadInputAsync(parsed, console);
+        var settings = await PrepareAsync(
+            LoadCompileSettings(parsed, ConfigStartDirectory(filePath, workingDirectory)), console);
+        return await processor.ProcessAsync(source, settings.ToProcessorOptions(filePath));
+    }
+
+    /// <summary>
+    /// The work behind <c>glosharp render</c> (all but --output), shared with <c>glosharp serve</c>.
+    /// See <see cref="ProcessAsync"/>.
+    /// </summary>
+    internal static async Task<string> RenderAsync(
+        ParsedCommand parsed, CliConsole console, GloSharpProcessor processor, string? workingDirectory = null)
+    {
+        var (source, filePath) = await ReadInputAsync(parsed, console);
+        var settings = LoadCompileSettings(parsed, ConfigStartDirectory(filePath, workingDirectory));
+
+        var themeName = parsed.Get("--theme") ?? settings.Config?.Render?.Theme ?? "github-dark";
+        var theme = GloSharpTheme.GetBuiltIn(themeName)
+            ?? throw new UsageException(
+                $"unknown theme '{themeName}'. Valid themes: {string.Join(", ", GloSharpTheme.BuiltInNames)}");
+        var standalone = parsed.Has("--standalone") || settings.Config?.Render?.Standalone == true;
+
+        settings = await PrepareAsync(settings, console);
+        var processResult = await processor.ProcessWithContextAsync(source, settings.ToProcessorOptions(filePath));
+
+        // Classify tokens for syntax highlighting
+        var tokens = await SyntaxClassifier.ClassifyAsync(
+            processResult.Result.Code,
+            processResult.Compilation,
+            processResult.SyntaxTree);
+
+        return HtmlRenderer.Render(processResult.Result, tokens, theme, new HtmlRenderOptions
+        {
+            Standalone = standalone,
+        });
+    }
+
     private static async Task<int> RunRender(ParsedCommand parsed, CliConsole console)
     {
         try
         {
-            var (source, filePath) = await ReadInputAsync(parsed, console);
-            var settings = LoadCompileSettings(parsed, ConfigStartDirectory(filePath));
-
-            var themeName = parsed.Get("--theme") ?? settings.Config?.Render?.Theme ?? "github-dark";
-            var theme = GloSharpTheme.GetBuiltIn(themeName)
-                ?? throw new UsageException(
-                    $"unknown theme '{themeName}'. Valid themes: {string.Join(", ", GloSharpTheme.BuiltInNames)}");
-            var standalone = parsed.Has("--standalone") || settings.Config?.Render?.Standalone == true;
+            var html = await RenderAsync(parsed, console, new GloSharpProcessor());
             var outputPath = parsed.Get("--output");
-
-            settings = await PrepareAsync(settings, console);
-            var processor = new GloSharpProcessor();
-            var processResult = await processor.ProcessWithContextAsync(source, settings.ToProcessorOptions(filePath));
-
-            // Classify tokens for syntax highlighting
-            var tokens = await SyntaxClassifier.ClassifyAsync(
-                processResult.Result.Code,
-                processResult.Compilation,
-                processResult.SyntaxTree);
-
-            var html = HtmlRenderer.Render(processResult.Result, tokens, theme, new HtmlRenderOptions
-            {
-                Standalone = standalone,
-            });
 
             if (outputPath != null)
             {
@@ -500,7 +548,7 @@ internal static class CliApp
             : settings with { Project = await PrepareProjectAsync(settings.Project, settings.NoRestore, console) };
     }
 
-    private static int Fail(CliConsole console, string command, Exception ex)
+    internal static int Fail(CliConsole console, string command, Exception ex)
     {
         console.Error.WriteLine($"glosharp {command}: error: {ex.Message}");
         return ExitCodes.Failure;
