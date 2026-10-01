@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -7,6 +7,13 @@
     <PackageId>GloSharp.Core</PackageId>
     <Version>0.1.0</Version>
     <Description>Core library for GloSharp — compiler-driven type information for C# documentation</Description>
+    <Authors>Stuart Lang</Authors>
+    <PackageProjectUrl>https://github.com/slang25/glosharp</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/slang25/glosharp</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>roslyn;csharp;twoslash;documentation;hover</PackageTags>
+    <!-- Roslyn ships ~13 locales of resources; glosharp output is English-only. -->
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
   </PropertyGroup>
 
   <ItemGroup>
@@ -18,8 +25,14 @@
     <PackageReference Include="JetBrains.Refasmer" Version="2.0.3" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.6.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" Version="5.6.0" />
-    <PackageReference Include="Microsoft.CodeAnalysis.VisualBasic" Version="5.6.0" />
-    <PackageReference Include="Microsoft.CodeAnalysis.VisualBasic.Workspaces" Version="5.6.0" />
+    <!--
+      Basic.CompilerLog.Util depends on the Microsoft.CodeAnalysis 4.8.0 metapackage, which pins
+      CSharp/VisualBasic.Workspaces to exactly 4.8.0 and clashes with the 5.6.0 we use (NU1608).
+      Referencing the metapackage at our Roslyn version lifts the whole family to 5.6.0. The
+      VisualBasic assemblies stay in the closure because Basic.CompilerLog.Util references them
+      (it reads VB compilations too); glosharp itself has no direct VB dependency.
+    -->
+    <PackageReference Include="Microsoft.CodeAnalysis" Version="5.6.0" />
     <PackageReference Include="ZstdSharp.Port" Version="0.8.8" />
   </ItemGroup>
 

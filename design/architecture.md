@@ -77,8 +77,8 @@ glosharp process src/Example.cs --project src/Example.csproj
 # Verify all snippets compile (CI mode)
 glosharp verify samples/
 
-# Output JSON to stdout
-glosharp process src/Example.cs --format json
+# Output JSON to stdout (the only output format)
+glosharp process src/Example.cs
 ```
 
 **Responsibilities**:

@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <ProjectReference Include="..\GloSharp.Core\GloSharp.Core.csproj" />
@@ -7,6 +7,9 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
+    <!-- Run on whatever runtime the machine has (.NET 8, 9, 10, 11, …); CI images often
+         carry only the SDK they build with. -->
+    <RollForward>Major</RollForward>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <PackAsTool>true</PackAsTool>
@@ -14,6 +17,19 @@
     <PackageId>GloSharp.Cli</PackageId>
     <Version>0.1.0</Version>
     <Description>C# twoslash — compiler-driven type information for documentation</Description>
+    <Authors>Stuart Lang</Authors>
+    <PackageProjectUrl>https://github.com/slang25/glosharp</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/slang25/glosharp</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>roslyn;csharp;twoslash;documentation;dotnet-tool</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <!-- Roslyn ships ~13 locales of resources (~15 MB); glosharp output is English-only. -->
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+    <InternalsVisibleTo Include="GloSharp.Tests" />
+  </ItemGroup>
 
 </Project>

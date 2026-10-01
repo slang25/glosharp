@@ -9,14 +9,19 @@
     <IsTestProject>true</IsTestProject>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <!-- Run on whichever runtime the machine has, like the CLI itself. -->
+    <RollForward>Major</RollForward>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="TUnit" Version="*" />
+    <!-- Pinned (not floating) so builds are reproducible; Renovate bumps it. -->
+    <PackageReference Include="TUnit" Version="1.72.10" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\GloSharp.Core\GloSharp.Core.csproj" />
+    <ProjectReference Include="..\..\src\GloSharp.Cli\GloSharp.Cli.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -24,5 +29,27 @@
     <EmbeddedResource Remove="fixtures\**" />
     <None Remove="fixtures\**" />
   </ItemGroup>
+
+  <!--
+    Tests resolve NuGet types through fixtures/sample-project, which must be restored first.
+    Restore it as part of building the tests (only when its assets file is missing or older
+    than the project file), so a plain `dotnet run - -project tests/GloSharp.Tests` works.
+  -->
+  <PropertyGroup>
+    <SampleProjectFile>$(MSBuildThisFileDirectory)fixtures/sample-project/SampleProject.csproj</SampleProjectFile>
+    <SampleProjectAssets>$(MSBuildThisFileDirectory)fixtures/sample-project/obj/project.assets.json</SampleProjectAssets>
+  </PropertyGroup>
+
+  <Target Name="RestoreSampleProjectFixture"
+          BeforeTargets="Build"
+          Inputs="$(SampleProjectFile)"
+          Outputs="$(SampleProjectAssets)"
+          Condition="'$(DesignTimeBuild)' != 'true'">
+    <PropertyGroup>
+      <_GloSharpDotnet>dotnet</_GloSharpDotnet>
+      <_GloSharpDotnet Condition="'$(DOTNET_HOST_PATH)' != ''">$(DOTNET_HOST_PATH)</_GloSharpDotnet>
+    </PropertyGroup>
+    <Exec Command="&quot;$(_GloSharpDotnet)&quot; restore &quot;$(SampleProjectFile)&quot; -nologo -v:q" />
+  </Target>
 
 </Project>
