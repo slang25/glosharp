@@ -1,506 +1,274 @@
-import { createGloSharp, type GloSharpOptions, type GloSharpResult, type GloSharpHover, type GloSharpError, type GloSharpDisplayPart, type GloSharpCompletion, type GloSharpDocComment, type GloSharpDocParam, type GloSharpDocException, type GloSharpHighlight, type GloSharpTag, type GloSharpTypeAnnotation } from '@glosharp/core'
-import type { ExpressiveCodeBlock } from '@expressive-code/core'
+import { relative, isAbsolute } from 'node:path'
+import { createGloSharp, type GloSharpOptions, type GloSharpResult, type GloSharpHover, type GloSharpError, type GloSharpDisplayPart, type GloSharpCompletion, type GloSharpDocComment, type GloSharpDocParam, type GloSharpDocException, type GloSharpTag, type GloSharpTypeAnnotation } from '@glosharp/core'
+import {
+  definePlugin,
+  ExpressiveCodeAnnotation,
+  type AnnotationRenderOptions,
+  type ExpressiveCodeBlock,
+  type ExpressiveCodeLine,
+  type ExpressiveCodePlugin,
+} from '@expressive-code/core'
+import { h, s, addClassName, type Element, type ElementContent, type Parents } from '@expressive-code/core/hast'
+import { buildBaseStyles, glosharpStyleSettings } from './styles.js'
+import { buildPopupJsModule } from './client.js'
+import { alignLines, syncLines } from './line-sync.js'
+
+export type { GloSharpStyleSettings } from './styles.js'
 
 export interface PluginGloSharpOptions extends GloSharpOptions {
+  /** Path to a `.csproj` whose references (NuGet packages, project references) are used to compile every block. */
   project?: string
+  /**
+   * Name of a `#region` to display; everything outside it is compiled but hidden.
+   * A block can override this with a `region="name"` meta option.
+   */
   region?: string
+  /**
+   * When `true`, only code blocks whose meta contains `glosharp` are processed.
+   * When `false` (default), every `csharp` / `cs` / `c#` block is processed unless
+   * its meta contains `no-glosharp` (or `glosharp=false`).
+   */
+  explicitTrigger?: boolean
+  /**
+   * What to do when the glosharp CLI cannot process a block at all (CLI not
+   * installed, crashed, timed out, invalid configuration, unknown region…).
+   * - `'throw'` (default): fail the build with the CLI's error and install hints.
+   * - `'warn'`: log a warning and render the block as plain code (markers are left in place).
+   */
+  onCliError?: 'throw' | 'warn'
+  /**
+   * Unexpected compile errors (errors not declared with `// @errors:`, errors in
+   * hidden/cut code, and `@errors` expectations that never matched) are always
+   * rendered and logged as warnings with the document path and block. Set this
+   * to `true` to fail the build instead (recommended in CI).
+   * @default false
+   */
+  failOnErrors?: boolean
 }
 
-// Style settings for theme-aware colors
-const styleSettings = {
-  popupBackground: { dark: '#1e1e1e', light: '#f3f3f3' },
-  popupForeground: { dark: '#d4d4d4', light: '#1e1e1e' },
-  popupBorder: { dark: '#3c3c3c', light: '#c8c8c8' },
-  errorUnderline: { dark: '#f44747', light: '#e51400' },
-  errorBackground: { dark: 'rgba(244, 71, 71, 0.1)', light: 'rgba(229, 20, 0, 0.1)' },
-  warningUnderline: { dark: '#d29922', light: '#9a6700' },
-  warningBackground: { dark: 'rgba(210, 153, 34, 0.15)', light: 'rgba(154, 103, 0, 0.15)' },
-  infoUnderline: { dark: '#539bf5', light: '#0969da' },
-  infoBackground: { dark: 'rgba(83, 155, 245, 0.15)', light: 'rgba(9, 105, 218, 0.15)' },
-  highlightBackground: { dark: 'rgba(173, 124, 255, 0.15)', light: 'rgba(139, 90, 230, 0.12)' },
-  focusDimOpacity: { dark: '0.4', light: '0.4' },
-  diffAddBackground: { dark: 'rgba(46, 160, 67, 0.15)', light: 'rgba(46, 160, 67, 0.12)' },
-  diffRemoveBackground: { dark: 'rgba(248, 81, 73, 0.15)', light: 'rgba(248, 81, 73, 0.12)' },
-  diffAddBorder: { dark: '#2ea043', light: '#2ea043' },
-  diffRemoveBorder: { dark: '#f85149', light: '#f85149' },
-  tagLogBackground: { dark: 'rgba(83, 155, 245, 0.1)', light: 'rgba(9, 105, 218, 0.1)' },
-  tagLogBorder: { dark: '#539bf5', light: '#0969da' },
-  tagWarnBackground: { dark: 'rgba(210, 153, 34, 0.1)', light: 'rgba(154, 103, 0, 0.1)' },
-  tagWarnBorder: { dark: '#d29922', light: '#9a6700' },
-  tagErrorBackground: { dark: 'rgba(244, 71, 71, 0.1)', light: 'rgba(229, 20, 0, 0.1)' },
-  tagErrorBorder: { dark: '#f44747', light: '#e51400' },
-  tagAnnotateBackground: { dark: 'rgba(177, 128, 215, 0.1)', light: 'rgba(139, 90, 230, 0.1)' },
-  tagAnnotateBorder: { dark: '#b180d7', light: '#8b5ae6' },
+// Fields added to the CLI's JSON after the core package's types were written.
+// Optional so older CLIs keep working.
+type GloSharpErrorWithSource = GloSharpError & { sourceLine?: number; sourceCharacter?: number }
+type ProcessResult = GloSharpResult & {
+  errors: GloSharpErrorWithSource[]
+  hiddenErrors?: GloSharpErrorWithSource[]
+  meta: GloSharpResult['meta'] & { warnings?: string[] }
 }
 
-// Part kind colors (VS Code-like)
-const partColors: Record<string, { dark: string; light: string }> = {
-  keyword: { dark: '#569cd6', light: '#0000ff' },
-  className: { dark: '#4ec9b0', light: '#267f99' },
-  structName: { dark: '#4ec9b0', light: '#267f99' },
-  interfaceName: { dark: '#b8d7a3', light: '#267f99' },
-  enumName: { dark: '#b8d7a3', light: '#267f99' },
-  delegateName: { dark: '#4ec9b0', light: '#267f99' },
-  typeParameterName: { dark: '#b8d7a3', light: '#267f99' },
-  methodName: { dark: '#dcdcaa', light: '#795e26' },
-  propertyName: { dark: '#9cdcfe', light: '#001080' },
-  fieldName: { dark: '#9cdcfe', light: '#001080' },
-  eventName: { dark: '#9cdcfe', light: '#001080' },
-  localName: { dark: '#9cdcfe', light: '#001080' },
-  parameterName: { dark: '#9cdcfe', light: '#001080' },
-  namespaceName: { dark: '#d4d4d4', light: '#1e1e1e' },
-  punctuation: { dark: '#d4d4d4', light: '#1e1e1e' },
-  operator: { dark: '#d4d4d4', light: '#1e1e1e' },
-  text: { dark: '#d4d4d4', light: '#1e1e1e' },
+type Logger = { warn(message: string): void }
+
+const CSHARP_LANGUAGES = new Set(['csharp', 'cs', 'c#'])
+
+const INSTALL_HINT = `
+To install the glosharp CLI (requires the .NET 8+ SDK):
+  dotnet tool install --global GloSharp.Cli          (add --prerelease for preview builds)
+or as a local tool, from the directory you run the build in:
+  dotnet new tool-manifest && dotnet tool install GloSharp.Cli
+or point the plugin at a binary: pluginGloSharp({ executable: '/path/to/glosharp' })`
+
+/** Whether glosharp should process this block (language + meta opt-in/opt-out). */
+export function shouldProcessBlock(
+  codeBlock: Pick<ExpressiveCodeBlock, 'language' | 'metaOptions'>,
+  explicitTrigger = false,
+): boolean {
+  if (!CSHARP_LANGUAGES.has(codeBlock.language)) return false
+  if (codeBlock.metaOptions.getBoolean('no-glosharp') === true) return false
+  const flag = codeBlock.metaOptions.getBoolean('glosharp')
+  if (flag === false) return false
+  return explicitTrigger ? flag === true : true
 }
 
-function buildBaseStyles(): string {
-  const partColorRules = Object.entries(partColors)
-    .map(([kind, colors]) =>
-      `.glosharp-${kind} { color: var(--glosharp-${kind}-dark, ${colors.dark}); }
-[data-theme="light"] .glosharp-${kind} { color: var(--glosharp-${kind}-light, ${colors.light}); }`
+function describeBlock(codeBlock: ExpressiveCodeBlock, originalCode: string): string {
+  const doc = codeBlock.parentDocument
+  let file = '<unknown document>'
+  if (doc?.sourceFilePath) {
+    const rel = relative(process.cwd(), doc.sourceFilePath)
+    file = rel && !rel.startsWith('..') && !isAbsolute(rel) ? rel : doc.sourceFilePath
+  }
+  const pos = doc?.positionInDocument
+  const block = pos ? `code block ${pos.groupIndex + 1}${pos.totalGroups ? ` of ${pos.totalGroups}` : ''}` : 'code block'
+  const firstLine = originalCode.split('\n').map(l => l.trim()).find(l => l.length > 0) ?? ''
+  const snippet = firstLine.length > 60 ? firstLine.slice(0, 57) + '...' : firstLine
+  return `${file}, ${block} (starting "${snippet}")`
+}
+
+export function pluginGloSharp(options: PluginGloSharpOptions = {}): ExpressiveCodePlugin {
+  const { project, region, explicitTrigger = false, onCliError = 'throw', failOnErrors = false, ...glosharpOptions } = options
+  const glosharp = createGloSharp(glosharpOptions)
+  const resultCache = new WeakMap<ExpressiveCodeBlock, ProcessResult>()
+  const reportedCliErrors = new Set<string>()
+
+  function handleCliError(err: unknown, where: string, logger: Logger): void {
+    const detail = (err instanceof Error ? err.message : String(err)).trim()
+    const needsInstallHint = /glosharp not found|ENOENT|EACCES|failed to spawn/i.test(detail) && !/dotnet tool install/.test(detail)
+    const message = `glosharp: could not process ${where}:\n${detail}${needsInstallHint ? INSTALL_HINT : ''}`
+    if (onCliError === 'warn') {
+      if (reportedCliErrors.has(detail)) {
+        logger.warn(`glosharp: skipped ${where} (same CLI error as above)`)
+      } else {
+        reportedCliErrors.add(detail)
+        logger.warn(`${message}\nThe block is rendered without type information.`)
+      }
+      return
+    }
+    throw new Error(
+      `${message}\n(To render such blocks without type information instead of failing the build, ` +
+      `set onCliError: 'warn' in pluginGloSharp() options.)`,
+      { cause: err },
     )
-    .join('\n')
-
-  return `
-/* Ensure EC root is positioned for absolute popup placement */
-.expressive-code {
-  position: relative;
-}
-
-/* Hoverable tokens */
-.glosharp-hover {
-  position: relative;
-  border-bottom: 1px dashed transparent;
-  transition-timing-function: ease;
-  transition: border-color 0.3s, background-color 0.15s, border-radius 0.15s;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .glosharp-hover, .glosharp-noline { transition: none !important; }
-}
-
-/* Container hover: subtle underline on all hoverable tokens */
-.expressive-code:hover .glosharp-hover:not(.glosharp-hover:hover) {
-  border-color: color-mix(in srgb, currentColor 40%, transparent);
-}
-
-/* Stronger underline + subtle background on direct token hover */
-.expressive-code:hover .glosharp-hover:hover {
-  border-bottom-color: currentColor;
-  background: rgba(139, 92, 246, 0.08);
-  border-radius: 2px;
-}
-
-@keyframes glosharpPopupFadeIn {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* Popup container (shared by hover popups and static queries) */
-.glosharp-popup-container {
-  position: absolute;
-  z-index: 999 !important;
-  border: 1px solid var(--glosharp-popup-border, ${styleSettings.popupBorder.dark});
-  border-radius: 4px;
-  background: var(--glosharp-popup-bg, ${styleSettings.popupBackground.dark});
-  color: var(--glosharp-popup-fg, ${styleSettings.popupForeground.dark});
-  font-size: 90%;
-  white-space: nowrap !important;
-  word-break: normal !important;
-  overflow-wrap: normal !important;
-  width: max-content !important;
-  /* Never exceed the viewport: signature and docs sections wrap when constrained */
-  max-width: min(560px, calc(100vw - 24px));
-  margin-top: 0.5rem;
-  animation: glosharpPopupFadeIn 0.12s ease-out;
-}
-
-/* Arrow caret on hover popup */
-.glosharp-popup-container::before {
-  content: '';
-  position: absolute;
-  top: -5px;
-  left: 3px;
-  width: 8px;
-  height: 8px;
-  background: var(--glosharp-popup-bg, ${styleSettings.popupBackground.dark});
-  border-top: 1px solid var(--glosharp-popup-border, ${styleSettings.popupBorder.dark});
-  border-right: 1px solid var(--glosharp-popup-border, ${styleSettings.popupBorder.dark});
-  transform: rotate(-45deg);
-  pointer-events: none;
-  display: inline-block;
-}
-
-/* Hover popup: hidden by default, JS controls visibility */
-/* !important needed to override EC's all:revert reset */
-.glosharp-hover > .glosharp-popup-container {
-  display: none !important;
-  left: 0;
-  top: calc(100% + 8px);
-}
-
-/* Static query container (persistent ^? results between lines) */
-.glosharp-noline {
-  position: relative;
-  display: block;
-}
-
-.glosharp-static {
-  display: block !important;
-  position: relative;
-  padding-left: var(--ec-codePadInl, 1.35rem);
-}
-
-.glosharp-static-container {
-  display: block !important;
-  z-index: 10;
-  border: 1px solid var(--glosharp-popup-border, ${styleSettings.popupBorder.dark});
-  border-radius: 4px;
-  background: var(--glosharp-popup-bg, ${styleSettings.popupBackground.dark});
-  color: var(--glosharp-popup-fg, ${styleSettings.popupForeground.dark});
-  font-size: 90%;
-  white-space: nowrap !important;
-  word-break: normal !important;
-  overflow-wrap: normal !important;
-  width: max-content !important;
-}
-
-/* No arrow caret on static container — persistent query results render inline */
-.glosharp-static-container::before {
-  display: none !important;
-}
-
-.glosharp-popup-code {
-  display: block;
-  width: 100%;
-  max-width: 600px !important;
-  padding: 6px 12px;
-  font-family: inherit;
-  white-space: pre-wrap;
-  max-height: 200px;
-  overflow: auto;
-}
-
-.glosharp-popup-code,
-.glosharp-popup-code span {
-  white-space: preserve !important;
-}
-
-.glosharp-symbol-icon {
-  display: inline-flex;
-  align-items: center;
-  margin-right: 5px;
-  vertical-align: middle;
-  cursor: default;
-}
-.glosharp-symbol-icon svg {
-  display: block;
-}
-
-.glosharp-popup-types {
-  padding: 4px 12px 6px;
-  border-top: 1px solid var(--glosharp-popup-border, ${styleSettings.popupBorder.dark});
-  font-size: 0.9em;
-  opacity: 0.8;
-}
-
-.glosharp-popup-types-header {
-  font-style: italic;
-  margin-bottom: 2px;
-}
-
-.glosharp-type-annotation {
-  padding-left: 12px;
-}
-
-.glosharp-popup-docs {
-  max-width: 600px;
-  padding: 6px 12px;
-  border-top: 1px solid var(--glosharp-popup-border, ${styleSettings.popupBorder.dark});
-  max-height: 200px;
-  overflow: auto;
-  text-wrap: balance;
-}
-
-.glosharp-popup-summary {
-  font-style: italic;
-}
-
-.glosharp-popup-params,
-.glosharp-popup-returns,
-.glosharp-popup-remarks,
-.glosharp-popup-example,
-.glosharp-popup-exceptions {
-  margin-top: 4px;
-  padding-top: 4px;
-  border-top: 1px solid var(--glosharp-popup-border, ${styleSettings.popupBorder.dark});
-}
-
-.glosharp-popup-section-label {
-  font-size: 0.8em;
-  opacity: 0.7;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 2px;
-}
-
-.glosharp-popup-param {
-  display: flex;
-  gap: 6px;
-  margin: 1px 0;
-}
-
-.glosharp-popup-param-name {
-  font-family: inherit;
-  font-weight: bold;
-  white-space: nowrap;
-}
-
-.glosharp-popup-exception {
-  display: flex;
-  gap: 6px;
-  margin: 1px 0;
-}
-
-.glosharp-popup-exception-type {
-  font-family: inherit;
-  font-weight: bold;
-  white-space: nowrap;
-}
-
-.glosharp-popup-example pre {
-  margin: 2px 0;
-  padding: 4px 6px;
-  background: rgba(128, 128, 128, 0.1);
-  border-radius: 2px;
-  font-size: 0.9em;
-}
-
-/* Static query: always visible, rendered below the line */
-.glosharp-static {
-  position: relative;
-  display: block;
-}
-
-.glosharp-static > .glosharp-popup-container {
-  position: relative;
-  display: block;
-  margin-top: 4px;
-}
-
-.glosharp-static > .glosharp-popup-container::before {
-  top: -5px;
-  left: 6px;
-}
-
-/* Error underlines */
-.glosharp-error-underline {
-  border-bottom: 2px wavy var(--glosharp-error-underline, ${styleSettings.errorUnderline.dark});
-}
-
-.glosharp-error-underline.glosharp-severity-warning {
-  border-bottom-color: var(--glosharp-warning-underline, ${styleSettings.warningUnderline.dark});
-}
-
-.glosharp-error-underline.glosharp-severity-info {
-  border-bottom-color: var(--glosharp-info-underline, ${styleSettings.infoUnderline.dark});
-}
-
-.glosharp-error-message {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 6px 10px;
-  margin-top: 2px;
-  border-radius: 4px;
-  font-size: 0.85em;
-  line-height: 1.4;
-  background: var(--glosharp-error-bg, ${styleSettings.errorBackground.dark});
-  border-left: 3px solid var(--glosharp-error-underline, ${styleSettings.errorUnderline.dark});
-  color: var(--glosharp-error-underline, ${styleSettings.errorUnderline.dark});
-}
-
-.glosharp-error-message.glosharp-severity-warning {
-  background: var(--glosharp-warning-bg, ${styleSettings.warningBackground.dark});
-  border-left-color: var(--glosharp-warning-underline, ${styleSettings.warningUnderline.dark});
-  color: var(--glosharp-warning-underline, ${styleSettings.warningUnderline.dark});
-}
-
-.glosharp-error-message.glosharp-severity-info {
-  background: var(--glosharp-info-bg, ${styleSettings.infoBackground.dark});
-  border-left-color: var(--glosharp-info-underline, ${styleSettings.infoUnderline.dark});
-  color: var(--glosharp-info-underline, ${styleSettings.infoUnderline.dark});
-}
-
-[data-theme="light"] .glosharp-error-message {
-  background: var(--glosharp-error-bg, ${styleSettings.errorBackground.light});
-  border-left-color: var(--glosharp-error-underline, ${styleSettings.errorUnderline.light});
-  color: var(--glosharp-error-underline, ${styleSettings.errorUnderline.light});
-}
-
-[data-theme="light"] .glosharp-error-message.glosharp-severity-warning {
-  background: var(--glosharp-warning-bg, ${styleSettings.warningBackground.light});
-  border-left-color: var(--glosharp-warning-underline, ${styleSettings.warningUnderline.light});
-  color: var(--glosharp-warning-underline, ${styleSettings.warningUnderline.light});
-}
-
-[data-theme="light"] .glosharp-error-message.glosharp-severity-info {
-  background: var(--glosharp-info-bg, ${styleSettings.infoBackground.light});
-  border-left-color: var(--glosharp-info-underline, ${styleSettings.infoUnderline.light});
-  color: var(--glosharp-info-underline, ${styleSettings.infoUnderline.light});
-}
-
-.glosharp-error-code {
-  font-weight: bold;
-}
-
-a.glosharp-error-code {
-  color: inherit;
-  text-decoration: none;
-}
-
-a.glosharp-error-code:hover {
-  text-decoration: underline;
-}
-
-/* Completion list */
-.glosharp-completion-list {
-  list-style: none;
-  margin: 4px 0 0 0;
-  padding: 4px 0;
-  border: 1px solid var(--glosharp-popup-border, ${styleSettings.popupBorder.dark});
-  border-radius: 4px;
-  background: var(--glosharp-popup-bg, ${styleSettings.popupBackground.dark});
-  font-size: 0.875em;
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.glosharp-completion-item {
-  display: flex;
-  gap: 8px;
-  padding: 2px 8px;
-  align-items: center;
-}
-
-.glosharp-completion-kind {
-  font-size: 0.75em;
-  opacity: 0.7;
-  min-width: 60px;
-}
-
-.glosharp-completion-label {
-  color: var(--glosharp-popup-fg, ${styleSettings.popupForeground.dark});
-}
-
-.glosharp-completion-detail {
-  opacity: 0.6;
-  font-size: 0.85em;
-  margin-left: auto;
-}
-
-/* Visual annotations */
-.glosharp-highlight {
-  background: var(--glosharp-highlight-bg, ${styleSettings.highlightBackground.dark});
-}
-
-.glosharp-focus-dim {
-  opacity: var(--glosharp-focus-dim-opacity, ${styleSettings.focusDimOpacity.dark});
-  transition: opacity 0.2s;
-}
-
-.glosharp-diff-add {
-  background: var(--glosharp-diff-add-bg, ${styleSettings.diffAddBackground.dark});
-  border-left: 3px solid var(--glosharp-diff-add-border, ${styleSettings.diffAddBorder.dark});
-}
-
-.glosharp-diff-remove {
-  background: var(--glosharp-diff-remove-bg, ${styleSettings.diffRemoveBackground.dark});
-  border-left: 3px solid var(--glosharp-diff-remove-border, ${styleSettings.diffRemoveBorder.dark});
-}
-
-/* Tag wrapper: transparent to layout so callouts align with code */
-.glosharp-tag-wrapper {
-  display: contents;
-}
-
-/* Custom tag callouts */
-.glosharp-tag {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 6px 10px;
-  margin-top: 2px;
-  border-radius: 4px;
-  font-size: 0.85em;
-  line-height: 1.4;
-}
-
-.glosharp-tag-icon {
-  flex-shrink: 0;
-  margin-top: 1px;
-}
-
-.glosharp-tag-icon svg {
-  display: block;
-}
-
-.glosharp-tag-title {
-  font-weight: bold;
-  margin-right: 4px;
-}
-
-.glosharp-tag-log {
-  background: var(--glosharp-tag-log-bg, ${styleSettings.tagLogBackground.dark});
-  border-left: 3px solid var(--glosharp-tag-log-border, ${styleSettings.tagLogBorder.dark});
-  color: var(--glosharp-tag-log-border, ${styleSettings.tagLogBorder.dark});
-}
-
-[data-theme="light"] .glosharp-tag-log {
-  background: var(--glosharp-tag-log-bg, ${styleSettings.tagLogBackground.light});
-  border-left: 3px solid var(--glosharp-tag-log-border, ${styleSettings.tagLogBorder.light});
-  color: var(--glosharp-tag-log-border, ${styleSettings.tagLogBorder.light});
-}
-
-.glosharp-tag-warn {
-  background: var(--glosharp-tag-warn-bg, ${styleSettings.tagWarnBackground.dark});
-  border-left: 3px solid var(--glosharp-tag-warn-border, ${styleSettings.tagWarnBorder.dark});
-  color: var(--glosharp-tag-warn-border, ${styleSettings.tagWarnBorder.dark});
-}
-
-[data-theme="light"] .glosharp-tag-warn {
-  background: var(--glosharp-tag-warn-bg, ${styleSettings.tagWarnBackground.light});
-  border-left: 3px solid var(--glosharp-tag-warn-border, ${styleSettings.tagWarnBorder.light});
-  color: var(--glosharp-tag-warn-border, ${styleSettings.tagWarnBorder.light});
-}
-
-.glosharp-tag-error {
-  background: var(--glosharp-tag-error-bg, ${styleSettings.tagErrorBackground.dark});
-  border-left: 3px solid var(--glosharp-tag-error-border, ${styleSettings.tagErrorBorder.dark});
-  color: var(--glosharp-tag-error-border, ${styleSettings.tagErrorBorder.dark});
-}
-
-[data-theme="light"] .glosharp-tag-error {
-  background: var(--glosharp-tag-error-bg, ${styleSettings.tagErrorBackground.light});
-  border-left: 3px solid var(--glosharp-tag-error-border, ${styleSettings.tagErrorBorder.light});
-  color: var(--glosharp-tag-error-border, ${styleSettings.tagErrorBorder.light});
-}
-
-.glosharp-tag-annotate {
-  background: var(--glosharp-tag-annotate-bg, ${styleSettings.tagAnnotateBackground.dark});
-  border-left: 3px solid var(--glosharp-tag-annotate-border, ${styleSettings.tagAnnotateBorder.dark});
-  color: var(--glosharp-tag-annotate-border, ${styleSettings.tagAnnotateBorder.dark});
-}
-
-[data-theme="light"] .glosharp-tag-annotate {
-  background: var(--glosharp-tag-annotate-bg, ${styleSettings.tagAnnotateBackground.light});
-  border-left: 3px solid var(--glosharp-tag-annotate-border, ${styleSettings.tagAnnotateBorder.light});
-  color: var(--glosharp-tag-annotate-border, ${styleSettings.tagAnnotateBorder.light});
-}
-
-${partColorRules}
-`
+  }
+
+  function reportDiagnostics(result: ProcessResult, where: string, sourceLineOf: (renderedLine: number) => number, logger: Logger): void {
+    for (const warning of result.meta.warnings ?? []) {
+      logger.warn(`glosharp: ${where}: ${warning}`)
+    }
+
+    const lineLabel = (e: GloSharpErrorWithSource, hidden: boolean) => {
+      const line = e.sourceLine ?? (hidden ? undefined : sourceLineOf(e.line))
+      return line != null && line >= 0 ? `line ${line + 1}` : 'unknown line'
+    }
+    const unexpected = result.errors.filter(e => !e.expected && e.severity === 'error')
+    const hidden = (result.hiddenErrors ?? []).filter(e => e.severity === 'error')
+    if (unexpected.length === 0 && hidden.length === 0) return
+
+    const details = [
+      ...unexpected.map(e => `  ${lineLabel(e, false)}: ${e.code}: ${e.message}`),
+      ...hidden.map(e => `  ${lineLabel(e, true)} (in hidden code, not shown on the page): ${e.code}: ${e.message}`),
+    ]
+    const count = details.length
+    const summary = `glosharp: ${where} has ${count} unexpected compile error${count === 1 ? '' : 's'}:\n${details.join('\n')}`
+    if (failOnErrors) {
+      throw new Error(`${summary}\n(failOnErrors is enabled. Declare intentional errors with "// @errors: <code>" ` +
+        `above the line, or add "no-glosharp" to the code fence to skip the block.)`)
+    }
+    logger.warn(`${summary}\n(Declare intentional errors with "// @errors: <code>", or add "no-glosharp" to the code fence ` +
+      `to skip illustrative fragments. Set failOnErrors: true to fail the build.)`)
+  }
+
+  return definePlugin({
+    name: 'glosharp',
+    styleSettings: glosharpStyleSettings,
+    baseStyles: (context) => buildBaseStyles(context),
+    jsModules: [buildPopupJsModule(buildSpriteSheetHtml())],
+
+    hooks: {
+      async preprocessCode({ codeBlock, config }) {
+        if (!shouldProcessBlock(codeBlock, explicitTrigger)) return
+
+        const logger: Logger = config?.logger ?? { warn: (m: string) => console.warn(m) }
+        const originalCode = codeBlock.code
+        const where = describeBlock(codeBlock, originalCode)
+        const blockRegion = codeBlock.metaOptions.getString('region') ?? region
+
+        let result: ProcessResult
+        try {
+          result = await glosharp.process({ code: originalCode, project, region: blockRegion }) as ProcessResult
+        } catch (err) {
+          handleCliError(err, where, logger)
+          return
+        }
+
+        // Replace the code with the cleaned version (markers, directives and
+        // cut sections removed), keeping surviving line objects intact.
+        const cleaned = result.code.replace(/\r?\n$/, '')
+        const newLines = cleaned === '' ? [] : cleaned.split('\n')
+        const originalLines = codeBlock.getLines().map(l => l.text)
+        const sourceIndexOf = alignLines(originalLines, newLines)
+        syncLines(codeBlock, newLines)
+        resultCache.set(codeBlock, result)
+
+        reportDiagnostics(result, where, (line) => sourceIndexOf[line] ?? -1, logger)
+      },
+
+      annotateCode({ codeBlock }) {
+        const result = resultCache.get(codeBlock)
+        if (!result) return
+        annotateBlock(codeBlock.getLines(), result)
+      },
+    },
+  })
+}
+
+function annotateBlock(lines: readonly ExpressiveCodeLine[], result: ProcessResult): void {
+  // Block content rendered after each line, collected into one wrapper per line
+  const lineAnnotations = new Map<number, GloSharpLineAnnotation>()
+  const lineAnnotation = (index: number) => {
+    let ann = lineAnnotations.get(index)
+    if (!ann) {
+      ann = new GloSharpLineAnnotation()
+      lineAnnotations.set(index, ann)
+    }
+    return ann
+  }
+
+  // Hover tokens, in document order; the first is the block's keyboard tab stop
+  const hovers = [...result.hovers].sort((a, b) => a.line - b.line || a.character - b.character)
+  let tabStopAssigned = false
+  for (const hover of hovers) {
+    if (!lines[hover.line]) continue
+    if (hover.persistent) {
+      // Persistent ^? query: always-visible block below the line
+      lineAnnotation(hover.line).statics.push(hover)
+    } else {
+      lines[hover.line].addAnnotation(new GloSharpHoverAnnotation(hover, !tabStopAssigned))
+      tabStopAssigned = true
+    }
+  }
+
+  // Errors: underline inline, message as a block after the (last) affected line
+  for (const error of result.errors) {
+    if (error.severity === 'hidden') continue
+    const endLine = error.endLine != null && error.endLine > error.line ? error.endLine : error.line
+    for (let lineIdx = error.line; lineIdx <= endLine; lineIdx++) {
+      const line = lines[lineIdx]
+      if (!line) continue
+      const isFirst = lineIdx === error.line
+      const isLast = lineIdx === endLine
+      // Continuation lines are underlined from their first non-blank character
+      let start = isFirst ? error.character : line.text.length - line.text.trimStart().length
+      let end = isFirst && isLast ? error.character + error.length
+        : isLast && error.endCharacter != null ? error.endCharacter
+        : line.text.length
+      start = Math.max(0, Math.min(start, line.text.length))
+      end = Math.max(start, Math.min(end, line.text.length))
+      if (end === start) {
+        // Zero-width diagnostic (e.g. "; expected"): underline the adjacent character
+        if (start < line.text.length) end = start + 1
+        else if (start > 0) start = start - 1
+        else continue
+      }
+      line.addAnnotation(new GloSharpErrorUnderlineAnnotation(error, start, end))
+    }
+    if (lines[endLine]) lineAnnotation(endLine).errors.push(error)
+  }
+
+  for (const completion of result.completions) {
+    if (!lines[completion.line]) continue
+    lineAnnotation(completion.line).completions.push(completion)
+  }
+
+  // Line highlights, diffs and focus: classes on the line itself
+  const focusedLines = new Set(result.highlights.filter(h => h.kind === 'focus').map(h => h.line))
+  for (const highlight of result.highlights) {
+    const line = lines[highlight.line]
+    if (!line) continue
+    if (highlight.kind === 'highlight') line.addAnnotation(new GloSharpLineClassAnnotation('glosharp-highlight'))
+    else if (highlight.kind === 'add' || highlight.kind === 'remove') line.addAnnotation(new GloSharpLineClassAnnotation(`glosharp-diff-${highlight.kind}`))
+  }
+  if (focusedLines.size > 0) {
+    lines.forEach((line, i) => {
+      if (!focusedLines.has(i)) line.addAnnotation(new GloSharpLineClassAnnotation('glosharp-focus-dim'))
+    })
+  }
+
+  for (const tag of result.tags ?? []) {
+    if (!lines[tag.line]) continue
+    lineAnnotation(tag.line).tags.push(tag)
+  }
+
+  for (const [index, ann] of lineAnnotations) {
+    lines[index].addAnnotation(ann)
+  }
 }
 
 // VS Code Codicon symbol icons (MIT licensed)
@@ -580,345 +348,20 @@ function buildSpriteSheetHtml(): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" style="display:none">${symbols}</svg>`
 }
 
-// Client-side JS for interactive hover popups
-function buildPopupJsModule(): string {
-  const spriteHtml = buildSpriteSheetHtml().replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/`/g, '\\`')
-  return `
-(function initGloSharpPopups() {
-  const TIMEOUT_MS = 100;
-  let activePopup = null;
-  let activeHover = null;
-  let activeEcRoot = null;
-  let activeScrollParent = null;
-  let hideTimeout = null;
 
-  // Find the nearest ancestor that scrolls (the EC <pre> scrolls horizontally).
-  function findScrollParent(el) {
-    let node = el.parentElement;
-    while (node && node !== document.body) {
-      const style = getComputedStyle(node);
-      if (/(auto|scroll|overlay)/.test(style.overflowX + ' ' + style.overflowY)) return node;
-      node = node.parentElement;
-    }
-    return null;
-  }
-
-  // Position the popup below its token. Recomputed on every show, scroll and
-  // resize so it tracks the token when the code block is scrolled horizontally.
-  function positionPopup() {
-    if (!activePopup || !activeHover || !activeEcRoot) return;
-
-    const hoverRect = activeHover.getBoundingClientRect();
-    const ecRect = activeEcRoot.getBoundingClientRect();
-    let left = hoverRect.left - ecRect.left;
-    const top = hoverRect.bottom - ecRect.top + 6;
-
-    // Clamp horizontally so the popup never extends past the viewport
-    // (the popup is displayed before positioning, so offsetWidth is real).
-    const margin = 8;
-    const popupWidth = activePopup.offsetWidth;
-    const minLeft = margin - ecRect.left;
-    const maxLeft = window.innerWidth - margin - popupWidth - ecRect.left;
-    left = Math.min(Math.max(left, minLeft), Math.max(minLeft, maxLeft));
-
-    activePopup.style.left = left + 'px';
-    activePopup.style.top = top + 'px';
-
-    // Hide the popup when its token is scrolled out of the code block's
-    // visible area, so it can't float over unrelated content.
-    if (activeScrollParent) {
-      const clipRect = activeScrollParent.getBoundingClientRect();
-      const tokenCenter = hoverRect.left + hoverRect.width / 2;
-      const visible = tokenCenter >= clipRect.left && tokenCenter <= clipRect.right;
-      activePopup.style.visibility = visible ? 'visible' : 'hidden';
-    }
-  }
-
-  function showTooltip(hoverEl) {
-    const popup = hoverEl.querySelector('.glosharp-popup-container');
-    if (!popup) return;
-
-    // Find the .expressive-code ancestor to reparent into
-    const ecRoot = hoverEl.closest('.expressive-code');
-    if (!ecRoot) return;
-
-    // Cancel any pending hide
-    if (hideTimeout) { clearTimeout(hideTimeout); hideTimeout = null; }
-
-    // Hide previous popup
-    if (activePopup && activePopup !== popup) {
-      hideTooltip();
-    }
-
-    // Reparent popup to EC root for overflow
-    ecRoot.appendChild(popup);
-    popup.style.setProperty('display', 'block', 'important');
-    popup.style.visibility = 'visible';
-    // Re-trigger fade-in animation
-    popup.style.animation = 'none';
-    popup.offsetHeight; // force reflow
-    popup.style.animation = '';
-
-    activePopup = popup;
-    activeHover = hoverEl;
-    activeEcRoot = ecRoot;
-    activeScrollParent = findScrollParent(hoverEl);
-    popup._glosharpOrigParent = hoverEl;
-
-    // Position below the token (and keep it pinned to the token on scroll)
-    positionPopup();
-    if (activeScrollParent) activeScrollParent.addEventListener('scroll', positionPopup, { passive: true });
-    window.addEventListener('scroll', positionPopup, { passive: true, capture: true });
-    window.addEventListener('resize', positionPopup, { passive: true });
-  }
-
-  function hideTooltip() {
-    if (hideTimeout) { clearTimeout(hideTimeout); hideTimeout = null; }
-    if (activePopup) {
-      if (activeScrollParent) activeScrollParent.removeEventListener('scroll', positionPopup);
-      window.removeEventListener('scroll', positionPopup, { capture: true });
-      window.removeEventListener('resize', positionPopup);
-
-      activePopup.style.setProperty('display', 'none', 'important');
-      activePopup.style.visibility = '';
-      // Reparent back
-      if (activePopup._glosharpOrigParent) {
-        activePopup._glosharpOrigParent.appendChild(activePopup);
-      }
-      activePopup = null;
-      activeHover = null;
-      activeEcRoot = null;
-      activeScrollParent = null;
-    }
-  }
-
-  function scheduleHide() {
-    if (hideTimeout) clearTimeout(hideTimeout);
-    hideTimeout = setTimeout(() => {
-      hideTooltip();
-    }, TIMEOUT_MS);
-  }
-
-  function injectSpriteSheet() {
-    if (document.getElementById('glosharp-sprites')) return;
-    const div = document.createElement('div');
-    div.id = 'glosharp-sprites';
-    div.innerHTML = '${spriteHtml}';
-    document.body.prepend(div);
-  }
-
-  function setup() {
-    injectSpriteSheet();
-    document.querySelectorAll('.glosharp-hover').forEach(hoverEl => {
-      if (hoverEl._glosharpBound) return;
-      hoverEl._glosharpBound = true;
-
-      hoverEl.addEventListener('mouseenter', () => showTooltip(hoverEl));
-      hoverEl.addEventListener('mouseleave', () => scheduleHide());
-    });
-
-    // Allow mouse to enter popups without them disappearing
-    document.addEventListener('mouseenter', (e) => {
-      if (e.target && e.target.closest && e.target.closest('.glosharp-popup-container') === activePopup) {
-        if (hideTimeout) { clearTimeout(hideTimeout); hideTimeout = null; }
-      }
-    }, true);
-
-    document.addEventListener('mouseleave', (e) => {
-      if (e.target && e.target.closest && e.target.closest('.glosharp-popup-container') === activePopup) {
-        scheduleHide();
-      }
-    }, true);
-  }
-
-  // Run on load
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', setup);
-  } else {
-    setup();
-  }
-
-  // Support Astro view transitions
-  document.addEventListener('astro:page-load', setup);
-
-  // Watch for dynamically added code blocks
-  new MutationObserver((mutations) => {
-    for (const m of mutations) {
-      for (const node of m.addedNodes) {
-        if (node.nodeType === 1 && node.querySelector && node.querySelector('.glosharp-hover')) {
-          setup();
-          return;
-        }
-      }
-    }
-  }).observe(document.body, { childList: true, subtree: true });
-})();
-`
-}
-
-export function pluginGloSharp(options: PluginGloSharpOptions = {}) {
-  const glosharp = createGloSharp(options)
-  const resultCache = new WeakMap<ExpressiveCodeBlock, GloSharpResult>()
-
-  return {
-    name: 'glosharp',
-    baseStyles: buildBaseStyles(),
-    jsModules: [buildPopupJsModule()],
-
-    hooks: {
-      async preprocessCode({ codeBlock }: { codeBlock: ExpressiveCodeBlock }) {
-        const lang = codeBlock.language
-        if (lang !== 'csharp' && lang !== 'cs' && lang !== 'c#') return
-
-        try {
-          const result = await glosharp.process({ code: codeBlock.code, project: options.project, region: options.region })
-          resultCache.set(codeBlock, result)
-          // Replace code with cleaned version (markers removed)
-          const cleaned = result.code.replace(/\n$/, '')
-          const newLines = cleaned === '' ? [] : cleaned.split('\n')
-          const oldLines = codeBlock.getLines()
-          const indicesToDelete = Array.from({ length: oldLines.length }, (_, i) => i).reverse()
-          if (indicesToDelete.length > 0) {
-            codeBlock.deleteLines(indicesToDelete)
-          }
-          if (newLines.length > 0) {
-            codeBlock.insertLines(0, newLines)
-          }
-        } catch {
-          // Silently pass through if CLI fails
-        }
-      },
-
-      annotateCode({ codeBlock }: { codeBlock: { code: string; getLines: () => Array<{ addAnnotation: (ann: unknown) => void }> } }) {
-        const result = resultCache.get(codeBlock as unknown as ExpressiveCodeBlock)
-        if (!result) return
-
-        const lines = codeBlock.getLines()
-
-        // Add hover annotations
-        for (const hover of result.hovers) {
-          const line = lines[hover.line]
-          if (!line) continue
-          if (hover.persistent) {
-            // Persistent ^? query: render as static inline block
-            line.addAnnotation(new GloSharpStaticAnnotation(hover))
-          } else {
-            // Regular hover: JS-powered popup
-            line.addAnnotation(new GloSharpHoverAnnotation(hover))
-          }
-        }
-
-        // Add error annotations
-        for (const error of result.errors) {
-          if (error.expected) continue
-
-          if (error.endLine != null && error.endLine > error.line) {
-            for (let lineIdx = error.line; lineIdx <= error.endLine; lineIdx++) {
-              const line = lines[lineIdx]
-              if (!line) continue
-              const lineError = { ...error }
-              if (lineIdx === error.line) {
-                line.addAnnotation(new GloSharpErrorAnnotation(lineError))
-              } else {
-                const contError = { ...error, character: 0, length: 1000 }
-                line.addAnnotation(new GloSharpErrorAnnotation(contError))
-              }
-            }
-            const lastLine = lines[error.endLine]
-            if (lastLine) {
-              lastLine.addAnnotation(new GloSharpErrorAnnotation(error, { messageOnly: true }))
-            }
-          } else {
-            const line = lines[error.line]
-            if (!line) continue
-            line.addAnnotation(new GloSharpErrorAnnotation(error))
-          }
-        }
-
-        // Add completion annotations
-        for (const completion of result.completions) {
-          const line = lines[completion.line]
-          if (!line) continue
-          line.addAnnotation(new GloSharpCompletionAnnotation(completion))
-        }
-
-        // Add highlight and diff annotations
-        const hasFocus = result.highlights.some(h => h.kind === 'focus')
-        const focusedLines = new Set(result.highlights.filter(h => h.kind === 'focus').map(h => h.line))
-
-        for (const highlight of result.highlights) {
-          const line = lines[highlight.line]
-          if (!line) continue
-
-          switch (highlight.kind) {
-            case 'highlight':
-              line.addAnnotation(new GloSharpHighlightAnnotation())
-              break
-            case 'add':
-            case 'remove':
-              line.addAnnotation(new GloSharpDiffAnnotation(highlight.kind))
-              break
-          }
-        }
-
-        if (hasFocus) {
-          for (let i = 0; i < lines.length; i++) {
-            if (!focusedLines.has(i)) {
-              lines[i].addAnnotation(new GloSharpFocusDimAnnotation())
-            }
-          }
-        }
-
-        // Add custom tag annotations
-        if (result.tags) {
-          for (const tag of result.tags) {
-            const line = lines[tag.line]
-            if (!line) continue
-            line.addAnnotation(new GloSharpCustomTagAnnotation(tag))
-          }
-        }
-      },
-
-      postprocessRenderedBlock({ renderData }: { renderData: { blockAst: unknown } }) {
-        // Annotations handle rendering via their render() methods
-      },
-    },
-  }
-}
-
-function buildSymbolIcon(kind: string, prefix: string): HastNode {
+function buildSymbolIcon(kind: string, prefix: string): Element {
   const icon = symbolIcons[kind] ?? symbolIcons['Type']!
-  return {
-    type: 'element',
-    tagName: 'span',
-    properties: {
-      class: 'glosharp-symbol-icon',
-      title: prefix,
-    },
-    children: [{
-      type: 'element',
-      tagName: 'svg',
-      properties: {
-        xmlns: 'http://www.w3.org/2000/svg',
-        viewBox: '0 0 16 16',
-        width: '14',
-        height: '14',
-        fill: icon.color,
-      },
-      children: [{
-        type: 'element',
-        tagName: 'use',
-        properties: { href: `#glosharp-icon-${kind in symbolIcons ? kind : 'Type'}` },
-        children: [],
-      }],
-    }],
-  }
+  return h('span.glosharp-symbol-icon', { title: prefix }, [
+    s('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 16 16', width: '14', height: '14', fill: icon.color, ariaHidden: 'true' }, [
+      s('use', { href: `#glosharp-icon-${kind in symbolIcons ? kind : 'Type'}` }),
+    ]),
+  ])
 }
 
 // Build popup content nodes (shared by hover and static annotations)
-function buildPopupContent(hover: GloSharpHover): HastNode[] {
+function buildPopupContent(hover: GloSharpHover): Element[] {
   const parts = hover.parts
-  let iconNode: HastNode | null = null
+  let iconNode: Element | null = null
   let startIdx = 0
 
   // Detect prefix pattern: "(", text, ")", " " at start of parts
@@ -927,278 +370,206 @@ function buildPopupContent(hover: GloSharpHover): HastNode[] {
     && parts[2].text === ')' && parts[2].kind === 'punctuation'
     && parts[3].text === ' ' && parts[3].kind === 'space'
     && parts[1].kind === 'text') {
-    const prefix = parts[1].text
-    iconNode = buildSymbolIcon(hover.symbolKind, prefix)
+    iconNode = buildSymbolIcon(hover.symbolKind, parts[1].text)
     startIdx = 4
   }
 
-  const partNodes: HastNode[] = parts.slice(startIdx).map((part: GloSharpDisplayPart) => ({
-    type: 'element' as const,
-    tagName: 'span',
-    properties: { class: `glosharp-${part.kind}` },
-    children: [{ type: 'text' as const, value: part.text }],
-  }))
+  const partNodes: ElementContent[] = parts.slice(startIdx)
+    .map((part: GloSharpDisplayPart) => h('span', { className: [`glosharp-${part.kind}`] }, part.text))
+  if (iconNode) partNodes.unshift(iconNode)
 
-  if (iconNode) {
-    partNodes.unshift(iconNode)
-  }
-
-  const children: HastNode[] = [{
-    type: 'element',
-    tagName: 'code',
-    properties: { class: 'glosharp-popup-code' },
-    children: partNodes,
-  }]
+  const children: Element[] = [h('code.glosharp-popup-code', partNodes)]
 
   if (hover.typeAnnotations && hover.typeAnnotations.length > 0) {
-    children.push(...renderTypeAnnotations(hover.typeAnnotations))
+    children.push(renderTypeAnnotations(hover.typeAnnotations))
   }
-
   if (hover.docs) {
-    children.push(...renderDocs(hover.docs))
+    const docs = renderDocs(hover.docs)
+    if (docs) children.push(docs)
   }
-
   return children
 }
 
-function renderTypeAnnotations(annotations: GloSharpTypeAnnotation[]): HastNode[] {
-  const items: HastNode[] = annotations.map(a => ({
-    type: 'element' as const,
-    tagName: 'div',
-    properties: { class: 'glosharp-type-annotation' },
-    children: [
-      { type: 'element' as const, tagName: 'span', properties: { class: 'glosharp-className' }, children: [{ type: 'text' as const, value: a.name }] },
-      { type: 'text' as const, value: ' is ' },
-      { type: 'element' as const, tagName: 'span', properties: { class: 'glosharp-type-expansion' }, children: [{ type: 'text' as const, value: a.expansion }] },
-    ],
-  }))
-
-  return [{
-    type: 'element',
-    tagName: 'div',
-    properties: { class: 'glosharp-popup-types' },
-    children: [
-      { type: 'element', tagName: 'div', properties: { class: 'glosharp-popup-types-header' }, children: [{ type: 'text', value: 'Types:' }] },
-      ...items,
-    ],
-  }]
+function renderTypeAnnotations(annotations: GloSharpTypeAnnotation[]): Element {
+  return h('div.glosharp-popup-types', [
+    h('div.glosharp-popup-types-header', 'Types:'),
+    ...annotations.map(a => h('div.glosharp-type-annotation', [
+      h('span.glosharp-className', a.name),
+      ' is ',
+      h('span.glosharp-type-expansion', a.expansion),
+    ])),
+  ])
 }
 
-function renderDocs(docs: GloSharpDocComment): HastNode[] {
-  const docsChildren: HastNode[] = []
+function docSection(className: string, label: string, content: Array<ElementContent | string>): Element {
+  return h('div', { className: [className] }, [h('div.glosharp-popup-section-label', label), ...content])
+}
+
+function renderDocs(docs: GloSharpDocComment): Element | null {
+  const sections: Element[] = []
 
   if (docs.summary) {
-    docsChildren.push({
-      type: 'element',
-      tagName: 'div',
-      properties: { class: 'glosharp-popup-summary' },
-      children: [{ type: 'text', value: docs.summary }],
-    })
+    sections.push(h('div.glosharp-popup-summary', docs.summary))
   }
-
   if (docs.params && docs.params.length > 0) {
-    const paramItems: HastNode[] = docs.params.map((p: GloSharpDocParam) => ({
-      type: 'element' as const,
-      tagName: 'div',
-      properties: { class: 'glosharp-popup-param' },
-      children: [
-        {
-          type: 'element' as const,
-          tagName: 'span',
-          properties: { class: 'glosharp-popup-param-name' },
-          children: [{ type: 'text' as const, value: p.name }],
-        },
-        { type: 'text' as const, value: ` — ${p.text}` },
-      ],
-    }))
-
-    docsChildren.push({
-      type: 'element',
-      tagName: 'div',
-      properties: { class: 'glosharp-popup-params' },
-      children: [
-        {
-          type: 'element',
-          tagName: 'div',
-          properties: { class: 'glosharp-popup-section-label' },
-          children: [{ type: 'text', value: 'Parameters' }],
-        },
-        ...paramItems,
-      ],
-    })
+    sections.push(docSection('glosharp-popup-params', 'Parameters', docs.params.map((p: GloSharpDocParam) =>
+      h('div.glosharp-popup-param', [h('span.glosharp-popup-param-name', p.name), ` — ${p.text}`]))))
   }
-
   if (docs.returns) {
-    docsChildren.push({
-      type: 'element',
-      tagName: 'div',
-      properties: { class: 'glosharp-popup-returns' },
-      children: [
-        {
-          type: 'element',
-          tagName: 'div',
-          properties: { class: 'glosharp-popup-section-label' },
-          children: [{ type: 'text', value: 'Returns' }],
-        },
-        { type: 'text', value: docs.returns },
-      ],
-    })
+    sections.push(docSection('glosharp-popup-returns', 'Returns', [docs.returns]))
   }
-
   if (docs.remarks) {
-    docsChildren.push({
-      type: 'element',
-      tagName: 'div',
-      properties: { class: 'glosharp-popup-remarks' },
-      children: [
-        {
-          type: 'element',
-          tagName: 'div',
-          properties: { class: 'glosharp-popup-section-label' },
-          children: [{ type: 'text', value: 'Remarks' }],
-        },
-        { type: 'text', value: docs.remarks },
-      ],
-    })
+    sections.push(docSection('glosharp-popup-remarks', 'Remarks', [docs.remarks]))
   }
-
   if (docs.examples && docs.examples.length > 0) {
-    const exampleNodes: HastNode[] = docs.examples.map((ex: string) => ({
-      type: 'element' as const,
-      tagName: 'pre',
-      properties: {},
-      children: [{ type: 'text' as const, value: ex }],
-    }))
-
-    docsChildren.push({
-      type: 'element',
-      tagName: 'div',
-      properties: { class: 'glosharp-popup-example' },
-      children: [
-        {
-          type: 'element',
-          tagName: 'div',
-          properties: { class: 'glosharp-popup-section-label' },
-          children: [{ type: 'text', value: 'Examples' }],
-        },
-        ...exampleNodes,
-      ],
-    })
+    sections.push(docSection('glosharp-popup-example', 'Examples', docs.examples.map((ex: string) => h('pre', ex))))
   }
-
   if (docs.exceptions && docs.exceptions.length > 0) {
-    const exceptionItems: HastNode[] = docs.exceptions.map((e: GloSharpDocException) => ({
-      type: 'element' as const,
-      tagName: 'div',
-      properties: { class: 'glosharp-popup-exception' },
-      children: [
-        {
-          type: 'element' as const,
-          tagName: 'span',
-          properties: { class: 'glosharp-popup-exception-type' },
-          children: [{ type: 'text' as const, value: e.type }],
-        },
-        { type: 'text' as const, value: ` — ${e.text}` },
-      ],
-    }))
-
-    docsChildren.push({
-      type: 'element',
-      tagName: 'div',
-      properties: { class: 'glosharp-popup-exceptions' },
-      children: [
-        {
-          type: 'element',
-          tagName: 'div',
-          properties: { class: 'glosharp-popup-section-label' },
-          children: [{ type: 'text', value: 'Exceptions' }],
-        },
-        ...exceptionItems,
-      ],
-    })
+    sections.push(docSection('glosharp-popup-exceptions', 'Exceptions', docs.exceptions.map((e: GloSharpDocException) =>
+      h('div.glosharp-popup-exception', [h('span.glosharp-popup-exception-type', e.type), ` — ${e.text}`]))))
   }
 
-  if (docsChildren.length === 0) return []
-
-  return [{
-    type: 'element',
-    tagName: 'div',
-    properties: { class: 'glosharp-popup-docs' },
-    children: docsChildren,
-  }]
+  return sections.length > 0 ? h('div.glosharp-popup-docs', sections) : null
 }
 
-// Hover annotation: wraps token, popup shown/hidden by JS
-class GloSharpHoverAnnotation {
-  readonly hover: GloSharpHover
-  readonly inlineRange: { columnStart: number; columnEnd: number }
+// --- Annotations ------------------------------------------------------------
+//
+// All annotations build their output with hastscript's `h()`. When annotations
+// overlap, EC hands inline annotations `root` fragments as `nodesToTransform`;
+// `h()` splices a root's children into the new element instead of nesting the
+// root, which strict HAST consumers (e.g. Astro 7.3's Sätteri markdown
+// processor) reject.
 
-  constructor(hover: GloSharpHover) {
+// Hover annotation: wraps the token; the popup is shown/hidden by the client JS
+class GloSharpHoverAnnotation extends ExpressiveCodeAnnotation {
+  readonly hover: GloSharpHover
+  readonly isTabStop: boolean
+
+  constructor(hover: GloSharpHover, isTabStop: boolean) {
+    super({ inlineRange: { columnStart: hover.character, columnEnd: hover.character + hover.length } })
     this.hover = hover
-    this.inlineRange = {
-      columnStart: hover.character,
-      columnEnd: hover.character + hover.length,
+    this.isTabStop = isTabStop
+  }
+
+  render({ nodesToTransform }: AnnotationRenderOptions): Parents[] {
+    return nodesToTransform.map((node, i) => h(
+      'span.glosharp-hover',
+      { tabIndex: this.isTabStop && i === 0 ? 0 : -1 },
+      [node as ElementContent, h('div.glosharp-popup-container', buildPopupContent(this.hover))],
+    ))
+  }
+}
+
+// Wavy underline under the diagnostic's range on one line
+class GloSharpErrorUnderlineAnnotation extends ExpressiveCodeAnnotation {
+  readonly error: GloSharpError
+
+  constructor(error: GloSharpError, columnStart: number, columnEnd: number) {
+    super({ inlineRange: { columnStart, columnEnd } })
+    this.error = error
+  }
+
+  render({ nodesToTransform }: AnnotationRenderOptions): Parents[] {
+    const className = ['glosharp-error-underline', `glosharp-severity-${this.error.severity}`]
+    if (this.error.expected) className.push('glosharp-error-expected')
+    return nodesToTransform.map(node => h('span', { className }, [node as ElementContent]))
+  }
+}
+
+// Adds a class to the rendered line itself (highlight, diff, focus dimming),
+// so EC's own line styles and other plugins' line markers keep working.
+class GloSharpLineClassAnnotation extends ExpressiveCodeAnnotation {
+  readonly className: string
+
+  constructor(className: string) {
+    super({})
+    this.className = className
+  }
+
+  render({ nodesToTransform }: AnnotationRenderOptions): Parents[] {
+    for (const node of nodesToTransform) {
+      if (node.type === 'element') addClassName(node, this.className)
     }
-  }
-
-  render({ nodesToTransform }: { nodesToTransform: HastNode[] }): HastNode[] {
-    const popupChildren = buildPopupContent(this.hover)
-
-    return nodesToTransform.map(node => ({
-      type: 'element' as const,
-      tagName: 'span',
-      properties: { class: 'glosharp-hover' },
-      children: [
-        node,
-        {
-          type: 'element',
-          tagName: 'div',
-          properties: { class: 'glosharp-popup-container' },
-          children: popupChildren,
-        },
-      ],
-    }))
+    return nodesToTransform
   }
 }
 
-// Static annotation: persistent ^? query, rendered as a block between lines
-// This is a LINE-level annotation (no inlineRange) so it wraps the entire line
-// and appends the static tooltip after the line content.
-class GloSharpStaticAnnotation {
-  readonly hover: GloSharpHover
+/**
+ * Block content shown after a line: persistent `^?` results, completion
+ * lists, diagnostic messages and `@log`/`@warn`/`@error`/`@annotate` callouts.
+ *
+ * Renders in the latest phase as `div.glosharp-line > [div.ec-line, div.glosharp-line-extras]`,
+ * so every other line-level annotation (EC line markers, highlight/diff classes)
+ * has already been applied to the `.ec-line` itself, and the block keeps exactly
+ * one top-level node per line (which EC plugins such as collapsible sections rely on).
+ */
+class GloSharpLineAnnotation extends ExpressiveCodeAnnotation {
+  readonly statics: GloSharpHover[] = []
+  readonly completions: GloSharpCompletion[] = []
+  readonly errors: GloSharpError[] = []
+  readonly tags: GloSharpTag[] = []
 
-  constructor(hover: GloSharpHover) {
-    this.hover = hover
+  constructor() {
+    super({ renderPhase: 'latest' })
   }
 
-  render({ nodesToTransform }: { nodesToTransform: HastNode[] }): HastNode[] {
-    const popupChildren = buildPopupContent(this.hover)
-    const marginLeft = this.hover.character
-
-    // Wrap the line + append the static block after it
-    return nodesToTransform.map(node => ({
-      type: 'element' as const,
-      tagName: 'div',
-      properties: { class: 'glosharp-noline' },
-      children: [
-        node,
-        {
-          type: 'element' as const,
-          tagName: 'div',
-          properties: {
-            class: 'glosharp-static',
-            style: `margin-left: ${marginLeft}ch`,
-          },
-          children: [{
-            type: 'element',
-            tagName: 'div',
-            properties: { class: 'glosharp-static-container' },
-            children: popupChildren,
-          }],
-        },
-      ],
-    }))
+  render({ nodesToTransform }: AnnotationRenderOptions): Parents[] {
+    return nodesToTransform.map(node => h('div.glosharp-line', [
+      node as ElementContent,
+      h('div.glosharp-line-extras', [
+        ...[...this.statics].sort((a, b) => a.character - b.character).map(renderStatic),
+        ...this.completions.map(renderCompletionList),
+        ...this.errors.map(renderErrorMessage),
+        ...this.tags.map(renderTagCallout),
+      ]),
+    ]))
   }
+}
+
+function renderStatic(hover: GloSharpHover): Element {
+  // Aligned under the queried column, but always leaving room for the result
+  // on narrow viewports (the block content is limited to the visible width)
+  return h('div.glosharp-static', { style: `margin-left: min(${hover.character}ch, max(0px, calc(100% - 32ch)))` }, [
+    h('div.glosharp-static-container', buildPopupContent(hover)),
+  ])
+}
+
+function renderErrorMessage(error: GloSharpError): Element {
+  const className = ['glosharp-error-message', `glosharp-severity-${error.severity}`]
+  if (error.expected) className.push('glosharp-error-expected')
+  return h('div', { className, role: 'note' }, [
+    buildSeverityIcon(error.severity),
+    h('span.glosharp-tag-content', [
+      buildErrorCodeNode(error.code),
+      `: ${error.message}`,
+    ]),
+  ])
+}
+
+function renderCompletionList(completion: GloSharpCompletion): Element {
+  return h('ul.glosharp-completion-list', completion.items.map(item => h(
+    'li',
+    { className: ['glosharp-completion-item', `glosharp-completion-kind-${item.kind}`] },
+    [
+      h('span.glosharp-completion-kind', item.kind),
+      h('span.glosharp-completion-label', item.label),
+      ...(item.detail ? [h('span.glosharp-completion-detail', item.detail)] : []),
+    ],
+  )))
+}
+
+function renderTagCallout(tag: GloSharpTag): Element {
+  const iconPaths = tagIcons[tag.name] ?? tagIcons['log']!
+  return h('div', { className: ['glosharp-tag', `glosharp-tag-${tag.name}`], role: 'note' }, [
+    h('span.glosharp-tag-icon', [
+      s('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 32 32', width: '1rem', height: '1rem', fill: 'currentColor', ariaHidden: 'true' },
+        iconPaths.map(d => s('path', { d }))),
+    ]),
+    h('span.glosharp-tag-content', [
+      h('span.glosharp-tag-title', `${tag.name}:`),
+      ` ${tag.text}`,
+    ]),
+  ])
 }
 
 // Severity icon paths (reuse tag icons for consistent look)
@@ -1214,207 +585,25 @@ const severityIcons: Record<string, string[]> = {
   ],
 }
 
-function buildSeverityIcon(severity: string): HastNode {
+function buildSeverityIcon(severity: string): Element {
   const iconPaths = severityIcons[severity] ?? severityIcons['error']!
-  return {
-    type: 'element',
-    tagName: 'span',
-    properties: { class: 'glosharp-tag-icon' },
-    children: [{
-      type: 'element',
-      tagName: 'svg',
-      properties: {
-        xmlns: 'http://www.w3.org/2000/svg',
-        viewBox: '0 0 32 32',
-        width: '1rem',
-        height: '1rem',
-        fill: 'currentColor',
-      },
-      children: iconPaths.map(d => ({
-        type: 'element' as const,
-        tagName: 'path',
-        properties: { d },
-        children: [],
-      })),
-    }],
-  }
+  return h('span.glosharp-tag-icon', [
+    s('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 32 32', width: '1rem', height: '1rem', fill: 'currentColor', ariaHidden: 'true' },
+      iconPaths.map(d => s('path', { d }))),
+  ])
 }
 
 const CS_CODE_REGEX = /^CS\d+$/
 
-function buildErrorCodeNode(code: string): HastNode {
+function buildErrorCodeNode(code: string): Element {
   if (CS_CODE_REGEX.test(code)) {
-    return {
-      type: 'element',
-      tagName: 'a',
-      properties: {
-        class: 'glosharp-error-code',
-        href: `https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/${code.toLowerCase()}`,
-        target: '_blank',
-        rel: 'noopener',
-      },
-      children: [{ type: 'text', value: code }],
-    }
+    return h('a.glosharp-error-code', {
+      href: `https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/${code.toLowerCase()}`,
+      target: '_blank',
+      rel: 'noopener',
+    }, code)
   }
-  return {
-    type: 'element',
-    tagName: 'span',
-    properties: { class: 'glosharp-error-code' },
-    children: [{ type: 'text', value: code }],
-  }
-}
-
-class GloSharpErrorAnnotation {
-  readonly error: GloSharpError
-  readonly inlineRange?: { columnStart: number; columnEnd: number }
-  readonly isMessageOnly: boolean
-
-  constructor(error: GloSharpError, opts?: { messageOnly?: boolean }) {
-    this.error = error
-    this.isMessageOnly = opts?.messageOnly ?? false
-    // Message-only annotations (last line of a multi-line span) are
-    // line-level: EC core requires render output to match input node count,
-    // so the message box is nested inside a wrapper of the line's nodes.
-    if (!this.isMessageOnly) {
-      this.inlineRange = {
-        columnStart: error.character,
-        columnEnd: error.character + error.length,
-      }
-    }
-  }
-
-  render({ nodesToTransform }: { nodesToTransform: HastNode[] }): HastNode[] {
-    const severityClass = `glosharp-severity-${this.error.severity}`
-
-    const messageBox: HastNode = {
-      type: 'element',
-      tagName: 'div',
-      properties: { class: `glosharp-error-message ${severityClass}` },
-      children: [
-        buildSeverityIcon(this.error.severity),
-        {
-          type: 'element',
-          tagName: 'span',
-          properties: { class: 'glosharp-tag-content' },
-          children: [
-            buildErrorCodeNode(this.error.code),
-            { type: 'text', value: `: ${this.error.message}` },
-          ],
-        },
-      ],
-    }
-
-    if (this.isMessageOnly) {
-      return nodesToTransform.map(node => ({
-        type: 'element' as const,
-        tagName: 'div',
-        properties: { class: 'glosharp-error-message-wrapper' },
-        children: [node, messageBox],
-      }))
-    }
-
-    // Multi-line spans render the message once via the message-only
-    // annotation on the last line; per-line underlines carry no message.
-    const isMultiLine = this.error.endLine != null && this.error.endLine > this.error.line
-    return nodesToTransform.map(node => ({
-      type: 'element' as const,
-      tagName: 'span',
-      properties: { class: `glosharp-error-underline ${severityClass}` },
-      children: isMultiLine ? [node] : [node, messageBox],
-    }))
-  }
-}
-
-class GloSharpCompletionAnnotation {
-  readonly completion: GloSharpCompletion
-
-  // Line-level annotation (no inlineRange): EC core requires render output to
-  // contain exactly as many nodes as it receives, so the completion list is
-  // nested inside a wrapper of the line's nodes rather than appended.
-  constructor(completion: GloSharpCompletion) {
-    this.completion = completion
-  }
-
-  render({ nodesToTransform }: { nodesToTransform: HastNode[] }): HastNode[] {
-    const items: HastNode[] = this.completion.items.map(item => ({
-      type: 'element' as const,
-      tagName: 'li',
-      properties: { class: `glosharp-completion-item glosharp-completion-kind-${item.kind}` },
-      children: [
-        {
-          type: 'element',
-          tagName: 'span',
-          properties: { class: 'glosharp-completion-kind' },
-          children: [{ type: 'text', value: item.kind }],
-        },
-        {
-          type: 'element',
-          tagName: 'span',
-          properties: { class: 'glosharp-completion-label' },
-          children: [{ type: 'text', value: item.label }],
-        },
-        ...(item.detail ? [{
-          type: 'element' as const,
-          tagName: 'span',
-          properties: { class: 'glosharp-completion-detail' },
-          children: [{ type: 'text', value: item.detail }],
-        }] : []),
-      ],
-    }))
-
-    const completionList: HastNode = {
-      type: 'element',
-      tagName: 'ul',
-      properties: { class: 'glosharp-completion-list' },
-      children: items,
-    }
-
-    return nodesToTransform.map(node => ({
-      type: 'element' as const,
-      tagName: 'div',
-      properties: { class: 'glosharp-completion-wrapper' },
-      children: [node, completionList],
-    }))
-  }
-}
-
-class GloSharpHighlightAnnotation {
-  render({ nodesToTransform }: { nodesToTransform: HastNode[] }): HastNode[] {
-    return nodesToTransform.map(node => ({
-      type: 'element' as const,
-      tagName: 'div',
-      properties: { class: 'glosharp-highlight' },
-      children: [node],
-    }))
-  }
-}
-
-class GloSharpDiffAnnotation {
-  readonly diffKind: 'add' | 'remove'
-
-  constructor(diffKind: 'add' | 'remove') {
-    this.diffKind = diffKind
-  }
-
-  render({ nodesToTransform }: { nodesToTransform: HastNode[] }): HastNode[] {
-    return nodesToTransform.map(node => ({
-      type: 'element' as const,
-      tagName: 'div',
-      properties: { class: `glosharp-diff-${this.diffKind}` },
-      children: [node],
-    }))
-  }
-}
-
-class GloSharpFocusDimAnnotation {
-  render({ nodesToTransform }: { nodesToTransform: HastNode[] }): HastNode[] {
-    return nodesToTransform.map(node => ({
-      type: 'element' as const,
-      tagName: 'div',
-      properties: { class: 'glosharp-focus-dim' },
-      children: [node],
-    }))
-  }
+  return h('span.glosharp-error-code', code)
 }
 
 // SVG icon paths for custom tag callouts (viewBox 0 0 32 32)
@@ -1431,78 +620,4 @@ const tagIcons: Record<string, string[]> = {
   annotate: [
     'M16 3a7 7 0 0 0-7 7c0 2.862 1.727 5.293 4.192 6.352A3.005 3.005 0 0 0 13 17v2a3 3 0 0 0 6 0v-2a3.005 3.005 0 0 0-.192-.648C21.273 15.293 23 12.862 23 10a7 7 0 0 0-7-7zm1 16a1 1 0 0 1-2 0v-2h2zm0-4h-2v-.736l-.434-.16C12.353 13.258 11 11.756 11 10a5 5 0 0 1 10 0c0 1.756-1.353 3.258-3.566 4.104L17 14.264zM13 24h6v2h-6z',
   ],
-}
-
-class GloSharpCustomTagAnnotation {
-  readonly tag: GloSharpTag
-
-  constructor(tag: GloSharpTag) {
-    this.tag = tag
-  }
-
-  render({ nodesToTransform }: { nodesToTransform: HastNode[] }): HastNode[] {
-    const iconPaths = tagIcons[this.tag.name] ?? tagIcons['log']!
-
-    const calloutBox: HastNode = {
-      type: 'element',
-      tagName: 'div',
-      properties: { class: `glosharp-tag glosharp-tag-${this.tag.name}` },
-      children: [
-        {
-          type: 'element',
-          tagName: 'span',
-          properties: { class: 'glosharp-tag-icon' },
-          children: [{
-            type: 'element',
-            tagName: 'svg',
-            properties: {
-              xmlns: 'http://www.w3.org/2000/svg',
-              viewBox: '0 0 32 32',
-              width: '1rem',
-              height: '1rem',
-              fill: 'currentColor',
-            },
-            children: iconPaths.map(d => ({
-              type: 'element' as const,
-              tagName: 'path',
-              properties: { d },
-              children: [],
-            })),
-          }],
-        },
-        {
-          type: 'element',
-          tagName: 'span',
-          properties: { class: 'glosharp-tag-content' },
-          children: [
-            {
-              type: 'element',
-              tagName: 'span',
-              properties: { class: 'glosharp-tag-title' },
-              children: [{ type: 'text', value: `${this.tag.name}:` }],
-            },
-            {
-              type: 'text',
-              value: ` ${this.tag.text}`,
-            },
-          ],
-        },
-      ],
-    }
-
-    return nodesToTransform.map(node => ({
-      type: 'element' as const,
-      tagName: 'div',
-      properties: { class: 'glosharp-tag-wrapper' },
-      children: [node, calloutBox],
-    }))
-  }
-}
-
-interface HastNode {
-  type: string
-  tagName?: string
-  properties?: Record<string, unknown>
-  children?: HastNode[]
-  value?: string
 }
