@@ -15,6 +15,32 @@ The system SHALL support extracting a named `#region` block from a C# source fil
 - **WHEN** code outside the region defines types or using directives needed by code inside the region
 - **THEN** compilation succeeds because the full file is compiled, and hovers inside the region resolve correctly
 
+### Requirement: Region extraction is a hidden-line mask
+Region extraction SHALL be text-based (it works for files and `--stdin`) and SHALL hide lines rather than rewrite the source: every line outside the region, the region's own `#region`/`#endregion` lines and nested region directives inside it are hidden from `code`, while the whole file — including all region directives — is still compiled. Cut markers (`---cut---`, `---cut-start---`/`---cut-end---`, ...) apply in addition, inside and outside the region.
+
+#### Scenario: Cut inside the region
+- **WHEN** the region contains a `---cut-start---`/`---cut-end---` block
+- **THEN** that block is hidden too and does not appear in `code`
+
+#### Scenario: Cut outside the region does not leak
+- **WHEN** code before the region contains a balanced `---cut-start---`/`---cut-end---` block
+- **THEN** only the region's own lines appear in `code`
+
+#### Scenario: Errors outside the region
+- **WHEN** code outside the region does not compile
+- **THEN** the errors are reported in `hiddenErrors` and `compileSucceeded` is false (see json-output)
+
+### Requirement: Nested regions are matched by depth
+`#region`/`#endregion` pairs SHALL be matched with a depth counter, so an inner `#endregion` does not close the requested outer region. Region names SHALL match exactly (`demo` does not match `#region demo-long`).
+
+#### Scenario: Outer region containing an inner region
+- **WHEN** region `outer` contains `#region inner` ... `#endregion` followed by more code and its own `#endregion`
+- **THEN** `code` contains all of `outer`'s code lines, including the inner region's content, but no `#region`/`#endregion` lines
+
+#### Scenario: Unclosed region
+- **WHEN** the requested region has no matching `#endregion`
+- **THEN** it extends to the end of the file
+
 ### Requirement: Hide region directives from output
 The `#region` and `#endregion` lines SHALL be excluded from the output `code`.
 
