@@ -1,4 +1,5 @@
 using System.Formats.Tar;
+using System.Security.Cryptography;
 using Microsoft.CodeAnalysis;
 
 namespace GloSharp.Core;
@@ -13,6 +14,11 @@ public sealed class GloContextResolver : IDisposable
         _compilations = compilations;
     }
 
+    /// <param name="packResolver">
+    /// Where targeting packs for pointer references come from. Null uses
+    /// <see cref="ReferencePackResolver.CreateForReading"/> (NuGet cache, glosharp cache, the
+    /// installed SDK's packs, then a nuget.org download); every pack is hash-verified.
+    /// </param>
     public static GloContextResolver Open(string path, ReferencePackResolver? packResolver = null)
     {
         if (!File.Exists(path))
@@ -26,7 +32,15 @@ public sealed class GloContextResolver : IDisposable
         var header = GloContextFormat.ReadHeader(allBytes.AsSpan(0, GloContextFormat.HeaderSize));
 
         var compressed = allBytes.AsSpan(GloContextFormat.HeaderSize);
-        var tarBytes = ZstdSharpCodec.Instance.Decompress(compressed);
+        byte[] tarBytes;
+        try
+        {
+            tarBytes = ZstdSharpCodec.Instance.Decompress(compressed);
+        }
+        catch (InvalidDataException ex)
+        {
+            throw new InvalidDataException($".glocontext '{path}' is truncated or corrupt: {ex.Message}", ex);
+        }
 
         var (manifest, blobs) = ReadTar(tarBytes);
 
@@ -63,20 +77,23 @@ public sealed class GloContextResolver : IDisposable
 
                 if (r.IsPackAll)
                 {
-                    foreach (var (display, fileBytes) in pointerReader.ExpandAll(r.PackAll!.Value, r.Tfm!))
+                    foreach (var (display, relativePath, fileBytes) in pointerReader.ExpandAll(r.PackAll!.Value, r.Tfm!))
                     {
                         references.Add(MetadataReference.CreateFromImage(
                             fileBytes,
                             properties: new MetadataReferenceProperties(kind: MetadataImageKind.Assembly),
+                            documentation: pointerReader.Documentation(r.PackAll!.Value, relativePath),
                             filePath: display));
                     }
                     continue;
                 }
 
                 byte[] bytes;
+                DocumentationProvider? documentation = null;
                 if (r.IsPointer)
                 {
                     bytes = pointerReader.Read(r);
+                    documentation = pointerReader.Documentation(r.Pack!.Value, r.Path!);
                 }
                 else if (!blobs.TryGetValue(r.Blob!, out bytes!))
                 {
@@ -90,6 +107,7 @@ public sealed class GloContextResolver : IDisposable
                         kind: MetadataImageKind.Assembly,
                         aliases: r.Aliases.ToImmutableArrayShim(),
                         embedInteropTypes: r.EmbedInteropTypes),
+                    documentation: documentation,
                     filePath: r.Display);
 
                 references.Add(reference);
@@ -108,25 +126,22 @@ public sealed class GloContextResolver : IDisposable
         return new GloContextResolver(compilations);
     }
 
-    public ComplogResolutionResult Resolve(string? projectName = null)
+    public ComplogResolutionResult Resolve(string? projectName = null, string? targetFramework = null)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
         if (_compilations.Count == 0)
             throw new InvalidOperationException(".glocontext contains no compilations.");
 
-        GloContextCompilation selected;
-        if (projectName != null)
-        {
-            selected = _compilations.FirstOrDefault(c =>
-                string.Equals(c.ProjectName, projectName, StringComparison.OrdinalIgnoreCase))
-                ?? throw new InvalidOperationException(
-                    $"Project '{projectName}' not found in .glocontext. Available projects: {string.Join(", ", _compilations.Select(c => c.ProjectName))}");
-        }
-        else
-        {
-            selected = _compilations[0];
-        }
+        var warnings = new List<string>();
+        var selected = CompilationSelector.Select(
+            _compilations,
+            c => c.ProjectName,
+            c => c.TargetFramework,
+            projectName,
+            targetFramework,
+            ".glocontext",
+            warnings);
 
         return new ComplogResolutionResult
         {
@@ -134,6 +149,8 @@ public sealed class GloContextResolver : IDisposable
             CompilationOptions = selected.CompilationOptions,
             ParseOptions = selected.ParseOptions,
             TargetFramework = selected.TargetFramework,
+            ProjectName = selected.ProjectName,
+            Warnings = warnings,
         };
     }
 
@@ -167,6 +184,14 @@ public sealed class GloContextResolver : IDisposable
             {
                 var hash = entry.Name.Substring("refs/".Length,
                     entry.Name.Length - "refs/".Length - ".dll".Length);
+
+                // Blobs are content-addressed (the name is the SHA-256 of the bytes). Verify
+                // it, so embedded references are as tamper-evident as pack pointers.
+                var actual = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+                if (!string.Equals(actual, hash, StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidDataException(
+                        $".glocontext blob '{entry.Name}' is corrupt: its contents hash to {actual}.");
+
                 blobs[hash] = bytes;
             }
         }
@@ -180,28 +205,26 @@ public sealed class GloContextResolver : IDisposable
     /// <summary>
     /// Reads pointer references from targeting packs. Each pack is acquired and verified
     /// once — its content hash over ref/**/*.dll must match the manifest's recorded
-    /// hash — after which pointer reads are served from the verified snapshot.
+    /// hash — after which pointer reads are served from the verified snapshot. A located
+    /// copy that fails verification (e.g. a non-canonical installed-SDK pack) is skipped in
+    /// favour of the next source.
     /// </summary>
     private sealed class PointerReader
     {
         private readonly List<ManifestPack> _packs;
         private readonly ReferencePackResolver _resolver;
-        private readonly Dictionary<int, Dictionary<string, byte[]>> _verifiedFilesByIndex = new();
+        private readonly Dictionary<int, (string Root, Dictionary<string, byte[]> Files)> _verifiedByIndex = new();
 
         public PointerReader(List<ManifestPack> packs, ReferencePackResolver? resolver)
         {
             _packs = packs;
-            _resolver = resolver ?? ReferencePackResolver.CreateDefault();
+            _resolver = resolver ?? ReferencePackResolver.CreateForReading();
         }
 
         public byte[] Read(ManifestReference r)
         {
             var packIndex = r.Pack!.Value;
-            if (!_verifiedFilesByIndex.TryGetValue(packIndex, out var files))
-            {
-                files = AcquireAndVerify(packIndex);
-                _verifiedFilesByIndex[packIndex] = files;
-            }
+            var (_, files) = GetVerified(packIndex);
 
             if (!files.TryGetValue(r.Path!, out var bytes))
                 throw new InvalidDataException(
@@ -214,13 +237,9 @@ public sealed class GloContextResolver : IDisposable
         /// Expands a whole-pack reference: every direct-child DLL of ref/&lt;tfm&gt;/ in
         /// the verified pack, sorted by path — the mirror of the compactor's collapse check.
         /// </summary>
-        public IEnumerable<(string Display, byte[] Bytes)> ExpandAll(int packIndex, string tfm)
+        public IEnumerable<(string Display, string RelativePath, byte[] Bytes)> ExpandAll(int packIndex, string tfm)
         {
-            if (!_verifiedFilesByIndex.TryGetValue(packIndex, out var files))
-            {
-                files = AcquireAndVerify(packIndex);
-                _verifiedFilesByIndex[packIndex] = files;
-            }
+            var (_, files) = GetVerified(packIndex);
 
             var paths = PackContentHasher.DirectRefDlls(files.Keys, tfm);
             if (paths.Count == 0)
@@ -228,10 +247,34 @@ public sealed class GloContextResolver : IDisposable
                     $"Targeting pack '{_packs[packIndex].Id}/{_packs[packIndex].Version}' has no ref assemblies under 'ref/{tfm}/'.");
 
             foreach (var path in paths)
-                yield return (path.Substring(path.LastIndexOf('/') + 1), files[path]);
+                yield return (path.Substring(path.LastIndexOf('/') + 1), path, files[path]);
         }
 
-        private Dictionary<string, byte[]> AcquireAndVerify(int packIndex)
+        /// <summary>
+        /// XML docs for a pack file (BCL hovers): the .xml beside it in the verified pack, or in
+        /// any local copy of the pack. Docs aren't part of the pack hash; they're cosmetic.
+        /// </summary>
+        public DocumentationProvider? Documentation(int packIndex, string relativePath)
+        {
+            var (root, _) = GetVerified(packIndex);
+            var identity = PackIdentity.TryCreate(_packs[packIndex].Id, _packs[packIndex].Version);
+            if (identity == null)
+                return null;
+            var xml = _resolver.FindDocumentation(identity, relativePath, root);
+            return xml != null ? XmlDocumentationProvider.CreateFromFile(xml) : null;
+        }
+
+        private (string Root, Dictionary<string, byte[]> Files) GetVerified(int packIndex)
+        {
+            if (!_verifiedByIndex.TryGetValue(packIndex, out var verified))
+            {
+                verified = AcquireAndVerify(packIndex);
+                _verifiedByIndex[packIndex] = verified;
+            }
+            return verified;
+        }
+
+        private (string Root, Dictionary<string, byte[]> Files) AcquireAndVerify(int packIndex)
         {
             var pack = _packs[packIndex];
             if (pack.Sha256.Length != 64)
@@ -244,15 +287,32 @@ public sealed class GloContextResolver : IDisposable
                     $"Manifest pack entry {packIndex} has an invalid id or version " +
                     $"('{pack.Id}' / '{pack.Version}'): both must be non-empty single path segments.");
 
-            var root = _resolver.Locate(identity);
-            var (contentHash, files) = PackContentHasher.HashRefDlls(root);
-            if (!contentHash.Equals(pack.Sha256, StringComparison.OrdinalIgnoreCase))
+            Dictionary<string, byte[]>? verifiedFiles = null;
+            var mismatches = new List<string>();
+            string root;
+            try
+            {
+                root = _resolver.Locate(identity, candidate =>
+                {
+                    var (contentHash, files) = PackContentHasher.HashRefDlls(candidate);
+                    if (contentHash.Equals(pack.Sha256, StringComparison.OrdinalIgnoreCase))
+                    {
+                        verifiedFiles = files;
+                        return true;
+                    }
+                    mismatches.Add($"'{candidate}' hashes to {contentHash}");
+                    return false;
+                });
+            }
+            catch (InvalidDataException)
+            {
                 throw new InvalidDataException(
-                    $"Content hash mismatch for targeting pack '{pack.Id}/{pack.Version}' at '{root}': " +
-                    $"manifest expects {pack.Sha256}, actual contents hash to {contentHash}. " +
+                    $"Content hash mismatch for targeting pack '{pack.Id}/{pack.Version}': " +
+                    $"manifest expects {pack.Sha256}, but {string.Join("; ", mismatches)}. " +
                     "The pack contents do not match what this .glocontext was created against.");
+            }
 
-            return files;
+            return (root, verifiedFiles!);
         }
     }
 

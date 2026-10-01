@@ -79,6 +79,9 @@ glosharp verify samples/ docs/intro.cs
 
 # Render HTML instead of JSON
 glosharp render src/Example.cs --standalone --output example.html
+
+# Output JSON to stdout (the only output format)
+glosharp process src/Example.cs
 ```
 
 **Responsibilities**:

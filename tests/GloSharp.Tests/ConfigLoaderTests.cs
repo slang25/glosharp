@@ -265,7 +265,7 @@ public class ConfigLoaderTests
         var json = File.ReadAllText(path);
         var config = JsonSerializer.Deserialize<GloSharpConfig>(json);
         await Assert.That(config).IsNotNull();
-        await Assert.That(config!.Framework).IsEqualTo("net9.0");
+        await Assert.That(config!.Framework).IsEqualTo(FrameworkResolver.DefaultTargetFramework);
     }
 
     [Test]
@@ -289,7 +289,7 @@ public class ConfigLoaderTests
 
         var json = File.ReadAllText(Path.Combine(dir, "glosharp.config.json"));
         var config = JsonSerializer.Deserialize<GloSharpConfig>(json);
-        await Assert.That(config!.Framework).IsEqualTo("net9.0");
+        await Assert.That(config!.Framework).IsEqualTo(FrameworkResolver.DefaultTargetFramework);
     }
 
     // --- Complog config tests ---

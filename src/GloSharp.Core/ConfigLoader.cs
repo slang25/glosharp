@@ -145,7 +145,7 @@ public static class ConfigLoader
 
         var config = new GloSharpConfig
         {
-            Framework = "net9.0",
+            Framework = FrameworkResolver.DefaultTargetFramework,
             Project = null,
             CacheDir = null,
             NoRestore = false,

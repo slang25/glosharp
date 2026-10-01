@@ -218,10 +218,13 @@ compilation context does. `--complog` accepts either format.
 
 When a `.glocontext` is opened, pointed-to packs are found in the NuGet global packages folder
 (`NUGET_PACKAGES` or `~/.nuget/packages`), then in a glosharp cache (`GLOSHARP_CACHE_DIR` or the
-platform local-app-data folder), and otherwise downloaded once from nuget.org (about 7 MB per pack)
-and cached. Each pack is verified against its recorded hash before use. Because the SDK's copy of a
-pack can differ byte-for-byte from nuget.org's, the compactor records the nuget.org files, so the
-first use on a new machine may download the pack even if an SDK is installed.
+platform local-app-data folder), then in the installed .NET SDK's own `packs/` folder, and
+otherwise downloaded once from nuget.org (about 7 MB per pack) and cached. Each pack is verified
+against its recorded hash before use, and a local copy that doesn't match is skipped. The
+compactor records the nuget.org bytes; official Microsoft SDK builds checked so far ship identical
+packs, so no network is needed on a machine with a matching SDK. A differing copy (for example
+from a source-built distro SDK) falls through to the download. Cache `GLOSHARP_CACHE_DIR` in CI to
+avoid repeated downloads.
 
 For artifacts that must resolve fully offline, pass `--self-contained`: every reference is
 embedded (format v1, typically 1–3 MB). If packs can't be acquired at compact time, the compactor
