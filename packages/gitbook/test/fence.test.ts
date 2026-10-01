@@ -88,6 +88,32 @@ describe('findFences', () => {
     expect(findFences(markdown, 'glosharp').map((b) => b.line)).toEqual([2, 6])
   })
 
+  it('finds a fence in a list item indented four spaces', () => {
+    const markdown = ['1. Step one', '', '    ```glosharp', '    var x = 42;', '      Indented();', '    ```', ''].join('\n')
+
+    const [block] = findFences(markdown, 'glosharp')
+    expect(block.code).toBe('var x = 42;\n  Indented();')
+    expect(block.line).toBe(3)
+  })
+
+  it('finds a fence in a blockquote, stripping the quote markers', () => {
+    const markdown = ['> Note:', '>', '> ```glosharp', '> var x = 42;', '>', '>     Run();', '> ```', 'after'].join('\n')
+
+    expect(findFences(markdown, 'glosharp')[0].code).toBe('var x = 42;\n\n    Run();')
+  })
+
+  it('finds a fence in a nested blockquote', () => {
+    const markdown = ['> > ```glosharp', '> > var y = 1;', '> > ```'].join('\n')
+
+    expect(findFences(markdown, 'glosharp')[0].code).toBe('var y = 1;')
+  })
+
+  it('ends a quoted fence when the quote ends, and keeps scanning after it', () => {
+    const markdown = ['> ```glosharp', '> var a = 1;', '', '```glosharp', 'var b = 2;', '```'].join('\n')
+
+    expect(findFences(markdown, 'glosharp').map((b) => b.code)).toEqual(['var a = 1;', 'var b = 2;'])
+  })
+
   it('captures fence attributes', () => {
     const markdown = '```glosharp framework="net10.0" theme=github-light\nvar x = 1;\n```'
 

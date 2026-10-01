@@ -17,7 +17,7 @@ summary: |
     that fence.
 
     Rendering needs Roslyn, which cannot run inside GitBook. Instead your repo's CI pre-renders every
-    snippet with the [`glosharp-gitbook`](https://github.com/twohash/glosharp) tool and publishes the
+    snippet with the [`glosharp-gitbook`](https://github.com/slang25/glosharp) tool and publishes the
     results to a static host; the block looks each one up by a hash of its own code. Snippets that have not
     been published yet render as plain code.
 

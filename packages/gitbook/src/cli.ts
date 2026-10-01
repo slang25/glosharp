@@ -2,8 +2,8 @@ import { createHash } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { createGloSharp } from '@glosharp/core'
-import { buildArtifacts, collectSnippets, type BuildResult } from './artifacts.js'
+import { createGloSharp, unexpectedErrors } from '@glosharp/core'
+import { buildArtifacts, collectSnippets, type BuildResult, type DiagnoseSnippet } from './artifacts.js'
 import { AUTO_THEME } from './config.js'
 import { startDevServer } from './dev-server.js'
 import { DEFAULT_FENCE } from './fence.js'
@@ -26,8 +26,12 @@ Build options:
   --theme <name>       Theme to render; repeatable (default: ${DEFAULT_THEMES.join(', ')})
   --concurrency <n>    Concurrent renders (default: 4)
   --check              Report drift without writing; exit 1 if anything changed
+                       (with --prune: also if anything would be pruned)
   --skip-existing      Reuse artifacts already on disk instead of re-rendering
-  --prune              Delete artifacts no snippet claims
+  --prune              Delete <theme>/<sha256>.html artifacts no snippet claims
+                       (nothing else in --out is ever touched)
+  --allow-errors       Publish snippets with unexpected compile errors instead
+                       of failing the build (exit 1)
 
 Dev options (preview your snippets the way the GitBook block shows them,
 without a GitBook account — edit Markdown, reload the page):
@@ -42,9 +46,11 @@ Compilation options (forwarded to the glosharp CLI):
   --framework <tfm>    Target framework, e.g. net10.0
   --project <path>     .csproj providing NuGet context
   --complog <path>     .complog / .glocontext providing compilation context
+  --complog-project <name>  Project to use from a multi-project complog
   --config <path>      glosharp.config.json to load
   --cache-dir <path>   Result cache directory
-  --executable <path>  Path to the glosharp executable
+  --executable <path>  Path to the glosharp executable (or GloSharp.Cli.dll);
+                       defaults to $GLOSHARP_EXECUTABLE, then PATH
 `
 
 interface ParsedArgs {
@@ -62,6 +68,7 @@ const VALUE_FLAGS = new Set([
   'framework',
   'project',
   'complog',
+  'complog-project',
   'config',
   'cache-dir',
   'executable',
@@ -72,6 +79,7 @@ const BOOL_FLAGS = new Set([
   'check',
   'skip-existing',
   'prune',
+  'allow-errors',
   'fresh',
   'no-build',
   'json',
@@ -150,6 +158,11 @@ export async function run(argv: string[]): Promise<number> {
     return 1
   }
 
+  if (args.command === 'build' && !first('out')) {
+    process.stderr.write(`build requires --out <dir>. Run glosharp-gitbook --help for usage.\n`)
+    return 1
+  }
+
   const root = process.cwd()
   const files = await collectMarkdownFiles(args.paths)
 
@@ -187,6 +200,8 @@ export async function run(argv: string[]): Promise<number> {
     cacheDir: first('cache-dir'),
     configFile: first('config'),
     complog: first('complog'),
+    complogProject: first('complog-project'),
+    concurrency,
   })
   const project = first('project')
   const render = ({ code, theme, framework }: RenderInput) =>
@@ -239,8 +254,25 @@ export async function run(argv: string[]): Promise<number> {
 
   const outDir = first('out')
   if (!outDir) {
-    process.stderr.write(`build requires --out <dir>\n\n${USAGE}`)
+    process.stderr.write(`build requires --out <dir>. Run glosharp-gitbook --help for usage.\n`)
     return 1
+  }
+
+  const check = args.bools.has('check')
+  const prune = args.bools.has('prune')
+  const allowErrors = args.bools.has('allow-errors')
+
+  // `render` output carries no compile status, so unexpected errors are found
+  // with one `process` run per snippet (themes share it). See README "Limits".
+  const diagnose: DiagnoseSnippet = async ({ code, framework, occurrence }) => {
+    const result = await glosharp.process({ code, framework, project })
+    return unexpectedErrors(result).map((error) => {
+      const at =
+        error.sourceLine !== undefined
+          ? `${occurrence.file}:${occurrence.line + 1 + error.sourceLine}:${(error.sourceCharacter ?? 0) + 1}`
+          : `${occurrence.file}:${occurrence.line} (snippet line ${error.line + 1})`
+      return `${at} ${error.code}: ${error.message}`
+    })
   }
 
   let result: BuildResult
@@ -252,42 +284,59 @@ export async function run(argv: string[]): Promise<number> {
       fence,
       themes: args.flags.get('theme'),
       concurrency,
-      check: args.bools.has('check'),
+      check,
       skipExisting: args.bools.has('skip-existing'),
-      prune: args.bools.has('prune'),
+      prune,
       log: (message) => process.stderr.write(`${message}\n`),
       render,
+      diagnose: allowErrors ? undefined : diagnose,
     })
   } catch (error) {
     process.stderr.write(`Error: ${error instanceof Error ? error.message : String(error)}\n`)
     return 1
   }
 
-  const verb = args.bools.has('check') ? 'would change' : 'wrote'
+  const verb = check ? 'would change' : 'wrote'
   process.stderr.write(
     `${result.snippets.length} snippet(s) in ${files.length} file(s); ` +
       `${verb} ${result.changed.length}, reused ${result.unchanged.length}\n`,
   )
 
-  // Pruning is reported by the builder as it happens; only the "you have
-  // leftovers" hint belongs here.
-  if (!args.bools.has('prune')) {
+  let exitCode = 0
+
+  // Pruning is reported by the builder as it happens; here: what is left over,
+  // or what a --check run would delete.
+  if (!prune) {
     for (const orphan of result.orphaned) {
       process.stderr.write(`orphaned (use --prune): ${orphan}\n`)
     }
+  } else if (check && result.orphaned.length > 0) {
+    for (const orphan of result.orphaned) process.stderr.write(`would prune: ${orphan}\n`)
+    exitCode = 1
   }
 
   for (const failure of result.failures) {
     process.stderr.write(`failed ${failure.theme}/${failure.key}: ${failure.message}\n`)
   }
-  if (result.failures.length > 0) return 1
+  if (result.failures.length > 0) exitCode = 1
 
-  if (args.bools.has('check') && result.changed.length > 0) {
-    for (const change of result.changed) process.stderr.write(`drift: ${change}\n`)
-    return 1
+  if (result.compileErrors.length > 0) {
+    for (const snippet of result.compileErrors) {
+      for (const line of snippet.errors) process.stderr.write(`error: ${line}\n`)
+    }
+    process.stderr.write(
+      `${result.compileErrors.length} snippet(s) have unexpected compile errors. Declare intended ` +
+        `errors with // @errors: <code>, or pass --allow-errors to publish them anyway.\n`,
+    )
+    exitCode = 1
   }
 
-  return 0
+  if (check && result.changed.length > 0) {
+    for (const change of result.changed) process.stderr.write(`drift: ${change}\n`)
+    exitCode = 1
+  }
+
+  return exitCode
 }
 
 type RenderInput = { code: string; theme: string; framework?: string }

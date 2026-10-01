@@ -33,10 +33,20 @@ inputs:
     description: .complog / .glocontext providing compilation context.
     required: false
     default: ''
+  complog-project:
+    description: Project to use from a multi-project complog.
+    required: false
+    default: ''
   config:
     description: glosharp.config.json to load.
     required: false
     default: ''
+  allow-errors:
+    description: >-
+      Publish snippets that have unexpected compile errors instead of failing
+      the step. Declare intended errors with `// @errors:` rather than setting this.
+    required: false
+    default: 'false'
   concurrency:
     description: Concurrent renders.
     required: false
@@ -46,7 +56,9 @@ inputs:
     required: false
     default: 'false'
   prune:
-    description: Delete artifacts that no snippet claims.
+    description: >-
+      Delete artifacts that no snippet claims. Only <theme>/<sha256>.html files in
+      Glo# theme directories are ever deleted; nothing else in `out` is touched.
     required: false
     default: 'true'
   package-version:
@@ -88,7 +100,8 @@ runs:
         if [ -n "$GLOSHARP_VERSION" ]; then
           dotnet tool install --global GloSharp.Cli --version "$GLOSHARP_VERSION"
         else
-          dotnet tool install --global GloSharp.Cli
+          # Pre-1.0 releases are prereleases; without --prerelease there is nothing to install.
+          dotnet tool install --global GloSharp.Cli --prerelease
         fi
         echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
 
@@ -103,7 +116,9 @@ runs:
         GB_FRAMEWORK: ${{ inputs.framework }}
         GB_PROJECT: ${{ inputs.project }}
         GB_COMPLOG: ${{ inputs.complog }}
+        GB_COMPLOG_PROJECT: ${{ inputs.complog-project }}
         GB_CONFIG: ${{ inputs.config }}
+        GB_ALLOW_ERRORS: ${{ inputs.allow-errors }}
         GB_CHECK: ${{ inputs.check }}
         GB_PRUNE: ${{ inputs.prune }}
         GB_PACKAGE_VERSION: ${{ inputs.package-version }}
@@ -119,7 +134,9 @@ runs:
         if [ -n "$GB_FRAMEWORK" ]; then args+=(--framework "$GB_FRAMEWORK"); fi
         if [ -n "$GB_PROJECT" ]; then args+=(--project "$GB_PROJECT"); fi
         if [ -n "$GB_COMPLOG" ]; then args+=(--complog "$GB_COMPLOG"); fi
+        if [ -n "$GB_COMPLOG_PROJECT" ]; then args+=(--complog-project "$GB_COMPLOG_PROJECT"); fi
         if [ -n "$GB_CONFIG" ]; then args+=(--config "$GB_CONFIG"); fi
+        if [ "$GB_ALLOW_ERRORS" = "true" ]; then args+=(--allow-errors); fi
         if [ "$GB_CHECK" = "true" ]; then args+=(--check); fi
         if [ "$GB_PRUNE" = "true" ]; then args+=(--prune); fi
         npx --yes "@glosharp/gitbook@$GB_PACKAGE_VERSION" "${args[@]}"
