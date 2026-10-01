@@ -129,8 +129,10 @@ pre:hover .glosharp-hover:not(:hover):not(.glosharp-hover-persistent) {
   display: none;
   position: fixed;
   position-area: bottom span-right;
-  position-try-fallbacks: flip-block, flip-inline, flip-block flip-inline;
-  margin: 4px 0;
+  position-try-fallbacks: flip-inline, flip-block, flip-block flip-inline;
+  /* On narrow screens, open towards whichever side has more room */
+  position-try-order: most-width;
+  margin: 4px 8px 4px 0;
   z-index: 100;
   width: max-content;
   max-width: min(600px, calc(100vw - 16px));

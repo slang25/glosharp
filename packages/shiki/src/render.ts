@@ -298,9 +298,11 @@ function identifierPrefix(lineText: string, character: number): string {
  * was typed), without duplicates.
  */
 export function filterCompletions(items: GloSharpCompletionItem[], prefix: string): GloSharpCompletionItem[] {
+  // One row per label, like an editor's list (overloads and method/extension
+  // duplicates collapse into the first).
   const seen = new Set<string>()
   const unique = items.filter((item) => {
-    const key = `${item.kind}\u0000${item.label}`
+    const key = item.label
     if (seen.has(key)) return false
     seen.add(key)
     return true

@@ -260,10 +260,12 @@ function describe(where: Location): string {
 function compileErrorMessage(errors: GloSharpResult['errors'], where: Location): string {
   const lines = errors.map((e) => {
     const sourceLine = e.sourceLine
+    // sourceLine is relative to the snippet as written; older CLIs only give
+    // the line in the processed (marker-stripped) code.
     const at =
       where.line !== undefined && sourceLine !== undefined
         ? `${where.file ?? 'line'}${where.file ? ':' : ' '}${where.line + 1 + sourceLine}:${(e.sourceCharacter ?? 0) + 1}`
-        : `line ${e.line + 1}`
+        : `${describe(where)} (snippet line ${e.line + 1})`
     return `  ${at} ${e.code}: ${e.message}`
   })
   return (
