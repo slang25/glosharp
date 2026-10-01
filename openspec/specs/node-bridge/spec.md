@@ -30,7 +30,7 @@ Discovery SHALL split PATH on the platform delimiter (`;` on Windows) and, on Wi
 - **THEN** `dotnet tool list` runs once
 
 ### Requirement: Process method invokes CLI and returns typed result
-The `process()` method SHALL spawn the CLI as a child process, pass source code, and return a parsed `GloSharpResult` object matching the JSON output schema.
+The `process()` method SHALL run the snippet through the CLI — on a `glosharp serve` worker (see "Serve worker pool"), or as a child process of its own — and return a parsed `GloSharpResult` object matching the JSON output schema. Both paths SHALL produce identical results.
 
 #### Scenario: Process inline code
 - **WHEN** `glosharp.process({ code: 'var x = 42;\n//  ^?' })` is called
@@ -102,14 +102,52 @@ The package SHALL throw a `GloSharpCliError` (with `kind`: `not-found`, `spawn`,
 - **THEN** the resulting `EPIPE` is handled and `process()` rejects with the exit code and stderr; the host process does not crash
 
 ### Requirement: Bounded concurrency
-CLI processes SHALL be limited process-wide (shared by every instance) to `$GLOSHARP_CONCURRENCY` or `max(1, min(cpus - 1, 8))` by default, adjustable with `configureGloSharp({ concurrency })`. An instance MAY add its own lower cap with the `concurrency` option.
+Snippets in progress (one-shot CLI processes, or requests in flight on `serve` workers) SHALL be limited process-wide (shared by every instance) to `$GLOSHARP_CONCURRENCY` or `max(1, min(cpus - 1, 8))` by default, adjustable with `configureGloSharp({ concurrency })`. An instance MAY add its own lower cap with the `concurrency` option.
 
 #### Scenario: Many snippets at once
 - **WHEN** 40 snippets are processed concurrently with a limit of 4
-- **THEN** at most 4 CLI processes run at any time
+- **THEN** at most 4 are in progress at any time
+
+### Requirement: Serve worker pool
+By default the bridge SHALL run snippets on a small pool of long-lived `glosharp serve` workers instead of one CLI process per snippet. The pool size SHALL be the `workers` option, else `configureGloSharp({ workers })`, else `$GLOSHARP_WORKERS`, else `max(1, min(2, cpus - 1))`; `0` disables the pool. Pools SHALL be shared by every instance using the same executable and size, and workers SHALL start lazily: a request goes to the least-loaded worker, and a new worker starts only while every worker is busy and the pool has room.
+
+Requests SHALL carry the same options the one-shot command line would (plus the Node process's working directory as `cwd`), so results, config discovery and error messages are identical on both paths; responses SHALL be matched to requests by id, in any order. An error response SHALL reject with the `GloSharpCliError` the one-shot run would have produced (`kind: 'exit'`, its `exitCode` and `stderr`).
+
+Idle workers SHALL NOT keep Node running; busy ones SHALL (as a running CLI does). Workers SHALL be killed when Node exits, and `closeGloSharpWorkers()` SHALL stop them (letting them finish their requests).
+
+#### Scenario: Many snippets, few processes
+- **WHEN** 60 snippets are processed with `workers: 2`
+- **THEN** at most 2 `glosharp serve` processes start, and the results equal those of one CLI process per snippet
+
+#### Scenario: Out-of-order responses
+- **WHEN** a worker answers three requests in the reverse of the order they were sent
+- **THEN** each `process()` call resolves with its own result
+
+#### Scenario: Timeout on a worker
+- **WHEN** a request does not finish within `timeoutMs`
+- **THEN** the call rejects with the same `timeout` error as a one-shot run, the worker takes no new requests and is killed once its other requests are answered, and later calls start a new worker
+
+#### Scenario: Worker crash
+- **WHEN** a worker exits while requests are in flight
+- **THEN** only those requests reject (`kind: 'exit'`, with the exit code and the worker's stderr), and the next call starts a new worker
+
+#### Scenario: Unexpected output
+- **WHEN** a worker writes a line to stdout that is not a protocol message
+- **THEN** its in-flight requests reject with `invalid-output` and the worker is replaced
+
+### Requirement: Fallback for CLIs without serve
+When the first worker of a pool cannot serve — the CLI has no `serve` command (exit code 2, "unknown command"), its handshake is not JSON or names another protocol version, it exits before the handshake, or no handshake arrives within 30 s (`$GLOSHARP_SERVE_HANDSHAKE_TIMEOUT_MS`) — the bridge SHALL run that pool's requests as one CLI process per snippet, transparently, and log one `console.warn` naming the CLI and the reason. Alongside the first worker the bridge SHALL run `glosharp serve --help` with stdin closed, and fall back as soon as it fails or prints no `glosharp serve` usage, so a wrapper that treats every command as `process` does not wait for the handshake timeout. A CLI that cannot be started at all SHALL fall back without a warning (the one-shot run reports it).
+
+#### Scenario: Older CLI
+- **WHEN** the CLI answers `glosharp serve` with "unknown command" and exit code 2
+- **THEN** every snippet is processed with one CLI run each, results are unchanged, and a single warning suggests updating the CLI
+
+#### Scenario: Protocol mismatch
+- **WHEN** the handshake carries `"protocol": 2`
+- **THEN** the bridge falls back and the warning names both protocol versions
 
 ### Requirement: Timeouts and cancellation
-Each CLI run SHALL be killed (the whole process tree on Windows) after `timeoutMs` (instance or per-call option, else `$GLOSHARP_TIMEOUT_MS`, else 180000; `0` disables) and the call SHALL reject with a `timeout` error naming the snippet. A per-call `signal` (AbortSignal) SHALL kill the run and reject with an `aborted` error. Running CLI processes SHALL be killed when the Node process exits.
+Each CLI run SHALL be killed (the whole process tree on Windows) after `timeoutMs` (instance or per-call option, else `$GLOSHARP_TIMEOUT_MS`, else 180000; `0` disables) and the call SHALL reject with a `timeout` error naming the snippet. A per-call `signal` (AbortSignal) SHALL kill the run and reject with an `aborted` error. Running CLI processes SHALL be killed when the Node process exits. On a `serve` worker, a timed-out or aborted request rejects the same way and the worker is retired (killed once its other requests are answered).
 
 #### Scenario: Hung restore
 - **WHEN** the CLI does not finish within `timeoutMs`
