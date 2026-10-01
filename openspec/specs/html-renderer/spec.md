@@ -1,5 +1,8 @@
-## ADDED Requirements
+# html-renderer Specification
 
+## Purpose
+Render glosharp results as self-contained HTML (`glosharp render`).
+## Requirements
 ### Requirement: Generate self-contained HTML fragment from GloSharpResult
 The `HtmlRenderer` SHALL accept a `GloSharpResult`, classified spans, and a theme, and produce an HTML string containing a `<div class="glosharp-code">` wrapper with an inline `<style>` block, a `<pre><code>` block with syntax-highlighted tokens, hover popup elements, error annotations, and highlight/focus/diff styling.
 
@@ -12,19 +15,29 @@ The `HtmlRenderer` SHALL accept a `GloSharpResult`, classified spans, and a them
 - **THEN** all CSS needed for syntax highlighting, popups, errors, and highlights is included in the inline `<style>` block — no external CSS files are required
 
 ### Requirement: Render hover popups with CSS anchor positioning
-The renderer SHALL wrap hover target tokens in `<span class="glosharp-hover">` elements with unique `anchor-name` styles (`--th-0`, `--th-1`, etc.). For each hover, a sibling `<div class="glosharp-popup">` element SHALL be emitted with matching `position-anchor` style. Popup content SHALL render the hover `parts` array with theme-colored `<span>` elements, followed by documentation text when `docs` is present.
+The renderer SHALL wrap hover target tokens in `<span class="glosharp-hover">` elements with unique `anchor-name` styles, and SHALL emit each hover's `<div class="glosharp-popup">` **inside** that span, with a matching `position-anchor` style. Popup content SHALL render the hover `parts` array with theme-colored `<span>` elements, followed by documentation text when `docs` is present.
+
+Anchor names SHALL be prefixed per fragment with a short identifier derived from the rendered code (`--gs<8 hex>-<n>`), and the `.glosharp-code` wrapper SHALL declare `anchor-scope: all`. Anchor names are document-global: two fragments on one page that both numbered from `--th-0` would make every popup anchor to the last fragment's token, wherever that is on the page. Deriving the prefix from the code keeps output byte-deterministic, which committed fixtures and content-addressed artifacts both depend on.
 
 #### Scenario: Single hover popup
 - **WHEN** a result has one hover at line 0, character 4 with text `(local variable) int x`
-- **THEN** the token at that position is wrapped in `<span class="glosharp-hover" style="anchor-name: --th-0">` and a `<div class="glosharp-popup" style="position-anchor: --th-0">` follows with the parts rendered as themed spans
+- **THEN** the token at that position is wrapped in `<span class="glosharp-hover" style="anchor-name: --gs<id>-0">` and that span contains a `<div class="glosharp-popup" style="position-anchor: --gs<id>-0">` with the parts rendered as themed spans
 
-#### Scenario: Hover popup with documentation
-- **WHEN** a hover has a `docs` object with `summary: "Gets the value."`
-- **THEN** the popup contains the type signature parts followed by a `<div class="glosharp-popup-docs">Gets the value.</div>`
+#### Scenario: Popup is reachable from its anchor
+- **WHEN** HTML is rendered
+- **THEN** every `.glosharp-popup` is a descendant of the `.glosharp-hover` whose anchor it references, and none appears after `</code></pre>`
 
 #### Scenario: Multiple hovers with unique anchors
 - **WHEN** a result has three hovers
-- **THEN** anchor names are `--th-0`, `--th-1`, `--th-2` and each popup references its corresponding anchor
+- **THEN** their anchor names share the fragment's prefix and are numbered `-0`, `-1`, `-2`, and each popup references its corresponding anchor
+
+#### Scenario: Anchor names differ between fragments
+- **WHEN** two different snippets are rendered
+- **THEN** their anchor-name prefixes differ, so both fragments can appear on one page without cross-anchoring
+
+#### Scenario: Anchor names are deterministic
+- **WHEN** the same result is rendered twice
+- **THEN** the two outputs are byte-identical
 
 ### Requirement: Render error annotations
 The renderer SHALL wrap error spans in `<span class="glosharp-error-underline glosharp-severity-{severity}">` elements, using severity-specific wavy underline colors (red for error, yellow/amber for warning, blue for info). For each error, a `<div class="glosharp-error-message glosharp-severity-{severity}">` SHALL be emitted containing the error message and code. When the error code matches `CS\d+`, the code SHALL be rendered as an `<a>` element linking to Microsoft docs. When a diagnostic spans multiple lines, underline styling SHALL be applied across all affected lines.
@@ -80,11 +93,15 @@ The renderer SHALL render completion entries as `<ul class="glosharp-completion-
 - **THEN** a `<ul class="glosharp-completion-list">` appears after line 2 with two `<li>` entries showing the method names
 
 ### Requirement: CSS popup show/hide via hover
-The inline CSS SHALL include rules that show the popup on hover: `.glosharp-hover:hover + .glosharp-popup` and `.glosharp-popup:hover` SHALL set `display: block`. Popups SHALL default to `display: none`.
+The inline CSS SHALL include rules that show the popup on hover: `.glosharp-hover:hover > .glosharp-popup` and `.glosharp-popup:hover` SHALL set `display: block`. Popups SHALL default to `display: none`. The selector SHALL match the emitted nesting — an adjacent-sibling selector cannot reach a popup that is not a sibling, and a popup that no selector can reach can never be shown.
 
 #### Scenario: Popup hidden by default
 - **WHEN** HTML is rendered
-- **THEN** the CSS includes `.glosharp-popup { display: none; }` and `.glosharp-hover:hover + .glosharp-popup, .glosharp-popup:hover { display: block; }`
+- **THEN** the CSS includes `.glosharp-popup { display: none; }` and `.glosharp-hover:hover > .glosharp-popup, .glosharp-popup:hover { display: block; }`
+
+#### Scenario: Hovering a token opens its popup in a browser
+- **WHEN** rendered output is loaded in a browser and a hover token is pointed at
+- **THEN** that token's popup becomes visible and is positioned adjacent to the token
 
 ### Requirement: CSS fallback for older browsers
 The inline CSS SHALL include an `@supports not (anchor-name: --x)` block providing absolute positioning fallback for browsers without CSS anchor support.
@@ -121,3 +138,27 @@ The `GloSharpTheme` SHALL include `WarningColor`, `WarningBackground`, `InfoColo
 #### Scenario: Github-light theme info colors
 - **WHEN** rendering with the `github-light` theme
 - **THEN** info underlines use `#0969da` and info message backgrounds use `rgba(9,105,218,0.15)`
+
+### Requirement: Code block whitespace is exactly the source's
+Line breaks inside the code block SHALL come from the newline characters between line spans and from nothing else: `.glosharp-code .line` SHALL be `display: inline`. Chromium serialises a `display: block` boundary as a newline while Firefox serialises it as nothing, so block-level lines plus real newlines double-space the block and double the newlines Chromium puts on the clipboard, while block-level lines without real newlines copy out of Firefox as a single run-on line. Inline lines plus real newlines is the only combination both browsers lay out and copy correctly.
+
+The renderer SHALL therefore emit exactly the source's newlines inside the code block — in particular a nested popup SHALL NOT be followed by one, or it breaks the line after its hover token.
+
+The cost is accepted: a line-level background (`highlight`, `add`, `remove`) ends with the text rather than spanning the block, matching what the Shiki path already does.
+
+#### Scenario: Newlines match the source
+- **WHEN** a result with hovers on several lines is rendered
+- **THEN** the markup between `<code>` and `</code></pre>` contains exactly as many newlines as the rendered source
+
+#### Scenario: Lines are single-spaced in a browser
+- **WHEN** rendered output is loaded in a browser
+- **THEN** the code block's height equals its rendered row count times one line box
+
+#### Scenario: Code copies back out unchanged
+- **WHEN** the code block's contents are selected and copied, in Chromium or Firefox
+- **THEN** the text is the source lines, one per line, without the hidden popup text
+
+#### Scenario: Line-level styling still applies
+- **WHEN** a line carries a highlight or diff class
+- **THEN** it still renders its distinguishing background
+

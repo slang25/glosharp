@@ -1,5 +1,9 @@
-## ADDED Requirements
+# syntax-classification Specification
 
+## Purpose
+Classify C# tokens with Roslyn for the standalone renderer.
+
+## Requirements
 ### Requirement: Classify C# tokens using Roslyn Classifier
 The `SyntaxClassifier` SHALL use Roslyn's `Classifier.GetClassifiedSpansAsync()` to produce classified spans for a given source text and compilation. Each span SHALL have a start position, length, and classification type.
 

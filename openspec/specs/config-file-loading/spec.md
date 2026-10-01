@@ -1,17 +1,26 @@
+# config-file-loading Specification
+
+## Purpose
+Load project-wide defaults from `glosharp.config.json`.
+## Requirements
 ### Requirement: Config file schema
-The system SHALL support a `glosharp.config.json` file with the following optional properties: `framework` (string), `project` (string), `cacheDir` (string), `noRestore` (boolean), `complog` (string), `complogProject` (string), `implicitUsings` (string array), `langVersion` (string), `nullable` (string), and `render` (object with optional `theme` and `standalone` properties).
+The system SHALL support a `glosharp.config.json` file with the following optional properties: `framework` (string), `project` (string), `cacheDir` (string), `noRestore` (boolean), `complog` (string), `complogProject` (string), and `render` (object with optional `theme` and `standalone` properties).
 
 #### Scenario: Full config file
-- **WHEN** a `glosharp.config.json` contains `{"framework": "net9.0", "project": "./Samples.csproj", "cacheDir": ".glosharp-cache", "noRestore": true, "implicitUsings": ["System", "System.Linq"], "langVersion": "13", "nullable": "enable", "render": {"theme": "github-light", "standalone": true}}`
+- **WHEN** a `glosharp.config.json` contains `{"framework": "net9.0", "project": "./Samples.csproj", "cacheDir": ".glosharp-cache", "noRestore": true, "render": {"theme": "github-light", "standalone": true}}`
 - **THEN** all properties are parsed and available to the CLI commands
 
 #### Scenario: Partial config file
 - **WHEN** a `glosharp.config.json` contains only `{"framework": "net9.0"}`
-- **THEN** only `framework` is set from config; all other options including `implicitUsings`, `langVersion`, and `nullable` use their built-in defaults
+- **THEN** only `framework` is set from config; all other options use their built-in defaults
 
 #### Scenario: Empty config file
 - **WHEN** a `glosharp.config.json` contains `{}`
 - **THEN** all options use their built-in defaults
+
+#### Scenario: Config with complog
+- **WHEN** a `glosharp.config.json` contains `{"complog": "./artifacts/build.complog", "complogProject": "MyLib"}`
+- **THEN** `complog` and `complogProject` are parsed and available to the CLI commands
 
 ### Requirement: Unknown properties ignored
 The system SHALL ignore unknown properties in `glosharp.config.json` without producing errors.
@@ -70,14 +79,14 @@ Project paths (`project`, `cacheDir`) in the config file SHALL be resolved relat
 - **THEN** the path is used as-is
 
 ### Requirement: Tolerant JSON parsing
-The config file parser SHALL allow JSON comments (`// ...`) and trailing commas in `twohash.config.json`. Property names SHALL be matched case-insensitively.
+The config file parser SHALL allow JSON comments (`// ...`) and trailing commas in `glosharp.config.json`. Property names SHALL be matched case-insensitively.
 
 #### Scenario: Config with comments
-- **WHEN** `twohash.config.json` contains `{ /* framework */ "framework": "net9.0" }`
+- **WHEN** `glosharp.config.json` contains `{ /* framework */ "framework": "net9.0" }`
 - **THEN** the comment is ignored and `framework` is parsed correctly
 
 #### Scenario: Config with trailing comma
-- **WHEN** `twohash.config.json` contains `{ "framework": "net9.0", }`
+- **WHEN** `glosharp.config.json` contains `{ "framework": "net9.0", }`
 - **THEN** the trailing comma is tolerated and `framework` is parsed correctly
 
 ### Requirement: Invalid config file produces error
@@ -101,3 +110,15 @@ The CLI SHALL accept a `--config <path>` option on all commands (`process`, `ver
 #### Scenario: Explicit config disables discovery
 - **WHEN** `glosharp process file.cs --config ./custom.json` is run and a `glosharp.config.json` exists in the file's directory
 - **THEN** only `./custom.json` is loaded; the discovered config is ignored
+
+### Requirement: Config complog path resolves relative to config file
+The `complog` path in the config file SHALL be resolved relative to the directory containing the `glosharp.config.json` file, consistent with how `project` and `cacheDir` paths are resolved.
+
+#### Scenario: Relative complog path in config
+- **WHEN** config at `/repo/glosharp.config.json` contains `{"complog": "./artifacts/build.complog"}`
+- **THEN** the complog path resolves to `/repo/artifacts/build.complog`
+
+#### Scenario: Absolute complog path in config
+- **WHEN** config contains `{"complog": "/absolute/path/build.complog"}`
+- **THEN** the path is used as-is
+

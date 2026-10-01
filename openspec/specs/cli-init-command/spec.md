@@ -1,3 +1,9 @@
+# cli-init-command Specification
+
+## Purpose
+Scaffold a `glosharp.config.json` with `glosharp init`.
+
+## Requirements
 ### Requirement: Init command creates config file
 The CLI SHALL accept an `init` command that creates a `glosharp.config.json` file in the current directory with all properties set to their default values.
 

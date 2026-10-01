@@ -1,5 +1,9 @@
-## ADDED Requirements
+# anon-type-display Specification
 
+## Purpose
+Show anonymous types in hovers as readable shapes instead of compiler-generated names.
+
+## Requirements
 ### Requirement: Detect anonymous types in hover symbols
 The system SHALL detect anonymous types in hover symbol resolution by checking `INamedTypeSymbol.IsAnonymousType` on the symbol's type. Detection SHALL apply to local variables, parameters, properties, and method return types whose type is or contains an anonymous type.
 

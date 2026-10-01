@@ -1,5 +1,9 @@
-## ADDED Requirements
+# structured-doc-extraction Specification
 
+## Purpose
+Extract XML documentation into a structured doc comment model.
+
+## Requirements
 ### Requirement: GloSharpDocComment model
 The system SHALL define a `GloSharpDocComment` class with the following fields: `summary` (string, nullable), `params` (list of name/text pairs), `returns` (string, nullable), `remarks` (string, nullable), `examples` (list of strings), and `exceptions` (list of type/text pairs). All collection fields SHALL default to empty lists.
 

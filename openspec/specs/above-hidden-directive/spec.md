@@ -1,3 +1,9 @@
+# above-hidden-directive Specification
+
+## Purpose
+Hide setup code above a marker (`---cut---` / `---cut-before---`) while still compiling it.
+
+## Requirements
 ### Requirement: Parse ---cut-before--- directive
 The system SHALL recognize `// ---cut-before---` as a directive that hides all code above it from the output while including it in compilation. `// ---cut---` SHALL be accepted as shorthand for `// ---cut-before---`.
 

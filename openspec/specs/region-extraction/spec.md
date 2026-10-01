@@ -1,5 +1,9 @@
-## ADDED Requirements
+# region-extraction Specification
 
+## Purpose
+Render a named `#region` of a larger file while compiling the whole file.
+
+## Requirements
 ### Requirement: Extract named region from source file
 The system SHALL support extracting a named `#region` block from a C# source file. When a region name is specified, only the code within that region SHALL appear in the output `code`, but the full file SHALL be compiled for accurate type resolution.
 

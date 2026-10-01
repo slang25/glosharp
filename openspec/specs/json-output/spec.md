@@ -1,5 +1,8 @@
-## ADDED Requirements
+# json-output Specification
 
+## Purpose
+The JSON result format the CLI emits and integrations consume.
+## Requirements
 ### Requirement: Top-level JSON structure
 The system SHALL output JSON with the following top-level fields: `code` (processed source), `original` (source with markers), `lang` (always `"csharp"`), `hovers`, `errors`, `completions`, `highlights`, `tags`, `hidden`, and `meta`. The `completions` array SHALL contain structured completion objects when `^|` markers are present.
 
@@ -54,7 +57,7 @@ Each error entry SHALL contain: `line` (number), `character` (number), `length` 
 - **THEN** the error object does not contain `endLine` or `endCharacter` fields
 
 ### Requirement: Meta object in JSON
-The `meta` object SHALL contain: `targetFramework` (string), `packages` (array of `{name, version}` objects), `compileSucceeded` (boolean), `sdk` (string or null), `langVersion` (string or null), and `nullable` (string or null). The `packages` array SHALL be populated from `#:package` directives when present, or from `project.assets.json` when using project-based resolution. The `sdk` field SHALL contain the SDK identifier from `#:sdk` directive, or null when not specified. The `langVersion` field SHALL contain the authored language version string when a `// @langVersion` marker is present, or null when using the default. The `nullable` field SHALL contain the authored nullable context string when a `// @nullable` marker is present, or null when using the default.
+The `meta` object SHALL contain: `targetFramework` (string), `packages` (array of `{name, version}` objects), `compileSucceeded` (boolean), `sdk` (string or null), `langVersion` (string or null), `nullable` (string or null), and `complog` (string or null). The `packages` array SHALL be populated from `#:package` directives when present, from `project.assets.json` when using project-based resolution, or from complog metadata references when using complog resolution. The `sdk` field SHALL contain the SDK identifier from `#:sdk` directive, or null when not specified. The `langVersion` field SHALL contain the authored language version string when a `// @langVersion` marker is present, or null when using the default. The `nullable` field SHALL contain the authored nullable context string when a `// @nullable` marker is present, or null when using the default. The `complog` field SHALL contain the complog file path when complog resolution was used, or null otherwise.
 
 #### Scenario: Successful compilation meta
 - **WHEN** compilation succeeds with no unexpected errors
@@ -87,6 +90,18 @@ The `meta` object SHALL contain: `targetFramework` (string), `packages` (array o
 #### Scenario: Meta without language version or nullable
 - **WHEN** source contains no `// @langVersion` or `// @nullable` markers
 - **THEN** `meta.langVersion` is null and `meta.nullable` is null (or omitted)
+
+#### Scenario: Meta with complog
+- **WHEN** `--complog build.complog` is used for resolution
+- **THEN** `meta.complog` is `"build.complog"` and `meta.targetFramework` reflects the complog's target framework
+
+#### Scenario: Meta with complog packages
+- **WHEN** complog compilation references NuGet packages `Newtonsoft.Json@13.0.3` and `Serilog@3.1.1`
+- **THEN** `meta.packages` includes both packages extracted from complog metadata
+
+#### Scenario: Meta without complog
+- **WHEN** no `--complog` option is used
+- **THEN** `meta.complog` is null or omitted from the JSON output
 
 ### Requirement: Empty arrays for unused fields
 Fields without data (`completions`, `highlights`, `tags`, `hidden`) SHALL be present as empty arrays, not omitted. When directive markers are present, the `highlights` array SHALL contain `GloSharpHighlight` objects instead of being empty. When custom tag directives are present, the `tags` array SHALL contain `GloSharpTag` objects instead of being empty.
@@ -154,3 +169,4 @@ Each tag entry SHALL contain: `name` (string, one of `"log"`, `"warn"`, `"error"
 #### Scenario: Multiple tags in output
 - **WHEN** source contains `// @warn: deprecated` and `// @annotate: use v2 instead` on different lines
 - **THEN** the `tags` array contains two entries with correct name, text, and line values
+

@@ -36,6 +36,8 @@ The inline CSS SHALL include rules that show the popup on hover: `.glosharp-hove
 - **WHEN** rendered output is loaded in a browser and a hover token is pointed at
 - **THEN** that token's popup becomes visible and is positioned adjacent to the token
 
+## ADDED Requirements
+
 ### Requirement: Code block whitespace is exactly the source's
 Line breaks inside the code block SHALL come from the newline characters between line spans and from nothing else: `.glosharp-code .line` SHALL be `display: inline`. Chromium serialises a `display: block` boundary as a newline while Firefox serialises it as nothing, so block-level lines plus real newlines double-space the block and double the newlines Chromium puts on the clipboard, while block-level lines without real newlines copy out of Firefox as a single run-on line. Inline lines plus real newlines is the only combination both browsers lay out and copy correctly.
 

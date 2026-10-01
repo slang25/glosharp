@@ -1,5 +1,9 @@
-## ADDED Requirements
+# marker-parsing Specification
 
+## Purpose
+Parse query markers, error expectations and cut markers out of snippet source.
+
+## Requirements
 ### Requirement: Parse hover query markers
 The system SHALL recognize `^?` markers in comment lines to indicate persistent hover requests. The `^` character's column position in the comment SHALL determine which token on the preceding line is targeted for a persistent (always-visible) hover display.
 

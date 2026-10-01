@@ -1,5 +1,9 @@
-## ADDED Requirements
+# auto-hover-extraction Specification
 
+## Purpose
+Produce hover information for every meaningful token, with `^?` queries marked persistent.
+
+## Requirements
 ### Requirement: Extract hovers for all semantically meaningful tokens
 The system SHALL walk all descendant tokens in the syntax tree and extract hover data for every token that resolves to a symbol via `GetSymbolInfo()` or `GetDeclaredSymbol()`. Tokens that do not resolve to any symbol SHALL be skipped. When a symbol is resolved only via the parent-walk fallback (walking up parent nodes to find a declared symbol), the system SHALL discard it if the token is a C# keyword, since keyword tokens have no meaningful symbol of their own and the parent-walk produces misleading hover info (e.g., the containing method).
 

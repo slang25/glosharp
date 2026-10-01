@@ -1,5 +1,9 @@
-## ADDED Requirements
+# block-error-suppression Specification
 
+## Purpose
+Suppress all, or specific, diagnostics for a snippet with `@suppressErrors` / `@noErrors`.
+
+## Requirements
 ### Requirement: Parse suppressErrors directive for all errors
 The system SHALL recognize `// @suppressErrors` as a block-level directive that suppresses all compilation errors for the code block. The directive line SHALL be removed from processed output and excluded from compilation code.
 
@@ -39,3 +43,7 @@ The system SHALL support both `@suppressErrors` (block-level) and `@errors` (per
 
 ### Requirement: noErrors is an alias for suppressErrors
 The system SHALL treat `@noErrors` as a twoslash-compatible alias for `@suppressErrors`. Both directives MAY be present simultaneously without conflict.
+
+#### Scenario: noErrors suppresses all errors
+- **WHEN** source contains `// @noErrors` and the code has a CS0029 error
+- **THEN** no errors are reported, exactly as with a bare `// @suppressErrors`

@@ -1,5 +1,9 @@
-## ADDED Requirements
+# shiki-transformer Specification
 
+## Purpose
+The `@glosharp/shiki` transformer that injects hovers, errors and completions into Shiki output.
+
+## Requirements
 ### Requirement: Detect glosharp code blocks in preprocess
 The `preprocess` hook SHALL detect code blocks with language `csharp` (or `cs`) that contain glosharp markers. Non-glosharp code blocks SHALL be passed through unchanged.
 

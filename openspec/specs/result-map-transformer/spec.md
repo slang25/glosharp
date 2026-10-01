@@ -1,5 +1,9 @@
-## ADDED Requirements
+# result-map-transformer Specification
 
+## Purpose
+Shiki transformer that applies pre-computed results looked up by code hash.
+
+## Requirements
 ### Requirement: Export map-based transformer factory
 The package SHALL export a `transformerGloSharpFromMap(resultMap)` function that accepts a `GloSharpResultMap` and returns a `ShikiTransformer`.
 

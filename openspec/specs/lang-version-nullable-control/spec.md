@@ -1,5 +1,9 @@
-## ADDED Requirements
+# lang-version-nullable-control Specification
 
+## Purpose
+Per-snippet language version and nullable context via `@langVersion` / `@nullable`.
+
+## Requirements
 ### Requirement: Parse langVersion marker
 The system SHALL recognize `// @langVersion: <value>` comment lines as configuration markers. The value SHALL be case-insensitive and support numeric versions (`7`, `7.1`, `8`, `9`, `10`, `11`, `12`, `13`) and named versions (`latest`, `preview`, `default`). The marker line SHALL be stripped from processed output and excluded from compilation code.
 

@@ -1,5 +1,9 @@
-## ADDED Requirements
+# severity-styling Specification
 
+## Purpose
+Style errors, warnings and info diagnostics distinctly in every renderer.
+
+## Requirements
 ### Requirement: Severity-specific visual styling
 All renderers SHALL use distinct colors for each diagnostic severity level: error (red), warning (yellow/amber), and info (blue). The wavy underline color, error message border/background, and error code text SHALL all reflect the severity of the diagnostic.
 

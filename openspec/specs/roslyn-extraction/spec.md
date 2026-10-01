@@ -1,5 +1,9 @@
-## ADDED Requirements
+# roslyn-extraction Specification
 
+## Purpose
+Compile snippets with Roslyn and extract symbol and diagnostic information.
+
+## Requirements
 ### Requirement: Compile C# source with Roslyn
 The system SHALL parse C# source using `CSharpSyntaxTree.ParseText()` and create a `CSharpCompilation` with framework reference assemblies. The compilation SHALL use `OutputKind.ConsoleApplication` to support top-level statements.
 
