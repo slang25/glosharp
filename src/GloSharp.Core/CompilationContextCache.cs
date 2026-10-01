@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -5,18 +6,35 @@ using Microsoft.CodeAnalysis;
 
 namespace GloSharp.Core;
 
+/// <summary>
+/// In-memory cache of resolved compilation context (references, complog resolutions) shared by
+/// every snippet processed through one <see cref="GloSharpProcessor"/>. Thread-safe: concurrent
+/// callers for the same key share a single factory invocation. A factory that throws is not
+/// cached, so a later call can retry.
+/// </summary>
 public class CompilationContextCache
 {
-    private readonly Dictionary<string, List<MetadataReference>> _cache = new();
+    private readonly ConcurrentDictionary<string, Lazy<object>> _cache = new(StringComparer.Ordinal);
 
-    public List<MetadataReference> GetOrAdd(string key, Func<List<MetadataReference>> factory)
+    public List<MetadataReference> GetOrAdd(string key, Func<List<MetadataReference>> factory) =>
+        GetOrAdd<List<MetadataReference>>(key, factory);
+
+    public T GetOrAdd<T>(string key, Func<T> factory) where T : class
     {
-        if (_cache.TryGetValue(key, out var cached))
-            return cached;
+        // Namespace keys by type so two kinds of value can never collide on one key
+        var typedKey = typeof(T).FullName + "\0" + key;
+        var lazy = _cache.GetOrAdd(typedKey,
+            _ => new Lazy<object>(() => factory(), LazyThreadSafetyMode.ExecutionAndPublication));
 
-        var references = factory();
-        _cache[key] = references;
-        return references;
+        try
+        {
+            return (T)lazy.Value;
+        }
+        catch
+        {
+            _cache.TryRemove(new KeyValuePair<string, Lazy<object>>(typedKey, lazy));
+            throw;
+        }
     }
 
     public static string ComputeKey(

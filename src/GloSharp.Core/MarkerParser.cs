@@ -1,10 +1,35 @@
 using System.Text.RegularExpressions;
+using Microsoft.CodeAnalysis.CSharp;
 
 namespace GloSharp.Core;
 
-public record HoverQuery(int OriginalLine, int Column);
-public record CompletionQuery(int OriginalLine, int Column);
-public record ErrorExpectation(int OriginalLine, List<string> Codes);
+// Line-index naming used in this file:
+// - "input line": 0-based line of the text handed to MarkerParser.Parse.
+// - "processed line": 0-based line of MarkerParseResult.ProcessedCode (what is rendered).
+// - "compilation line": 0-based line of MarkerParseResult.CompilationCode (what is compiled).
+// For historical reasons the records below call their (remapped) processed line "OriginalLine".
+
+public record HoverQuery(int OriginalLine, int Column)
+{
+    /// <summary>Input line of the <c>^?</c> marker itself, or -1.</summary>
+    public int MarkerInputLine { get; init; } = -1;
+}
+
+public record CompletionQuery(int OriginalLine, int Column)
+{
+    /// <summary>Input line of the <c>^|</c> marker itself, or -1.</summary>
+    public int MarkerInputLine { get; init; } = -1;
+}
+
+/// <summary>
+/// An <c>// @errors:</c> expectation. <see cref="OriginalLine"/> is the processed line of the
+/// target (or -1 when the target is hidden); <see cref="InputLine"/> is the target's input line.
+/// </summary>
+public record ErrorExpectation(int OriginalLine, List<string> Codes)
+{
+    public int InputLine { get; init; } = -1;
+}
+
 public record HighlightDirective(string Kind, int TargetOriginalLine);
 public record TagDirective(string Name, string Text, int TargetOriginalLine);
 
@@ -20,30 +45,74 @@ public class MarkerParseResult
     public required List<HiddenRange> HiddenRanges { get; init; }
     public required List<HighlightDirective> Highlights { get; init; }
     public required List<TagDirective> Tags { get; init; }
-    public required int[] LineMap { get; init; } // processedLine -> originalLine
+    public required int[] LineMap { get; init; } // processedLine -> input line
     public string? LangVersion { get; init; }
     public string? Nullable { get; init; }
+
+    /// <summary>Input line of the <c>@langVersion</c> directive that set <see cref="LangVersion"/>, or -1.</summary>
+    public int LangVersionLine { get; init; } = -1;
+
+    /// <summary>Input line of the <c>@nullable</c> directive that set <see cref="Nullable"/>, or -1.</summary>
+    public int NullableLine { get; init; } = -1;
+
+    /// <summary>All non-marker lines, including hidden ones — the text that gets compiled.</summary>
+    public string CompilationCode { get; init; } = "";
+
+    /// <summary>compilation line -> input line.</summary>
+    public int[] CompilationLineMap { get; init; } = [];
+
+    /// <summary>input line -> processed line, or -1 for marker and hidden lines.</summary>
+    public int[] InputLineToProcessed { get; init; } = [];
+
+    /// <summary>input line -> compilation line, or -1 for marker lines.</summary>
+    public int[] InputLineToCompilation { get; init; } = [];
 }
 
+/// <summary>An inclusive range of hidden input lines.</summary>
 public record HiddenRange(int StartLine, int EndLine);
 
 public static partial class MarkerParser
 {
-    private static readonly Regex HoverMarkerRegex = HoverMarkerPattern();
-    private static readonly Regex CompletionMarkerRegex = CompletionMarkerPattern();
-    private static readonly Regex ErrorsDirectiveRegex = ErrorsDirectivePattern();
-    private static readonly Regex NoErrorsDirectiveRegex = NoErrorsDirectivePattern();
-    private static readonly Regex SuppressErrorsDirectiveRegex = SuppressErrorsDirectivePattern();
-    private static readonly Regex CutBeforeMarkerRegex = CutBeforeMarkerPattern();
-    private static readonly Regex CutAfterMarkerRegex = CutAfterMarkerPattern();
-    private static readonly Regex CutStartDirectiveRegex = CutStartDirectivePattern();
-    private static readonly Regex CutEndDirectiveRegex = CutEndDirectivePattern();
-    private static readonly Regex HighlightDirectiveRegex = HighlightDirectivePattern();
-    private static readonly Regex FocusDirectiveRegex = FocusDirectivePattern();
-    private static readonly Regex DiffDirectiveRegex = DiffDirectivePattern();
-    private static readonly Regex LangVersionDirectiveRegex = LangVersionDirectivePattern();
-    private static readonly Regex NullableDirectiveRegex = NullableDirectivePattern();
-    private static readonly Regex CustomTagDirectiveRegex = CustomTagDirectivePattern();
+    private enum MarkerKind
+    {
+        None,
+        Hover,
+        Completion,
+        Errors,
+        NoErrors,
+        SuppressErrors,
+        CutBefore,
+        CutAfter,
+        CutStart,
+        CutEnd,
+        Highlight,
+        Focus,
+        Diff,
+        LangVersion,
+        Nullable,
+        Tag,
+    }
+
+    private static readonly (MarkerKind Kind, Regex Regex)[] MarkerPatterns =
+    [
+        (MarkerKind.Hover, HoverMarkerPattern()),
+        (MarkerKind.Completion, CompletionMarkerPattern()),
+        (MarkerKind.Errors, ErrorsDirectivePattern()),
+        (MarkerKind.NoErrors, NoErrorsDirectivePattern()),
+        (MarkerKind.SuppressErrors, SuppressErrorsDirectivePattern()),
+        (MarkerKind.CutBefore, CutBeforeMarkerPattern()),
+        (MarkerKind.CutAfter, CutAfterMarkerPattern()),
+        (MarkerKind.CutStart, CutStartDirectivePattern()),
+        (MarkerKind.CutEnd, CutEndDirectivePattern()),
+        (MarkerKind.LangVersion, LangVersionDirectivePattern()),
+        (MarkerKind.Nullable, NullableDirectivePattern()),
+        (MarkerKind.Tag, CustomTagDirectivePattern()),
+        (MarkerKind.Highlight, HighlightDirectivePattern()),
+        (MarkerKind.Focus, FocusDirectivePattern()),
+        (MarkerKind.Diff, DiffDirectivePattern()),
+    ];
+
+    private static readonly char[] CodeSeparators = [',', ' ', '\t', ';'];
 
     [GeneratedRegex(@"^(\s*)//\s*\^(\?)")]
     private static partial Regex HoverMarkerPattern();
@@ -90,346 +159,269 @@ public static partial class MarkerParser
     [GeneratedRegex(@"^\s*//\s*@(log|warn|error|annotate):\s*(\S.*?)\s*$")]
     private static partial Regex CustomTagDirectivePattern();
 
-    public static MarkerParseResult Parse(string source)
+    public static MarkerParseResult Parse(string source) => Parse(source, null);
+
+    /// <summary>
+    /// Parses markers in <paramref name="source"/>.
+    /// </summary>
+    /// <param name="source">Snippet text (after <c>#:</c> directive stripping).</param>
+    /// <param name="hiddenLines">
+    /// Optional per-line mask of additional lines to hide from the output while still compiling
+    /// them (used for <c>--region</c>). Indexed like <c>source.Split('\n')</c>.
+    /// </param>
+    public static MarkerParseResult Parse(string source, bool[]? hiddenLines)
     {
         var lines = source.Split('\n');
+        var (kinds, matches) = ClassifyLines(source, lines);
+
+        var isMarkerLine = new bool[lines.Length];
+        for (var i = 0; i < lines.Length; i++)
+            isMarkerLine[i] = kinds[i] != MarkerKind.None;
+
         var hoverQueries = new List<HoverQuery>();
         var completionQueries = new List<CompletionQuery>();
-        var errorExpectations = new List<ErrorExpectation>();
-        var hiddenRanges = new List<HiddenRange>();
-        var highlights = new List<HighlightDirective>();
-        var tags = new List<TagDirective>();
+        var errorExpectations = new List<(int TargetLine, List<string> Codes)>();
+        var highlights = new List<HighlightDirective>(); // TargetOriginalLine = input line until remapped
+        var tags = new List<TagDirective>();             // TargetOriginalLine = directive's input line until remapped
         var suppressAllErrors = false;
         var suppressedErrorCodes = new List<string>();
         string? langVersion = null;
         string? nullable = null;
+        var langVersionLine = -1;
+        var nullableLine = -1;
 
-        // Track range-based directives to resolve after line mapping
-        var rangeDirectives = new List<(string Kind, int StartLine, int EndLine)>(); // 1-based output lines
+        // Range-based directives use 1-based output line numbers; resolved after line mapping
+        var rangeDirectives = new List<(string Kind, int StartLine, int EndLine)>();
 
-        // First pass: identify marker lines and collect metadata
-        var isMarkerLine = new bool[lines.Length];
         var cutBeforeLine = -1;
         var cutAfterLine = -1;
         var cutStartLine = -1;
+        var cutDepth = 0;
         var isHiddenLine = new bool[lines.Length];
+
+        if (hiddenLines != null)
+        {
+            for (var i = 0; i < lines.Length && i < hiddenLines.Length; i++)
+                isHiddenLine[i] = hiddenLines[i];
+        }
 
         for (var i = 0; i < lines.Length; i++)
         {
             var line = lines[i];
+            var match = matches[i];
 
-            // ^? hover query
-            var hoverMatch = HoverMarkerRegex.Match(line);
-            if (hoverMatch.Success)
+            switch (kinds[i])
             {
-                var caretCol = line.IndexOf('^');
-                if (caretCol >= 0)
+                case MarkerKind.Hover:
+                case MarkerKind.Completion:
                 {
-                    // The hover targets the preceding code line
-                    // We need to find the preceding non-marker line
-                    var targetOriginalLine = FindPrecedingCodeLine(lines, isMarkerLine, i);
-                    if (targetOriginalLine >= 0)
+                    // The caret targets the nearest preceding non-marker line
+                    var caretCol = line.IndexOf('^');
+                    var target = FindPrecedingCodeLine(isMarkerLine, i);
+                    if (caretCol >= 0 && target >= 0)
                     {
-                        hoverQueries.Add(new HoverQuery(targetOriginalLine, caretCol));
+                        if (kinds[i] == MarkerKind.Hover)
+                            hoverQueries.Add(new HoverQuery(target, caretCol) { MarkerInputLine = i });
+                        else
+                            completionQueries.Add(new CompletionQuery(target, caretCol) { MarkerInputLine = i });
                     }
+                    break;
                 }
-                isMarkerLine[i] = true;
-                continue;
-            }
 
-            // ^| completion query
-            var completionMatch = CompletionMarkerRegex.Match(line);
-            if (completionMatch.Success)
-            {
-                var caretCol = line.IndexOf('^');
-                if (caretCol >= 0)
+                case MarkerKind.Errors:
                 {
-                    var targetOriginalLine = FindPrecedingCodeLine(lines, isMarkerLine, i);
-                    if (targetOriginalLine >= 0)
-                    {
-                        completionQueries.Add(new CompletionQuery(targetOriginalLine, caretCol));
-                    }
+                    // Error expectations apply to the next code line
+                    var codes = SplitCodes(match!.Groups[1].Value);
+                    var target = FindNextCodeLine(isMarkerLine, i);
+                    if (target >= 0 && codes.Count > 0)
+                        errorExpectations.Add((target, codes));
+                    break;
                 }
-                isMarkerLine[i] = true;
-                continue;
-            }
 
-            // @errors: CS1002, CS0246
-            var errorsMatch = ErrorsDirectiveRegex.Match(line);
-            if (errorsMatch.Success)
-            {
-                var codes = errorsMatch.Groups[1].Value
-                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                    .ToList();
-                // Error expectations apply to the next code line
-                var targetLine = FindNextCodeLine(lines, isMarkerLine, i);
-                if (targetLine >= 0)
-                {
-                    errorExpectations.Add(new ErrorExpectation(targetLine, codes));
-                }
-                isMarkerLine[i] = true;
-                continue;
-            }
-
-            // @noErrors (twoslash-compatible alias for @suppressErrors)
-            if (NoErrorsDirectiveRegex.IsMatch(line))
-            {
-                suppressAllErrors = true;
-                isMarkerLine[i] = true;
-                continue;
-            }
-
-            // @suppressErrors or @suppressErrors: CS0246, CS0103
-            var suppressMatch = SuppressErrorsDirectiveRegex.Match(line);
-            if (suppressMatch.Success)
-            {
-                var codesArg = suppressMatch.Groups[1].Value.Trim();
-                if (string.IsNullOrEmpty(codesArg))
-                {
+                case MarkerKind.NoErrors:
                     suppressAllErrors = true;
-                }
-                else
+                    break;
+
+                case MarkerKind.SuppressErrors:
                 {
-                    var codes = codesArg
-                        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                        .ToList();
-                    suppressedErrorCodes.AddRange(codes);
+                    var codes = SplitCodes(match!.Groups[1].Value);
+                    if (codes.Count == 0)
+                        suppressAllErrors = true;
+                    else
+                        suppressedErrorCodes.AddRange(codes);
+                    break;
                 }
-                isMarkerLine[i] = true;
-                continue;
-            }
 
-            // ---cut--- or ---cut-before--- (first occurrence wins)
-            if (CutBeforeMarkerRegex.IsMatch(line))
-            {
-                if (cutBeforeLine < 0)
-                    cutBeforeLine = i;
-                isMarkerLine[i] = true;
-                continue;
-            }
+                case MarkerKind.CutBefore:
+                    // First occurrence wins
+                    if (cutBeforeLine < 0)
+                        cutBeforeLine = i;
+                    break;
 
-            // ---cut-after---
-            if (CutAfterMarkerRegex.IsMatch(line))
-            {
-                if (cutAfterLine < 0)
-                    cutAfterLine = i;
-                isMarkerLine[i] = true;
-                continue;
-            }
+                case MarkerKind.CutAfter:
+                    if (cutAfterLine < 0)
+                        cutAfterLine = i;
+                    break;
 
-            // ---cut-start---
-            if (CutStartDirectiveRegex.IsMatch(line))
-            {
-                cutStartLine = i;
-                isMarkerLine[i] = true;
-                continue;
-            }
+                case MarkerKind.CutStart:
+                    // Cut blocks nest: only the outermost start/end pair defines the hidden range
+                    if (cutDepth == 0)
+                        cutStartLine = i;
+                    cutDepth++;
+                    break;
 
-            // ---cut-end---
-            if (CutEndDirectiveRegex.IsMatch(line))
-            {
-                if (cutStartLine >= 0)
+                case MarkerKind.CutEnd:
+                    if (cutDepth > 0)
+                    {
+                        cutDepth--;
+                        if (cutDepth == 0)
+                        {
+                            for (var h = cutStartLine; h <= i; h++)
+                                isHiddenLine[h] = true;
+                            cutStartLine = -1;
+                        }
+                    }
+                    break;
+
+                case MarkerKind.LangVersion:
+                    langVersion = match!.Groups[1].Value.Trim().ToLowerInvariant();
+                    langVersionLine = i;
+                    break;
+
+                case MarkerKind.Nullable:
+                    nullable = match!.Groups[1].Value.Trim().ToLowerInvariant();
+                    nullableLine = i;
+                    break;
+
+                case MarkerKind.Tag:
+                    // Keep the directive's own line so remapping can resolve it to the nearest
+                    // preceding processed line, even if the preceding code line is hidden.
+                    tags.Add(new TagDirective(match!.Groups[1].Value, match.Groups[2].Value.Trim(), i));
+                    break;
+
+                case MarkerKind.Highlight:
+                case MarkerKind.Focus:
                 {
-                    for (var h = cutStartLine; h <= i; h++)
-                        isHiddenLine[h] = true;
-                    hiddenRanges.Add(new HiddenRange(cutStartLine, i));
-                    cutStartLine = -1;
+                    var kind = kinds[i] == MarkerKind.Highlight ? "highlight" : "focus";
+                    var arg = match!.Groups[1].Value.Trim();
+                    if (string.IsNullOrEmpty(arg))
+                    {
+                        // Bare directive — targets next code line
+                        var target = FindNextCodeLine(isMarkerLine, i);
+                        if (target >= 0)
+                            highlights.Add(new HighlightDirective(kind, target));
+                    }
+                    else
+                    {
+                        ParseLineRange(arg, kind, rangeDirectives);
+                    }
+                    break;
                 }
-                isMarkerLine[i] = true;
-                continue;
-            }
 
-            // @langVersion: <value>
-            var langVersionMatch = LangVersionDirectiveRegex.Match(line);
-            if (langVersionMatch.Success)
-            {
-                langVersion = langVersionMatch.Groups[1].Value.Trim().ToLowerInvariant();
-                isMarkerLine[i] = true;
-                continue;
-            }
-
-            // @nullable: <value>
-            var nullableMatch = NullableDirectiveRegex.Match(line);
-            if (nullableMatch.Success)
-            {
-                nullable = nullableMatch.Groups[1].Value.Trim().ToLowerInvariant();
-                isMarkerLine[i] = true;
-                continue;
-            }
-
-            // @log: message, @warn: message, @error: message, @annotate: message
-            var tagMatch = CustomTagDirectiveRegex.Match(line);
-            if (tagMatch.Success)
-            {
-                var tagName = tagMatch.Groups[1].Value;
-                var tagText = tagMatch.Groups[2].Value.Trim();
-                // Preserve the directive's own line index so remapping can resolve
-                // it to the nearest preceding processed line, even if the immediately
-                // preceding original code line is later hidden.
-                tags.Add(new TagDirective(tagName, tagText, i));
-                isMarkerLine[i] = true;
-                continue;
-            }
-
-            // @highlight or @highlight: N or @highlight: N-M
-            var highlightMatch = HighlightDirectiveRegex.Match(line);
-            if (highlightMatch.Success)
-            {
-                var arg = highlightMatch.Groups[1].Value.Trim();
-                if (string.IsNullOrEmpty(arg))
+                case MarkerKind.Diff:
                 {
-                    // Bare @highlight — targets next code line
-                    var targetLine = FindNextCodeLine(lines, isMarkerLine, i);
-                    if (targetLine >= 0)
-                        highlights.Add(new HighlightDirective("highlight", targetLine));
+                    var kind = match!.Groups[1].Value == "+" ? "add" : "remove";
+                    var target = FindNextCodeLine(isMarkerLine, i);
+                    if (target >= 0)
+                        highlights.Add(new HighlightDirective(kind, target));
+                    break;
                 }
-                else
-                {
-                    // Range argument — store for resolution after line mapping
-                    ParseLineRange(arg, "highlight", rangeDirectives);
-                }
-                isMarkerLine[i] = true;
-                continue;
-            }
-
-            // @focus or @focus: N or @focus: N-M
-            var focusMatch = FocusDirectiveRegex.Match(line);
-            if (focusMatch.Success)
-            {
-                var arg = focusMatch.Groups[1].Value.Trim();
-                if (string.IsNullOrEmpty(arg))
-                {
-                    var targetLine = FindNextCodeLine(lines, isMarkerLine, i);
-                    if (targetLine >= 0)
-                        highlights.Add(new HighlightDirective("focus", targetLine));
-                }
-                else
-                {
-                    ParseLineRange(arg, "focus", rangeDirectives);
-                }
-                isMarkerLine[i] = true;
-                continue;
-            }
-
-            // @diff: + or @diff: -
-            var diffMatch = DiffDirectiveRegex.Match(line);
-            if (diffMatch.Success)
-            {
-                var sign = diffMatch.Groups[1].Value;
-                var kind = sign == "+" ? "add" : "remove";
-                var targetLine = FindNextCodeLine(lines, isMarkerLine, i);
-                if (targetLine >= 0)
-                    highlights.Add(new HighlightDirective(kind, targetLine));
-                isMarkerLine[i] = true;
-                continue;
             }
         }
 
-        // If ---cut-start--- was never closed, hide to end of file
-        if (cutStartLine >= 0)
+        // An unclosed ---cut-start--- hides to end of file
+        if (cutDepth > 0)
         {
             for (var h = cutStartLine; h < lines.Length; h++)
                 isHiddenLine[h] = true;
-            hiddenRanges.Add(new HiddenRange(cutStartLine, lines.Length - 1));
         }
 
-        // If there's a cut-before marker, everything before it (inclusive) is hidden
+        // Everything up to and including a cut-before marker is hidden
         if (cutBeforeLine >= 0)
         {
             for (var h = 0; h <= cutBeforeLine; h++)
                 isHiddenLine[h] = true;
-            hiddenRanges.Insert(0, new HiddenRange(0, cutBeforeLine));
         }
 
-        // If there's a cut-after marker, everything after it (inclusive) is hidden
+        // Everything from a cut-after marker onwards is hidden
         if (cutAfterLine >= 0)
         {
             for (var h = cutAfterLine; h < lines.Length; h++)
                 isHiddenLine[h] = true;
-            hiddenRanges.Add(new HiddenRange(cutAfterLine, lines.Length - 1));
         }
 
-        // Build processed code: remove marker lines and hidden lines
+        // Build processed + compilation code and the line maps (all O(1) lookups afterwards)
         var processedLines = new List<string>();
-        var lineMap = new List<int>(); // processedLine -> originalLine
+        var lineMap = new List<int>();
+        var compilationLines = new List<string>();
+        var compilationLineMap = new List<int>();
+        var inputToProcessed = new int[lines.Length];
+        var inputToCompilation = new int[lines.Length];
+        // For each input line, the processed line at or before it (-1 if none)
+        var precedingProcessed = new int[lines.Length];
 
         for (var i = 0; i < lines.Length; i++)
         {
-            if (isMarkerLine[i] || isHiddenLine[i])
-                continue;
+            if (isMarkerLine[i])
+            {
+                inputToCompilation[i] = -1;
+            }
+            else
+            {
+                inputToCompilation[i] = compilationLines.Count;
+                compilationLines.Add(lines[i]);
+                compilationLineMap.Add(i);
+            }
 
-            processedLines.Add(lines[i]);
-            lineMap.Add(i);
+            if (isMarkerLine[i] || isHiddenLine[i])
+            {
+                inputToProcessed[i] = -1;
+            }
+            else
+            {
+                inputToProcessed[i] = processedLines.Count;
+                processedLines.Add(lines[i]);
+                lineMap.Add(i);
+            }
+
+            precedingProcessed[i] = processedLines.Count - 1;
         }
 
-        // Resolve range-based directives (1-based output line numbers → 0-based processed lines)
+        // Resolve range-based directives (1-based output line numbers → input lines)
         foreach (var (kind, startLine, endLine) in rangeDirectives)
         {
             for (var lineNum = startLine; lineNum <= endLine; lineNum++)
             {
-                var processedLine = lineNum - 1; // 1-based → 0-based
+                var processedLine = lineNum - 1;
                 if (processedLine >= 0 && processedLine < processedLines.Count)
-                {
-                    // Store as a HighlightDirective with the original line from lineMap
-                    // so it gets remapped correctly below
                     highlights.Add(new HighlightDirective(kind, lineMap[processedLine]));
-                }
             }
         }
 
-        // Remap hover queries from original line to processed line
-        var remappedQueries = new List<HoverQuery>();
-        foreach (var query in hoverQueries)
-        {
-            var processedLine = lineMap.IndexOf(query.OriginalLine);
-            if (processedLine >= 0)
-            {
-                remappedQueries.Add(new HoverQuery(processedLine, query.Column));
-            }
-        }
+        var remappedQueries = hoverQueries
+            .Where(q => inputToProcessed[q.OriginalLine] >= 0)
+            .Select(q => q with { OriginalLine = inputToProcessed[q.OriginalLine] })
+            .ToList();
 
-        // Remap completion queries
-        var remappedCompletions = new List<CompletionQuery>();
-        foreach (var query in completionQueries)
-        {
-            var processedLine = lineMap.IndexOf(query.OriginalLine);
-            if (processedLine >= 0)
-            {
-                remappedCompletions.Add(new CompletionQuery(processedLine, query.Column));
-            }
-        }
+        var remappedCompletions = completionQueries
+            .Where(q => inputToProcessed[q.OriginalLine] >= 0)
+            .Select(q => q with { OriginalLine = inputToProcessed[q.OriginalLine] })
+            .ToList();
 
-        // Remap error expectations
-        var remappedErrors = new List<ErrorExpectation>();
-        foreach (var err in errorExpectations)
-        {
-            var processedLine = lineMap.IndexOf(err.OriginalLine);
-            if (processedLine >= 0)
-            {
-                remappedErrors.Add(new ErrorExpectation(processedLine, err.Codes));
-            }
-        }
+        // Expectations are kept even when their target is hidden (OriginalLine = -1) so that
+        // errors in hidden code can still be marked as expected.
+        var remappedErrors = errorExpectations
+            .Select(e => new ErrorExpectation(inputToProcessed[e.TargetLine], e.Codes) { InputLine = e.TargetLine })
+            .ToList();
 
-        // Remap highlight directives
-        var remappedHighlights = new List<HighlightDirective>();
-        foreach (var hl in highlights)
-        {
-            var processedLine = lineMap.IndexOf(hl.TargetOriginalLine);
-            if (processedLine >= 0)
-            {
-                remappedHighlights.Add(new HighlightDirective(hl.Kind, processedLine));
-            }
-        }
+        var remappedHighlights = highlights
+            .Where(h => inputToProcessed[h.TargetOriginalLine] >= 0)
+            .Select(h => new HighlightDirective(h.Kind, inputToProcessed[h.TargetOriginalLine]))
+            .ToList();
 
-        // Remap tag directives — resolve each tag's original line index to the
-        // nearest preceding processed line. This handles tags after @cut markers
-        // where the immediately preceding code line may be hidden.
-        var remappedTags = new List<TagDirective>();
-        foreach (var tag in tags)
-        {
-            var processedLine = FindPrecedingProcessedLine(lineMap, tag.TargetOriginalLine);
-            remappedTags.Add(new TagDirective(tag.Name, tag.Text, processedLine >= 0 ? processedLine : 0));
-        }
+        var remappedTags = tags
+            .Select(t => new TagDirective(t.Name, t.Text, Math.Max(0, precedingProcessed[t.TargetOriginalLine])))
+            .ToList();
 
         return new MarkerParseResult
         {
@@ -440,48 +432,106 @@ public static partial class MarkerParser
             ErrorExpectations = remappedErrors,
             SuppressAllErrors = suppressAllErrors,
             SuppressedErrorCodes = suppressedErrorCodes,
-            HiddenRanges = hiddenRanges,
+            HiddenRanges = BuildHiddenRanges(isHiddenLine),
             Highlights = remappedHighlights,
             Tags = remappedTags,
             LineMap = lineMap.ToArray(),
             LangVersion = langVersion,
             Nullable = nullable,
+            LangVersionLine = langVersionLine,
+            NullableLine = nullableLine,
+            CompilationCode = string.Join('\n', compilationLines),
+            CompilationLineMap = compilationLineMap.ToArray(),
+            InputLineToProcessed = inputToProcessed,
+            InputLineToCompilation = inputToCompilation,
         };
     }
 
     /// <summary>
     /// For compilation, we need all lines including hidden ones but without marker lines.
     /// </summary>
-    public static string GetCompilationCode(string source)
+    public static string GetCompilationCode(string source) => Parse(source).CompilationCode;
+
+    /// <summary>
+    /// Splits an <c>@errors</c>/<c>@suppressErrors</c> argument. Codes may be separated by commas
+    /// and/or whitespace (twoslash style), e.g. <c>CS0029, CS1503</c> or <c>CS0029 CS1503</c>.
+    /// </summary>
+    internal static List<string> SplitCodes(string value) =>
+        value.Split(CodeSeparators, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
+    /// <summary>
+    /// Classifies every line as a marker kind (or None). A line that matches a marker pattern is
+    /// only treated as a marker if its <c>//</c> really starts a comment — lines inside string
+    /// literals (raw, verbatim, interpolated) are code and are left alone.
+    /// </summary>
+    private static (MarkerKind[] Kinds, Match?[] Matches) ClassifyLines(string source, string[] lines)
     {
-        var lines = source.Split('\n');
-        var compilationLines = new List<string>();
+        var kinds = new MarkerKind[lines.Length];
+        var matches = new Match?[lines.Length];
+        var anyMarker = false;
 
         for (var i = 0; i < lines.Length; i++)
         {
-            var line = lines[i];
-            if (HoverMarkerRegex.IsMatch(line) ||
-                CompletionMarkerRegex.IsMatch(line) ||
-                ErrorsDirectiveRegex.IsMatch(line) ||
-                NoErrorsDirectiveRegex.IsMatch(line) ||
-                SuppressErrorsDirectiveRegex.IsMatch(line) ||
-                CutBeforeMarkerRegex.IsMatch(line) ||
-                CutAfterMarkerRegex.IsMatch(line) ||
-                CutStartDirectiveRegex.IsMatch(line) ||
-                CutEndDirectiveRegex.IsMatch(line) ||
-                HighlightDirectiveRegex.IsMatch(line) ||
-                FocusDirectiveRegex.IsMatch(line) ||
-                DiffDirectiveRegex.IsMatch(line) ||
-                LangVersionDirectiveRegex.IsMatch(line) ||
-                NullableDirectiveRegex.IsMatch(line) ||
-                CustomTagDirectiveRegex.IsMatch(line))
+            foreach (var (kind, regex) in MarkerPatterns)
             {
-                continue;
+                var m = regex.Match(lines[i]);
+                if (m.Success)
+                {
+                    kinds[i] = kind;
+                    matches[i] = m;
+                    anyMarker = true;
+                    break;
+                }
             }
-            compilationLines.Add(line);
         }
 
-        return string.Join('\n', compilationLines);
+        if (!anyMarker)
+            return (kinds, matches);
+
+        // Only pay for a parse if a line could be inside a multi-line string literal.
+        if (!source.Contains("\"\"\"") && !source.Contains("@\"") && !source.Contains("$\""))
+            return (kinds, matches);
+
+        var root = CSharpSyntaxTree.ParseText(source).GetRoot();
+        var lineStart = 0;
+        for (var i = 0; i < lines.Length; i++)
+        {
+            if (kinds[i] != MarkerKind.None)
+            {
+                var commentStart = lineStart + lines[i].IndexOf("//", StringComparison.Ordinal);
+                var token = root.FindToken(commentStart);
+                if (token.Span.Contains(commentStart))
+                {
+                    kinds[i] = MarkerKind.None;
+                    matches[i] = null;
+                }
+            }
+            lineStart += lines[i].Length + 1;
+        }
+
+        return (kinds, matches);
+    }
+
+    private static List<HiddenRange> BuildHiddenRanges(bool[] isHiddenLine)
+    {
+        var ranges = new List<HiddenRange>();
+        var start = -1;
+        for (var i = 0; i <= isHiddenLine.Length; i++)
+        {
+            var hidden = i < isHiddenLine.Length && isHiddenLine[i];
+            if (hidden && start < 0)
+            {
+                start = i;
+            }
+            else if (!hidden && start >= 0)
+            {
+                ranges.Add(new HiddenRange(start, i - 1));
+                start = -1;
+            }
+        }
+        return ranges;
     }
 
     private static void ParseLineRange(string arg, string kind, List<(string Kind, int StartLine, int EndLine)> rangeDirectives)
@@ -500,7 +550,7 @@ public static partial class MarkerParser
         }
     }
 
-    private static int FindPrecedingCodeLine(string[] lines, bool[] isMarkerLine, int fromLine)
+    private static int FindPrecedingCodeLine(bool[] isMarkerLine, int fromLine)
     {
         for (var i = fromLine - 1; i >= 0; i--)
         {
@@ -510,47 +560,12 @@ public static partial class MarkerParser
         return -1;
     }
 
-    /// <summary>
-    /// Find the nearest preceding processed line for an original line index.
-    /// Walks backward through lineMap entries to find one at or before the given original line.
-    /// </summary>
-    private static int FindPrecedingProcessedLine(List<int> lineMap, int originalLine)
+    private static int FindNextCodeLine(bool[] isMarkerLine, int fromLine)
     {
-        var best = -1;
-        for (var i = 0; i < lineMap.Count; i++)
+        for (var i = fromLine + 1; i < isMarkerLine.Length; i++)
         {
-            if (lineMap[i] <= originalLine)
-                best = i;
-        }
-        return best;
-    }
-
-    private static int FindNextCodeLine(string[] lines, bool[] isMarkerLine, int fromLine)
-    {
-        for (var i = fromLine + 1; i < lines.Length; i++)
-        {
-            if (isMarkerLine[i])
-                continue;
-
-            var line = lines[i];
-            if (!HoverMarkerRegex.IsMatch(line) &&
-                !CompletionMarkerRegex.IsMatch(line) &&
-                !ErrorsDirectiveRegex.IsMatch(line) &&
-                !NoErrorsDirectiveRegex.IsMatch(line) &&
-                !SuppressErrorsDirectiveRegex.IsMatch(line) &&
-                !CutBeforeMarkerRegex.IsMatch(line) &&
-                !CutAfterMarkerRegex.IsMatch(line) &&
-                !CutStartDirectiveRegex.IsMatch(line) &&
-                !CutEndDirectiveRegex.IsMatch(line) &&
-                !HighlightDirectiveRegex.IsMatch(line) &&
-                !FocusDirectiveRegex.IsMatch(line) &&
-                !DiffDirectiveRegex.IsMatch(line) &&
-                !LangVersionDirectiveRegex.IsMatch(line) &&
-                !NullableDirectiveRegex.IsMatch(line) &&
-                !CustomTagDirectiveRegex.IsMatch(line))
-            {
+            if (!isMarkerLine[i])
                 return i;
-            }
         }
         return -1;
     }
