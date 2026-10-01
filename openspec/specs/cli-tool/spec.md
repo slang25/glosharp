@@ -438,3 +438,33 @@ The `compact-complog` command SHALL accept a `--self-contained` flag that disabl
 - **WHEN** `glosharp compact-complog build.complog -o out.glocontext --self-contained` is run
 - **THEN** the output contains no pointer references and its header format version is `0x01`
 
+
+### Requirement: Serve command for build tools
+`glosharp serve` SHALL run as a long-lived worker speaking JSON lines (UTF-8, one object per line) over stdin/stdout, so build tools pay process startup, compiler composition and reference loading once rather than per snippet. One processor and its compilation context cache SHALL serve every request.
+
+- The first line written SHALL be a handshake `{"type":"ready","protocol":<n>,"version":"<tool version>",...}`; `protocol` is 1 and changes only on incompatible protocol changes.
+- A request is `{"id":<number|string>,"command":"process"|"render"|"ping","code":<string>,"options":{...}}`. `options` are the one-shot command-line options in camelCase (`file`, `framework`, `project`, `complog`, `complogProject`, `region`, `noRestore`, `cacheDir`, `config`, and for `render` `theme`, `standalone`) plus `cwd`, the directory relative paths resolve against and config discovery starts from for `code` input. A request SHALL be processed by the same code, option parsing and config discovery as the equivalent one-shot command.
+- A response is `{"id":…,"ok":true,"result":…}` (the `process` JSON, or the `render` HTML string) or `{"id":…,"ok":false,"error":{"kind":"usage"|"failure"|"protocol","message":…,"exitCode":2|1,"stderr":…}}`, where `exitCode` and `stderr` are what the one-shot command would have produced. Responses are written in completion order.
+- Requests SHALL run concurrently up to `--concurrency` (default: the number of CPUs). A malformed line SHALL produce a `protocol` error response (with `"id":null` when no id could be read) and never stop the server.
+- Nothing but protocol lines SHALL be written to stdout; logs, including the stderr output a one-shot command would have printed, go to stderr.
+- At end of input the server SHALL answer every outstanding request and exit with code 0.
+
+#### Scenario: Same result as the one-shot command
+- **WHEN** a `process` request carries the code `glosharp process --stdin` would read
+- **THEN** its `result` is the same JSON `glosharp process --stdin` prints, on one line
+
+#### Scenario: Config discovery
+- **WHEN** a request has `code` and `"cwd": "/repo/docs"`, and `/repo/docs/glosharp.config.json` exists
+- **THEN** that config applies, as it would for `glosharp process --stdin` run in `/repo/docs`
+
+#### Scenario: Failure
+- **WHEN** a request names a `file` that does not exist
+- **THEN** the response is `ok: false` with `kind: "failure"`, `exitCode: 1` and the one-shot command's stderr, and the server keeps serving
+
+#### Scenario: Malformed line
+- **WHEN** a line is not a JSON object with an `id` and a known `command`
+- **THEN** the response is a `protocol` error and the next request is answered normally
+
+#### Scenario: End of input
+- **WHEN** stdin closes while requests are running
+- **THEN** the server writes their responses and exits with code 0

@@ -1,4 +1,5 @@
 import { availableParallelism } from 'node:os'
+import { defaultWorkers, setDefaultWorkers } from './pool.js'
 
 /** A counting semaphore. `limit` can be changed at any time. */
 export class Limiter {
@@ -79,14 +80,22 @@ export const globalLimiter = new Limiter(defaultConcurrency())
 
 export interface GloSharpGlobalOptions {
   /**
-   * Maximum glosharp CLI processes running at once across the whole Node
-   * process. Defaults to `$GLOSHARP_CONCURRENCY` or `max(1, min(cpus - 1, 8))`.
+   * Maximum snippets processed at once across the whole Node process (CLI
+   * processes, or requests in flight on `serve` workers). Defaults to
+   * `$GLOSHARP_CONCURRENCY` or `max(1, min(cpus - 1, 8))`.
    */
   concurrency?: number
+  /**
+   * Default number of `glosharp serve` workers per CLI, for instances that
+   * don't set `workers`. `0` runs one CLI process per snippet. Defaults to
+   * `$GLOSHARP_WORKERS` or `max(1, min(2, cpus - 1))`.
+   */
+  workers?: number
 }
 
 /** Configure process-wide bridge behaviour. Returns the effective settings. */
 export function configureGloSharp(options: GloSharpGlobalOptions = {}): Required<GloSharpGlobalOptions> {
   if (options.concurrency !== undefined) globalLimiter.limit = options.concurrency
-  return { concurrency: globalLimiter.limit }
+  if (options.workers !== undefined) setDefaultWorkers(options.workers)
+  return { concurrency: globalLimiter.limit, workers: defaultWorkers() }
 }

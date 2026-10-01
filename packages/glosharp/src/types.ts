@@ -172,6 +172,14 @@ export interface GloSharpOptions {
   timeoutMs?: number
   /** Maximum number of results kept in the in-memory cache. Defaults to 1000. */
   cacheSize?: number
+  /**
+   * Number of long-running `glosharp serve` workers to run snippets on,
+   * shared by every instance using the same CLI. `0` runs one CLI process per
+   * snippet instead (much slower). Defaults to `$GLOSHARP_WORKERS` or
+   * `min(2, cpus - 1)` (see `configureGloSharp`). CLIs without `serve` fall
+   * back to one process per snippet automatically.
+   */
+  workers?: number
 }
 
 export interface GloSharpProcessOptions {

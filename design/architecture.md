@@ -129,7 +129,7 @@ glosharp process src/Example.cs
 **Package**: `@glosharp/core` (npm)
 
 **Responsibilities**:
-- Spawn `glosharp` as child process
+- Run `glosharp` as child processes: a small pool of long-lived `glosharp serve` workers (JSON lines over stdio), or one `glosharp process` per snippet for CLIs without `serve`
 - Parse JSON output
 - Provide typed TypeScript API for integrations
 - Cache results during a build

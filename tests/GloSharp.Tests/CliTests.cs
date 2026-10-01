@@ -127,6 +127,7 @@ public class CliTests
     [Arguments("verify")]
     [Arguments("init")]
     [Arguments("compact-complog")]
+    [Arguments("serve")]
     public async Task CommandHelp_PrintsUsage_WithoutSideEffects(string command)
     {
         var before = File.Exists(Path.Combine(Directory.GetCurrentDirectory(), ConfigLoader.ConfigFileName));
