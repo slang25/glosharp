@@ -57,27 +57,42 @@ test('the code block is exactly as tall as its line count', async ({ page }) => 
   await page.goto('/standalone-dark.html?static')
   const block = galleryCase(page, 'standalone/local-variables/dark')
 
-  const { totalHeight, lineHeight, rows } = await block.evaluate((el) => {
-    const code = el.querySelector('pre > code')!
+  const { rows, pitch, codeHeight, lastLineHeight } = await block.evaluate((el) => {
+    // Callouts (persistent queries, diagnostics, tags, completions) are rows of
+    // their own by design; only the code rows are under test here.
+    for (const callout of el.querySelectorAll<HTMLElement>('.glosharp-callout')) {
+      callout.style.display = 'none'
+    }
+    const pre = el.querySelector('pre')!
     const lines = [...el.querySelectorAll('.line')]
+    const declared = parseFloat(getComputedStyle(pre).lineHeight)
     const heights = lines.map((l) => l.getBoundingClientRect().height).filter((h) => h > 0)
-    // A trailing empty line span comes from the source's final newline and
-    // renders no row, which is what you want — no phantom blank line.
-    let rows = lines.length
-    while (rows > 0 && lines[rows - 1].textContent === '') rows--
     return {
-      totalHeight: code.getBoundingClientRect().height,
-      // Blank interior lines have no text and so no box of their own; a rendered
-      // row is whatever the non-empty lines measure.
-      lineHeight: Math.min(...heights),
-      rows,
+      // Blank lines have no box of their own, so each row is located by the top
+      // of its line span and keyed by the line's index.
+      rows: lines
+        .map((l, index) => ({ index, top: l.getBoundingClientRect().top, text: l.textContent ?? '' }))
+        .filter((l) => l.text !== ''),
+      // The row pitch is the declared line-height; with `normal` it is what a
+      // line's own box measures.
+      pitch: Number.isNaN(declared) ? Math.min(...heights) : declared,
+      codeHeight: el.querySelector('pre > code')!.getBoundingClientRect().height,
+      lastLineHeight: lines.at(-1)!.getBoundingClientRect().height,
     }
   })
 
-  expect(rows, 'the fixture has several rendered rows').toBeGreaterThan(1)
-  expect(totalHeight, 'no row is doubled or wrapped').toBeLessThanOrEqual(rows * lineHeight + 2)
-  expect(totalHeight, 'every row still occupies a line').toBeGreaterThanOrEqual(
-    rows * lineHeight - 2,
+  expect(rows.length, 'the fixture has several rendered rows').toBeGreaterThan(1)
+  for (let i = 1; i < rows.length; i++) {
+    const gap = rows[i].index - rows[i - 1].index
+    expect(
+      rows[i].top - rows[i - 1].top,
+      `line ${rows[i].index} sits exactly ${gap} row(s) below line ${rows[i - 1].index}: no row is doubled or wrapped`,
+    ).toBeCloseTo(gap * pitch, 0)
+  }
+  // Nothing after the last line either: no phantom blank row at the end.
+  const lastIndex = rows.at(-1)!.index
+  expect(codeHeight, 'no extra row after the last line').toBeLessThanOrEqual(
+    lastIndex * pitch + lastLineHeight + 2,
   )
 })
 

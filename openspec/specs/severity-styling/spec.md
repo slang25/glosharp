@@ -29,3 +29,10 @@ Error-related HTML elements SHALL include a CSS class indicating severity: `glos
 #### Scenario: Error message div has severity class
 - **WHEN** an error message div is rendered for a warning
 - **THEN** the message div has class `glosharp-severity-warning` in addition to `glosharp-error-message`
+
+### Requirement: Wavy underlines use text-decoration
+Renderers SHALL draw diagnostic squiggles with `text-decoration-line: underline` and `text-decoration-style: wavy` in the severity color (with `text-decoration-skip-ink: none`). `wavy` is not a valid `border-style`, so a `border-bottom: … wavy …` declaration is dropped by browsers and draws nothing.
+
+#### Scenario: Squiggle is visible
+- **WHEN** a diagnostic underline is rendered in a browser
+- **THEN** its computed `text-decoration-line` is `underline` and `text-decoration-style` is `wavy`
