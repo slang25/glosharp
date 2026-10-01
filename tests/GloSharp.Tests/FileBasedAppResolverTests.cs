@@ -15,9 +15,16 @@ public sealed class RequiresDotnet10SdkAttribute()
 
 public class FileBasedAppResolverTests
 {
-    private static string NewTempDir()
+    /// <summary>
+    /// A fresh directory at a stable path per test: the SDK keys a file-based app's
+    /// artifacts directory on the file's path, so stable paths reuse it across runs instead
+    /// of leaving a new one behind every time. (The space in the path is deliberate.)
+    /// </summary>
+    private static string NewTempDir([System.Runtime.CompilerServices.CallerMemberName] string name = "")
     {
-        var dir = Path.Combine(Path.GetTempPath(), $"glosharp test {Guid.NewGuid():N}"); // space on purpose
+        var dir = Path.Combine(Path.GetTempPath(), "glosharp tests", name);
+        if (Directory.Exists(dir))
+            Directory.Delete(dir, recursive: true);
         Directory.CreateDirectory(dir);
         return dir;
     }
