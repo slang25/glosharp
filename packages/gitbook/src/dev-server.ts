@@ -1,7 +1,7 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
-import { buildArtifacts, collectSnippets, type RenderSnippet, type Snippet } from './artifacts.js'
+import { buildArtifacts, collectSnippets, type RenderSnippet, type Snippet, type SnippetOccurrence } from './artifacts.js'
 import { AUTO_THEME } from './config.js'
 import { DEFAULT_FENCE } from './fence.js'
 import { renderFrameShell } from './frame.js'
@@ -88,12 +88,7 @@ export async function startDevServer(options: DevServerOptions): Promise<DevServ
       )
     }
 
-    const cases: DevHostCase[] = snippets.map((snippet) => ({
-      id: snippet.key,
-      title: snippet.occurrences.map((o) => `${o.file}:${o.line}`).join(', '),
-      detail: `${snippet.key.slice(0, 16)}…`,
-      state: { content: snippet.code, artifacts: ARTIFACTS_PREFIX.replace(/\/$/, ''), theme },
-    }))
+    const cases = previewCases(snippets, theme, ARTIFACTS_PREFIX.replace(/\/$/, ''))
 
     return renderDevHost({
       cases,
@@ -156,6 +151,37 @@ export async function startDevServer(options: DevServerOptions): Promise<DevServ
         server.close((error) => (error ? reject(error) : resolve())),
       ),
   }
+}
+
+/**
+ * One preview frame per snippet and theme its fences ask for — a fence that
+ * pins `theme="…"` gets that theme, as the real block does — in document order
+ * (file, then line), not key order.
+ */
+export function previewCases(snippets: Snippet[], defaultTheme: string, artifacts: string): DevHostCase[] {
+  const cases: Array<DevHostCase & { first: SnippetOccurrence }> = []
+  for (const snippet of snippets) {
+    const byTheme = new Map<string, SnippetOccurrence[]>()
+    for (const occurrence of snippet.occurrences) {
+      const theme = occurrence.theme ?? defaultTheme
+      byTheme.set(theme, [...(byTheme.get(theme) ?? []), occurrence])
+    }
+    for (const [theme, occurrences] of byTheme) {
+      const sorted = [...occurrences].sort(byLocation)
+      cases.push({
+        id: byTheme.size === 1 ? snippet.key : `${snippet.key}-${theme}`,
+        title: sorted.map((o) => `${o.file}:${o.line}`).join(', '),
+        detail: `${snippet.key.slice(0, 16)}…${theme !== defaultTheme ? ` · theme ${theme}` : ''}`,
+        state: { content: snippet.code, artifacts, theme },
+        first: sorted[0],
+      })
+    }
+  }
+  return cases.sort((a, b) => byLocation(a.first, b.first)).map(({ first: _first, ...rest }) => rest)
+}
+
+function byLocation(a: SnippetOccurrence, b: SnippetOccurrence): number {
+  return a.file.localeCompare(b.file) || a.line - b.line
 }
 
 /**

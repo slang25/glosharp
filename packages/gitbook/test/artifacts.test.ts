@@ -200,6 +200,95 @@ describe('buildArtifacts', () => {
     expect(pruned.orphaned).toHaveLength(1)
   })
 
+  it('never touches files in --out that are not Glo# artifacts', async () => {
+    await write('a.md', fence('var x = 42;'))
+    const foreign = [
+      'out/blog/index.html',
+      'out/assets/app.html',
+      `out/assets/${'a'.repeat(64)}.html`,
+      'out/github-dark/notes.html',
+      'out/github-dark/README.md',
+    ]
+    for (const file of foreign) await write(file, 'keep me')
+
+    const result = await build({ prune: true })
+
+    expect(result.orphaned).toEqual([])
+    for (const file of foreign) expect(await readFile(path.join(root, file), 'utf8')).toBe('keep me')
+  })
+
+  it('refuses to adopt an --out whose index.json is not ours', async () => {
+    await write('a.md', fence('var x = 42;'))
+    await write('out/index.json', '{"name":"my-site","version":"1.0.0"}')
+
+    await expect(build({ prune: true })).rejects.toThrow(/not a Glo# artifact index/)
+    expect(await readFile(path.join(outDir, 'index.json'), 'utf8')).toContain('my-site')
+  })
+
+  it('prunes theme directories listed in the previous index', async () => {
+    await write('a.md', fence('var x = 42;'))
+    await build({ themes: ['github-dark', 'dracula'] })
+
+    const result = await build({ themes: ['github-dark'], prune: true })
+
+    expect(result.pruned).toEqual([`dracula/${snippetKey('var x = 42;')}.html`])
+  })
+
+  it('renders a theme a fence pins, and does not orphan it', async () => {
+    await write('a.md', fence('var x = 42;', 'theme="github-light"'))
+    const render = fakeRenderer()
+
+    const result = await build({ render, themes: ['github-dark'] })
+
+    expect(render.calls.map((c) => c.theme).sort()).toEqual(['github-dark', 'github-light'])
+    expect(result.orphaned).toEqual([])
+    expect(result.snippets[0].occurrences[0].theme).toBe('github-light')
+  })
+
+  it('rejects a pinned theme that is not a plain name', async () => {
+    await write('a.md', fence('var x = 42;', 'theme="../../etc"'))
+    await expect(build()).rejects.toThrow(/a\.md:3: invalid theme/)
+  })
+
+  it('writes no index and prunes nothing when a render fails', async () => {
+    await write('a.md', fence('var ok = 1;'))
+    await build()
+    await write(path.join('out', 'github-dark', `${'0'.repeat(64)}.html`), 'old')
+    const before = await readFile(path.join(outDir, 'index.json'), 'utf8')
+    await write('b.md', fence('var bad = 2;'))
+
+    const result = await build({
+      prune: true,
+      render: async ({ code }) => {
+        if (code.includes('bad')) throw new Error('unknown theme')
+        return code
+      },
+    })
+
+    expect(result.indexSkipped).toBe(true)
+    expect(result.pruned).toEqual([])
+    expect(await readFile(path.join(outDir, 'index.json'), 'utf8')).toBe(before)
+  })
+
+  it('reports unexpected compile errors once per snippet, not per theme', async () => {
+    await write('a.md', fence('var x = 42;'))
+    await write('b.md', fence('int y = "nope";'))
+    const diagnosed: string[] = []
+
+    const result = await build({
+      themes: ['github-dark', 'github-light'],
+      diagnose: async ({ code, occurrence }) => {
+        diagnosed.push(code)
+        return code.includes('nope') ? [`${occurrence.file}:${occurrence.line + 1} CS0029: Cannot convert`] : []
+      },
+    })
+
+    expect(diagnosed.sort()).toEqual(['int y = "nope";', 'var x = 42;'])
+    expect(result.compileErrors).toEqual([
+      { key: snippetKey('int y = "nope";'), occurrences: [{ file: 'b.md', line: 3 }], errors: ['b.md:4 CS0029: Cannot convert'] },
+    ])
+  })
+
   it('treats a dropped theme directory as orphaned', async () => {
     await write('a.md', fence('var x = 42;'))
     await build({ themes: ['github-dark', 'github-light'] })

@@ -1,8 +1,44 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createHash } from 'node:crypto'
 import { codeToHtml } from 'shiki'
-import { transformerGloSharpWithResult, transformerGloSharpFromMap, processGloSharpBlocks, type TransformerGloSharpOptions, type GloSharpResultMap } from '../src/index.js'
+import { transformerNotationHighlight, transformerMetaHighlight } from '@shikijs/transformers'
+import {
+  transformerGloSharpWithResult,
+  transformerGloSharpFromMap,
+  processGloSharpBlocks,
+  filterCompletions,
+  snippetKey,
+  type TransformerGloSharpOptions,
+  type GloSharpResultMap,
+} from '../src/index.js'
 import type { GloSharpResult } from '@glosharp/core'
+import { calls } from './fake-core.js'
+
+// The bridge is mocked: these tests never start the real CLI.
+vi.mock('@glosharp/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@glosharp/core')>()
+  const fake = await import('./fake-core.js')
+  return {
+    ...actual,
+    createGloSharp: vi.fn(() => {
+      // Mirror the real bridge's in-memory cache so dedupe is observable.
+      const cache = new Map<string, Promise<GloSharpResult>>()
+      return {
+        process: (opts: Parameters<typeof fake.fakeProcess>[0]) => {
+          const key = JSON.stringify(opts)
+          if (!cache.has(key)) cache.set(key, fake.fakeProcess(opts))
+          return cache.get(key)!
+        },
+        render: vi.fn(),
+        clearCache: vi.fn(),
+      }
+    }),
+  }
+})
+
+beforeEach(() => {
+  calls.length = 0
+})
 
 const sampleResult: GloSharpResult = {
   code: 'var x = 42;\nConsole.WriteLine(x);',
@@ -29,11 +65,12 @@ const sampleResult: GloSharpResult = {
     },
   ],
   errors: [],
+  hiddenErrors: [],
   completions: [],
   highlights: [],
   hidden: [],
   tags: [],
-  meta: { targetFramework: 'net8.0', packages: [], compileSucceeded: true },
+  meta: { targetFramework: 'net8.0', packages: [], compileSucceeded: true, warnings: [] },
 }
 
 const errorResult: GloSharpResult = {
@@ -52,165 +89,234 @@ const errorResult: GloSharpResult = {
       expected: false,
     },
   ],
+  hiddenErrors: [],
   completions: [],
   highlights: [],
   hidden: [],
   tags: [],
-  meta: { targetFramework: 'net8.0', packages: [], compileSucceeded: false },
+  meta: { targetFramework: 'net8.0', packages: [], compileSucceeded: false, warnings: [] },
 }
+
+const render = (result: GloSharpResult, extra: Parameters<typeof codeToHtml>[1]['transformers'] = []) =>
+  codeToHtml(result.original, {
+    lang: 'csharp',
+    theme: 'github-dark',
+    transformers: [...extra, transformerGloSharpWithResult(result)],
+  })
 
 describe('transformerGloSharpWithResult', () => {
   it('replaces code with processed result', async () => {
-    const html = await codeToHtml(sampleResult.original, {
-      lang: 'csharp',
-      theme: 'github-dark',
-      transformers: [transformerGloSharpWithResult(sampleResult)],
-    })
-
-    // Should render the cleaned code, not the original with markers
+    const html = await render(sampleResult)
     expect(html).not.toContain('^?')
     expect(html).toContain('var')
   })
 
-  it('injects hover popup elements', async () => {
-    const html = await codeToHtml(sampleResult.original, {
-      lang: 'csharp',
-      theme: 'github-dark',
-      transformers: [transformerGloSharpWithResult(sampleResult)],
-    })
-
+  it('injects hover popup elements with anchor positioning', async () => {
+    const html = await render(sampleResult)
     expect(html).toContain('glosharp-hover')
     expect(html).toContain('glosharp-popup')
-    expect(html).toContain('anchor-name')
-    expect(html).toContain('position-anchor')
+    expect(html).toMatch(/anchor-name:--gs[a-z0-9]+-0/)
+    expect(html).toMatch(/position-anchor:--gs[a-z0-9]+-0/)
   })
 
   it('renders structured display parts', async () => {
-    const html = await codeToHtml(sampleResult.original, {
-      lang: 'csharp',
-      theme: 'github-dark',
-      transformers: [transformerGloSharpWithResult(sampleResult)],
-    })
-
+    const html = await render(sampleResult)
     expect(html).toContain('glosharp-keyword')
     expect(html).toContain('glosharp-localName')
     expect(html).toContain('glosharp-popup-code')
   })
 
-  it('injects error annotations for unexpected errors', async () => {
-    const html = await codeToHtml(errorResult.original, {
-      lang: 'csharp',
-      theme: 'github-dark',
-      transformers: [transformerGloSharpWithResult(errorResult)],
-    })
-
-    expect(html).toContain('glosharp-error-message')
-    expect(html).toContain('CS0103')
+  it('makes hover targets keyboard-focusable and describes them', async () => {
+    const html = await render(sampleResult)
+    const id = /role="tooltip" id="([^"]+)"/.exec(html)?.[1]
+    expect(id).toBeTruthy()
+    expect(html).toContain(`tabindex="0" aria-describedby="${id}"`)
   })
 
-  // KNOWN INCONSISTENCY: the Shiki transformer renders expected (@errors:)
-  // diagnostics while the EC plugin skips them. This test codifies the skip
-  // behavior, which the transformer has never implemented. Whether expected
-  // errors should be displayed (twoslash-style) or hidden is an open product
-  // decision — marked fails() until it is made.
-  it.fails('skips expected errors', async () => {
-    const expectedErrorResult: GloSharpResult = {
-      ...errorResult,
-      errors: [{ ...errorResult.errors[0], expected: true }],
-    }
-
-    const html = await codeToHtml(expectedErrorResult.original, {
+  it('can turn focusability off', async () => {
+    const html = await codeToHtml(sampleResult.original, {
       lang: 'csharp',
       theme: 'github-dark',
-      transformers: [transformerGloSharpWithResult(expectedErrorResult)],
+      transformers: [transformerGloSharpWithResult(sampleResult, { focusable: false })],
     })
+    expect(html).not.toContain('aria-describedby')
+    expect(html.match(/tabindex="0"/g)).toHaveLength(1) // Shiki's own <pre tabindex="0">
+  })
 
-    expect(html).not.toContain('glosharp-error-message')
+  it('produces identical HTML on every render (deterministic anchors)', async () => {
+    expect(await render(sampleResult)).toBe(await render(sampleResult))
+  })
+
+  it('injects error underline and message for unexpected errors', async () => {
+    const html = await render(errorResult)
+    expect(html).toContain('glosharp-error-message glosharp-severity-error')
+    expect(html).toMatch(/<span class="glosharp-error-underline glosharp-severity-error">[^]*?undeclared/)
+    expect(html).toContain('CS0103')
+    expect(html).toContain('href="https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/cs0103"')
+  })
+
+  it('renders expected (@errors) diagnostics too, marked as expected', async () => {
+    const html = await render({ ...errorResult, errors: [{ ...errorResult.errors[0], expected: true }] })
+    expect(html).toContain('glosharp-error-message glosharp-severity-error glosharp-error-expected')
+  })
+
+  it('puts annotation blocks after the line break, so no blank row follows them', async () => {
+    const twoLines: GloSharpResult = {
+      ...errorResult,
+      code: 'Console.WriteLine(undeclared);\nvar y = 1;',
+      original: 'Console.WriteLine(undeclared);\nvar y = 1;',
+    }
+    const html = await render(twoLines)
+    // line 0 </span>, newline, the message block, then line 1
+    expect(html).toMatch(/<\/span>\n<span class="glosharp-error-message[^>]*>.*?<\/span><span class="line">/)
+  })
+
+  it('renders persistent ^? hovers as an always-visible query box', async () => {
+    const html = await render({ ...sampleResult, hovers: [{ ...sampleResult.hovers[0], persistent: true }] })
+    expect(html).toContain('glosharp-hover glosharp-hover-persistent')
+    expect(html).toMatch(/<span class="glosharp-query" style="--glosharp-col:4"><span class="glosharp-query-box" id="([^"]+)" role="note">/)
+  })
+
+  it('keeps the persistent class when the hover covers part of a token', async () => {
+    const result: GloSharpResult = {
+      ...sampleResult,
+      code: 'global::System.Console.WriteLine();',
+      original: 'global::System.Console.WriteLine();',
+      hovers: [{ ...sampleResult.hovers[0], line: 0, character: 15, length: 7, targetText: 'Console', persistent: true }],
+    }
+    const html = await render(result)
+    expect(html).toMatch(/glosharp-hover-persistent[^>]*>(<span[^>]*>)?Console/)
+  })
+
+  it('renders highlight, focus and diff line annotations', async () => {
+    const result: GloSharpResult = {
+      ...sampleResult,
+      code: 'var a = 1;\nvar b = 2;\nvar c = 3;\nvar d = 4;',
+      original: 'var a = 1;\nvar b = 2;\nvar c = 3;\nvar d = 4;',
+      hovers: [],
+      highlights: [
+        { line: 0, character: 0, length: 10, kind: 'highlight' },
+        { line: 1, character: 0, length: 10, kind: 'add' },
+        { line: 2, character: 0, length: 10, kind: 'remove' },
+        { line: 3, character: 0, length: 10, kind: 'focus' },
+      ],
+    }
+    const html = await render(result)
+    expect(html).toContain('class="line glosharp-highlight glosharp-focus-dim"')
+    expect(html).toContain('class="line glosharp-diff-add glosharp-focus-dim"')
+    expect(html).toContain('class="line glosharp-diff-remove glosharp-focus-dim"')
+    expect(html).toContain('class="line glosharp-focused"')
+    expect(html).toMatch(/<pre class="[^"]*glosharp-has-focus/)
+  })
+
+  it('renders custom tags after their line', async () => {
+    const result: GloSharpResult = {
+      ...sampleResult,
+      tags: [
+        { name: 'log', text: 'cached', line: 0 },
+        { name: 'warn', text: 'allocates', line: 1 },
+      ],
+    }
+    const html = await render(result)
+    expect(html).toContain('<span class="glosharp-tag glosharp-tag-log" role="note"><span class="glosharp-tag-name">log</span>cached</span>')
+    expect(html).toContain('glosharp-tag glosharp-tag-warn')
+  })
+
+  it('marks the <pre> with the theme kind and dual-theme support', async () => {
+    const dark = await render(sampleResult)
+    expect(dark).toMatch(/<pre class="shiki github-dark glosharp glosharp-theme-dark"/)
+    expect(dark).toMatch(/--glosharp-bg:#24292e/)
+
+    const dual = await codeToHtml(sampleResult.original, {
+      lang: 'csharp',
+      themes: { light: 'github-light', dark: 'github-dark' },
+      transformers: [transformerGloSharpWithResult(sampleResult)],
+    })
+    expect(dual).toMatch(/class="[^"]*glosharp-theme-light glosharp-dual/)
+  })
+})
+
+describe('interop with other Shiki transformers', () => {
+  // Line transformers turn `class="line"` into "line highlighted" (or an
+  // array); hovers must still land on the right lines.
+  const result: GloSharpResult = {
+    ...sampleResult,
+    code: 'var a = 1;\nvar b = 2;\nvar c = 3;',
+    original: 'var a = 1;\nvar b = 2; // [!code highlight]\nvar c = 3;',
+    hovers: [0, 1, 2].map((line) => ({ ...sampleResult.hovers[0], line, character: 4, length: 1, targetText: 'abc'[line] })),
+    errors: [{ ...errorResult.errors[0], line: 2, character: 8, length: 1 }],
+  }
+
+  it('places hovers and errors by line index with notation transformers present', async () => {
+    const html = await codeToHtml(result.original, {
+      lang: 'csharp',
+      theme: 'github-dark',
+      meta: { __raw: '{1}' },
+      transformers: [transformerMetaHighlight(), transformerNotationHighlight(), transformerGloSharpWithResult(result)],
+    })
+    const lines = html.split('\n')
+    expect(lines[0]).toMatch(/class="line highlighted"[\s\S]*glosharp-hover[\s\S]*>a</)
+    expect(lines[1]).toMatch(/glosharp-hover[\s\S]*>b</)
+    expect(lines[2]).toMatch(/glosharp-hover[\s\S]*>c</)
+    expect(html.match(/class="glosharp-hover"/g)).toHaveLength(3)
+    expect(lines[2]).toContain('glosharp-error-underline')
+    expect(lines[0]).not.toContain('glosharp-error-underline')
   })
 })
 
 describe('completion list rendering', () => {
   const completionResult: GloSharpResult = {
-    code: 'Console.',
-    original: 'Console.\n//      ^|',
-    lang: 'csharp',
+    ...sampleResult,
+    code: 'list.Ad',
+    original: 'list.Ad\n//     ^|',
     hovers: [],
-    errors: [],
-    completions: [{
-      line: 0,
-      character: 8,
-      items: [
-        { label: 'WriteLine', kind: 'Method', detail: 'void Console.WriteLine(string?)' },
-        { label: 'Write', kind: 'Method', detail: 'void Console.Write(string?)' },
-      ],
-    }],
-    highlights: [],
-    hidden: [],
-    tags: [],
-    meta: { targetFramework: 'net8.0', packages: [], compileSucceeded: true },
+    completions: [
+      {
+        line: 0,
+        character: 7,
+        items: [
+          { label: 'Add', kind: 'Method', detail: 'void List<int>.Add(int item)' },
+          { label: 'AddRange', kind: 'Method', detail: null },
+          { label: 'AddRange', kind: 'Method', detail: null },
+          { label: 'All', kind: 'ExtensionMethod', detail: null },
+          { label: 'for', kind: 'Snippet', detail: null },
+        ],
+      },
+    ],
   }
 
-  it('injects completion list for completion results', async () => {
-    const html = await codeToHtml(completionResult.original, {
-      lang: 'csharp',
-      theme: 'github-dark',
-      transformers: [transformerGloSharpWithResult(completionResult)],
-    })
-
+  it('renders a styled list filtered to the typed prefix, without duplicates', async () => {
+    const html = await render(completionResult)
     expect(html).toContain('glosharp-completion-list')
-    expect(html).toContain('glosharp-completion-item')
-    expect(html).toContain('WriteLine')
-  })
-
-  it('renders kind badge and label for each item', async () => {
-    const html = await codeToHtml(completionResult.original, {
-      lang: 'csharp',
-      theme: 'github-dark',
-      transformers: [transformerGloSharpWithResult(completionResult)],
-    })
-
+    expect(html.match(/glosharp-completion-item /g)).toHaveLength(2)
     expect(html).toContain('glosharp-completion-kind-Method')
-    expect(html).toContain('glosharp-completion-label')
-    expect(html).toContain('glosharp-completion-kind')
+    expect(html).toContain('<span class="glosharp-completion-match">Ad</span>d')
+    expect(html).not.toContain('>All<')
   })
 
   it('does not inject completions when array is empty', async () => {
-    const html = await codeToHtml(sampleResult.original, {
-      lang: 'csharp',
-      theme: 'github-dark',
-      transformers: [transformerGloSharpWithResult(sampleResult)],
-    })
-
+    const html = await render(sampleResult)
     expect(html).not.toContain('glosharp-completion-list')
+  })
+
+  it('filterCompletions keeps everything when nothing matches the prefix', () => {
+    const items = [{ label: 'Foo', kind: 'Method', detail: null }]
+    expect(filterCompletions(items, 'Zz')).toEqual(items)
+    expect(filterCompletions(items, '')).toEqual(items)
   })
 })
 
 describe('TransformerGloSharpOptions', () => {
-  it('accepts project option in type', () => {
-    const options: TransformerGloSharpOptions = {
-      project: './MyProject.csproj',
-    }
+  it('accepts project and region options', () => {
+    const options: TransformerGloSharpOptions = { project: './MyProject.csproj', region: 'getting-started' }
     expect(options.project).toBe('./MyProject.csproj')
   })
-
-  it('accepts region option in type', () => {
-    const options: TransformerGloSharpOptions = {
-      region: 'getting-started',
-    }
-    expect(options.region).toBe('getting-started')
-  })
 })
-
-// --- New tests for batch processing and result-map transformer ---
-
-function hashCode(code: string): string {
-  return createHash('sha256').update(code).digest('hex')
-}
 
 describe('transformerGloSharpFromMap', () => {
   it('replaces code and injects hovers when code is in map', async () => {
     const resultMap: GloSharpResultMap = new Map()
-    resultMap.set(hashCode(sampleResult.original), sampleResult)
+    resultMap.set(snippetKey(sampleResult.original), sampleResult)
 
     const html = await codeToHtml(sampleResult.original, {
       lang: 'csharp',
@@ -220,176 +326,136 @@ describe('transformerGloSharpFromMap', () => {
 
     expect(html).not.toContain('^?')
     expect(html).toContain('glosharp-hover')
-    expect(html).toContain('glosharp-popup')
-    expect(html).toContain('anchor-name')
   })
 
-  it('is a no-op when code is not in map', async () => {
+  it('matches regardless of a trailing newline or CRLF on either side', async () => {
     const resultMap: GloSharpResultMap = new Map()
+    resultMap.set(snippetKey(`${sampleResult.original}\n`), sampleResult)
 
-    const code = 'var y = 100;'
-    const html = await codeToHtml(code, {
+    const html = await codeToHtml(sampleResult.original.replace(/\n/g, '\r\n'), {
       lang: 'csharp',
       theme: 'github-dark',
       transformers: [transformerGloSharpFromMap(resultMap)],
     })
+    expect(html).toContain('glosharp-hover')
+  })
 
-    // Should render normally without any glosharp elements
-    expect(html).not.toContain('glosharp-hover')
-    expect(html).not.toContain('glosharp-popup')
-    expect(html).not.toContain('glosharp-error-message')
+  it('still finds maps keyed by a raw sha256 of the code', async () => {
+    const resultMap: GloSharpResultMap = new Map()
+    resultMap.set(createHash('sha256').update(sampleResult.original).digest('hex'), sampleResult)
+    const html = await codeToHtml(sampleResult.original, {
+      lang: 'csharp',
+      theme: 'github-dark',
+      transformers: [transformerGloSharpFromMap(resultMap)],
+    })
+    expect(html).toContain('glosharp-hover')
+  })
+
+  it('is a no-op when code is not in map', async () => {
+    const html = await codeToHtml('var y = 100;', {
+      lang: 'csharp',
+      theme: 'github-dark',
+      transformers: [transformerGloSharpFromMap(new Map())],
+    })
+    expect(html).not.toContain('glosharp-')
     expect(html).toContain('var')
   })
 
-  it('handles multiple sequential codeToHtml calls correctly', async () => {
-    const secondResult: GloSharpResult = {
-      ...errorResult,
-    }
-
+  it('handles concurrent codeToHtml calls with one transformer', async () => {
     const resultMap: GloSharpResultMap = new Map()
-    resultMap.set(hashCode(sampleResult.original), sampleResult)
-    resultMap.set(hashCode(errorResult.original), secondResult)
-
+    resultMap.set(snippetKey(sampleResult.original), sampleResult)
+    resultMap.set(snippetKey(errorResult.original), errorResult)
     const transformer = transformerGloSharpFromMap(resultMap)
+    const opts = { lang: 'csharp', theme: 'github-dark', transformers: [transformer] }
 
-    // First call: hover result
-    const html1 = await codeToHtml(sampleResult.original, {
-      lang: 'csharp',
-      theme: 'github-dark',
-      transformers: [transformer],
-    })
+    const [html1, html2, html3] = await Promise.all([
+      codeToHtml(sampleResult.original, opts),
+      codeToHtml(errorResult.original, opts),
+      codeToHtml('var z = 0;', opts),
+    ])
     expect(html1).toContain('glosharp-hover')
     expect(html1).not.toContain('glosharp-error-message')
-
-    // Second call: error result
-    const html2 = await codeToHtml(errorResult.original, {
-      lang: 'csharp',
-      theme: 'github-dark',
-      transformers: [transformer],
-    })
-    expect(html2).toContain('glosharp-error-message')
     expect(html2).toContain('CS0103')
-
-    // Third call: code not in map — no-op
-    const html3 = await codeToHtml('var z = 0;', {
-      lang: 'csharp',
-      theme: 'github-dark',
-      transformers: [transformer],
-    })
-    expect(html3).not.toContain('glosharp-hover')
-    expect(html3).not.toContain('glosharp-error-message')
+    expect(html3).not.toContain('glosharp-')
   })
 
   it('has name property set to glosharp', () => {
-    const resultMap: GloSharpResultMap = new Map()
-    const transformer = transformerGloSharpFromMap(resultMap)
-    expect(transformer.name).toBe('glosharp')
+    expect(transformerGloSharpFromMap(new Map()).name).toBe('glosharp')
   })
 })
 
 describe('processGloSharpBlocks', () => {
-  // Mock the glosharp bridge to avoid needing the real CLI
-  vi.mock('glosharp', () => ({
-    createGloSharp: vi.fn(() => {
-      const cache = new Map<string, GloSharpResult>()
-      let callCount = 0
-      return {
-        process: vi.fn(async (opts: { code: string; project?: string; region?: string }): Promise<GloSharpResult> => {
-          const cacheKey = createHash('sha256').update(opts.code).digest('hex')
-          if (cache.has(cacheKey)) return cache.get(cacheKey)!
-
-          callCount++
-          const result: GloSharpResult = {
-            code: opts.code.replace(/\/\/\s*\^[?|].*/g, '').trim(),
-            original: opts.code,
-            lang: 'csharp',
-            hovers: [{
-              line: 0,
-              character: 4,
-              length: 1,
-              text: `(local variable) int x [call ${callCount}]`,
-              parts: [{ kind: 'keyword', text: 'int' }],
-              docs: null,
-              symbolKind: 'Local',
-              targetText: 'x',
-            }],
-            errors: [],
-            completions: [],
-            highlights: [],
-            hidden: [],
-            tags: [],
-            meta: {
-              targetFramework: opts.project ?? 'net8.0',
-              packages: [],
-              compileSucceeded: true,
-            },
-          }
-          cache.set(cacheKey, result)
-          return result
-        }),
-        _getCallCount: () => callCount,
-      }
-    }),
-  }))
-
-  it('returns map with correct entries for blocks with markers', async () => {
-    const blocks = [
-      'var x = 42;\n//  ^?',
-      'var y = 100;\n//   ^?',
-    ]
-
+  it('returns map entries for blocks with markers, keyed by snippetKey', async () => {
+    const blocks = ['var x = 42;\n//  ^?', 'var y = 100;\n//   ^?']
     const resultMap = await processGloSharpBlocks(blocks)
 
     expect(resultMap.size).toBe(2)
-    expect(resultMap.has(hashCode(blocks[0]))).toBe(true)
-    expect(resultMap.has(hashCode(blocks[1]))).toBe(true)
+    expect(resultMap.has(snippetKey(blocks[0]))).toBe(true)
+    expect(resultMap.has(snippetKey(blocks[1]))).toBe(true)
   })
 
-  it('processes blocks without explicit markers (auto-hover extraction)', async () => {
-    const blocks = [
-      'var x = 42;',           // no markers — still gets auto-extracted hovers
-      'var y = 100;\n//   ^?', // has markers
-    ]
+  it('skips blocks without markers (batch-processing spec)', async () => {
+    const resultMap = await processGloSharpBlocks(['var x = 42;', 'Console.WriteLine(x);\n// ^?'])
+    expect(resultMap.size).toBe(1)
+    expect(calls).toHaveLength(1)
+  })
 
-    const resultMap = await processGloSharpBlocks(blocks)
-
-    expect(resultMap.size).toBe(2)
-    expect(resultMap.has(hashCode(blocks[0]))).toBe(true)
-    expect(resultMap.has(hashCode(blocks[1]))).toBe(true)
+  it('processes unmarked blocks with processUnmarked or force', async () => {
+    expect((await processGloSharpBlocks(['var x = 42;', 'var y = 1;'], { processUnmarked: true })).size).toBe(2)
+    expect((await processGloSharpBlocks([{ code: 'var x = 42;', force: true }])).size).toBe(1)
   })
 
   it('returns empty map for empty input', async () => {
-    const resultMap = await processGloSharpBlocks([])
-    expect(resultMap.size).toBe(0)
+    expect((await processGloSharpBlocks([])).size).toBe(0)
   })
 
-  it('processes marker-less blocks too (auto-hover extraction)', async () => {
-    const resultMap = await processGloSharpBlocks(['var x = 42;', 'var y = 100;'])
-    expect(resultMap.size).toBe(2)
+  it('passes shared and per-block options to the bridge', async () => {
+    await processGloSharpBlocks(
+      [{ code: 'var a = 1;\n// ^?', project: './A.csproj', region: 'intro' }, 'var b = 1;\n// ^?'],
+      { project: './B.csproj', framework: 'net9.0' },
+    )
+    expect(calls).toEqual([
+      expect.objectContaining({ project: './A.csproj', region: 'intro', framework: 'net9.0' }),
+      expect.objectContaining({ project: './B.csproj', framework: 'net9.0' }),
+    ])
   })
 
-  // KNOWN LIMITATION: per-block `region` overrides cannot work through this
-  // API today — the CLI rejects --region with --stdin (region extraction
-  // requires a file). Marked fails() until region+stdin is supported or the
-  // blocks API processes via temp files.
-  it.fails('passes per-block region overrides', async () => {
-    const blocks = [
-      { code: 'var y = 100;\n//   ^?', region: 'intro' },
-    ]
-    const resultMap = await processGloSharpBlocks(blocks)
-    expect(resultMap.size).toBe(1)
-  })
-
-  it('deduplicates identical code blocks via cache', async () => {
+  it('keeps identical code with different per-block options apart', async () => {
     const code = 'var x = 42;\n//  ^?'
-    const blocks = [code, code, code]
+    const resultMap = await processGloSharpBlocks([
+      { code, project: './A.csproj' },
+      { code, project: './B.csproj' },
+    ])
+    expect(resultMap.size).toBe(2)
+    expect(resultMap.get(snippetKey(code, { project: './A.csproj' }))).toBeDefined()
+    expect(resultMap.get(snippetKey(code, { project: './B.csproj' }))).toBeDefined()
+  })
 
-    const resultMap = await processGloSharpBlocks(blocks)
+  it('records shared options so transformerGloSharpFromMap finds the entries', async () => {
+    const code = 'var x = 42;\n//  ^?'
+    const resultMap = await processGloSharpBlocks([code], { project: './A.csproj' })
+    const html = await codeToHtml(code, { lang: 'csharp', theme: 'github-dark', transformers: [transformerGloSharpFromMap(resultMap)] })
+    expect(html).toContain('glosharp-hover')
+  })
 
-    // Should only have one entry (all three are identical)
+  it('deduplicates identical code blocks', async () => {
+    const code = 'var x = 42;\n//  ^?'
+    const resultMap = await processGloSharpBlocks([code, code, code])
     expect(resultMap.size).toBe(1)
+    expect(calls).toHaveLength(1)
+  })
 
-    const result = resultMap.get(hashCode(code))!
-    expect(result.hovers[0].text).toContain('int')
+  it('names the failing block when the CLI fails', async () => {
+    await expect(processGloSharpBlocks(['var ok = 1;\n// ^?', 'var CRASH = 1;\n// ^?'])).rejects.toThrow(
+      /block 1 \(var CRASH = 1;\): glosharp exited with code 1/,
+    )
+  })
+
+  it("leaves failing blocks out with onCliError: 'warn'", async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const map = await processGloSharpBlocks(['var ok = 1;\n// ^?', 'var CRASH = 1;\n// ^?'], { onCliError: 'warn' })
+    expect(map.size).toBe(1)
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('block 1'))
+    warn.mockRestore()
   })
 })

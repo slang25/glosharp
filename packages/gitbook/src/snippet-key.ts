@@ -1,27 +1,13 @@
 /**
- * Canonical form of a fence body.
+ * Canonical form of a fence body — the CI artifact builder and the webframe
+ * shell both hash this, so it has exactly one definition, shared with every
+ * other Glo# integration: `@glosharp/core`'s `canonicalizeSnippet` (from its
+ * Node-free entry point, so the GitBook integration bundle stays Worker-safe).
  *
- * The CI artifact builder and the webframe shell both hash this — if they
- * disagree by a single byte the lookup misses and the reader sees plain code,
- * so the rule has to be simple enough to reimplement anywhere.
- *
- * Deliberately minimal: line endings are normalised and leading/trailing blank
- * space is dropped (GitBook's editor round-trips those freely), but nothing
- * inside the snippet is touched — trailing whitespace on an interior line can
- * be meaningful inside a raw string literal.
- *
- * MUST stay self-contained (no imports, no helpers, ES2020 string ops only):
- * `frame.ts` serialises it into the shell script with
- * `Function.prototype.toString()` so there is exactly one definition.
+ * CRLF → LF and leading/trailing blank space dropped; nothing inside the
+ * snippet is touched.
  */
-export function canonicalizeSnippet(code: string): string {
-  return code
-    .replace(/\r\n?/g, '\n')
-    // Whole whitespace-only lines, so a leading "  \n" is dropped like a bare
-    // "\n" is — indentation on the first line that has content survives.
-    .replace(/^(?:[ \t]*\n)+/, '')
-    .replace(/[ \t\n]+$/, '')
-}
+export { canonicalizeSnippet } from '@glosharp/core/snippet'
 
 /** Length of the hex artifact key, i.e. SHA-256. */
 export const SNIPPET_KEY_LENGTH = 64
@@ -29,4 +15,14 @@ export const SNIPPET_KEY_LENGTH = 64
 /** True for a string shaped like an artifact key. */
 export function isSnippetKey(value: string): boolean {
   return value.length === SNIPPET_KEY_LENGTH && /^[0-9a-f]+$/.test(value)
+}
+
+/** File name an artifact is published under: `<sha256>.html`. */
+export const ARTIFACT_FILE_PATTERN = /^[0-9a-f]{64}\.html$/
+
+/** Theme names become directory names and URL path segments; keep them boring. */
+export const THEME_NAME_PATTERN = /^[a-z0-9][a-z0-9-]*$/i
+
+export function isThemeName(value: string): boolean {
+  return THEME_NAME_PATTERN.test(value)
 }
