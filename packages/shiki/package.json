@@ -1,7 +1,7 @@
 {
   "name": "@glosharp/shiki",
   "version": "0.1.0-alpha.1",
-  "description": "Shiki transformer for glosharp C# type information",
+  "description": "Shiki transformer and Markdown (remark / Sätteri) integration for glosharp C# type information",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -11,24 +11,41 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
-    "./style.css": "./src/style.css"
+    "./style.css": "./dist/style.css"
   },
+  "sideEffects": [
+    "*.css"
+  ],
   "scripts": {
-    "build": "tsc"
+    "build": "tsc && node -e \"require('node:fs').copyFileSync('src/style.css', 'dist/style.css')\"",
+    "test": "vitest run",
+    "prepack": "npm run build"
   },
   "dependencies": {
-    "@glosharp/core": "0.1.0-alpha.1"
+    "@glosharp/core": "0.1.0-alpha.1",
+    "@types/hast": "^3.0.4"
   },
   "peerDependencies": {
     "shiki": "^3.0.0 || ^4.0.0"
   },
   "files": [
-    "dist"
+    "dist",
+    "src",
+    "README.md"
   ],
+  "engines": {
+    "node": ">=18.17"
+  },
   "devDependencies": {
+    "@mdx-js/mdx": "^3.1.1",
+    "@shikijs/transformers": "^4.0.0",
     "@types/node": "^25.3.5",
+    "rehype-stringify": "^10.0.1",
+    "remark-parse": "^11.0.0",
+    "remark-rehype": "^11.1.2",
     "shiki": "^4.0.1",
     "typescript": "^6.0.0",
+    "unified": "^11.0.5",
     "vitest": "^4.0.18"
   }
 }

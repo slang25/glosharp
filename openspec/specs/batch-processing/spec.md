@@ -5,7 +5,18 @@ The package SHALL export a `processGloSharpBlocks(blocks, options?)` async funct
 
 #### Scenario: Basic batch processing
 - **WHEN** `processGloSharpBlocks(["var x = 42;\n//  ^?", "Console.WriteLine(x);"])` is called
-- **THEN** it returns a `Map<string, GloSharpResult>` containing one entry (only the block with markers), keyed by SHA256 hash of the raw code string
+- **THEN** it returns a `Map<string, GloSharpResult>` containing one entry (only the block with markers), keyed by `snippetKey(code, options)` from `@glosharp/core`
+
+### Requirement: Results keyed by snippet and options
+Each entry SHALL be keyed by `snippetKey(code, effectiveOptions)`: the SHA-256 of the canonical snippet (CRLF → LF, leading/trailing blank space removed) plus the result-affecting options (`project`, `region`, `framework`, `noRestore`, `configFile`, `complog`, `complogProject`) the block was processed with. The returned map SHALL record the shared options as `keyOptions`, so `transformerGloSharpFromMap` computes matching keys without being told.
+
+#### Scenario: Same code, different per-block options
+- **WHEN** two blocks have identical code but different `project`
+- **THEN** the map has two entries, one per project
+
+#### Scenario: Trailing newline differences
+- **WHEN** a block is processed as `"var x = 1;\n// ^?\n"` and later looked up as `"var x = 1;\n// ^?"`
+- **THEN** the lookup finds it
 
 ### Requirement: Accept string array input
 The `processGloSharpBlocks` function SHALL accept `string[]` as the first argument, treating each string as a code block to process with shared options.
@@ -15,14 +26,18 @@ The `processGloSharpBlocks` function SHALL accept `string[]` as the first argume
 - **THEN** both blocks are processed using the shared `project` option
 
 ### Requirement: Accept code block object array input
-The `processGloSharpBlocks` function SHALL accept `GloSharpCodeBlock[]` as the first argument, where `GloSharpCodeBlock` is `{ code: string; project?: string; region?: string }`. Per-block `project` and `region` override the shared options.
+The `processGloSharpBlocks` function SHALL accept `GloSharpCodeBlock[]` as the first argument, where `GloSharpCodeBlock` is `{ code: string; project?: string; region?: string; framework?: string; noRestore?: boolean; force?: boolean }`. Per-block options override the shared options.
 
 #### Scenario: Mixed string and object entries
 - **WHEN** `processGloSharpBlocks([{ code: "code1\n// ^?", project: "./A.csproj" }, "code2\n// ^?"], { project: "./B.csproj" })` is called
 - **THEN** the first block uses project `./A.csproj` and the second uses `./B.csproj`
 
+#### Scenario: Per-block region
+- **WHEN** a block has `region: "intro"`
+- **THEN** the bridge is called with that region (sent with `--stdin --region intro`)
+
 ### Requirement: Skip blocks without markers
-The function SHALL skip code blocks that do not contain glosharp markers (`^?`, `^|`, `@errors:`, `@noErrors`, `---cut---`, `---cut-before---`, `---cut-after---`, `---cut-start---`, `---cut-end---`). Skipped blocks SHALL NOT appear in the result map.
+The function SHALL skip code blocks that do not contain glosharp markers (`^?`, `^|`, `@errors:`, `@noErrors`, `@suppressErrors`, the cut markers, `@highlight`, `@focus`, `@diff:`, `@langVersion:`, `@nullable:`, `@log:`/`@warn:`/`@error:`/`@annotate:`, or a `#:package`/`#:sdk`/`#:property`/`#:project` directive — see `hasGloSharpMarkers`). Skipped blocks SHALL NOT appear in the result map. Setting `processUnmarked: true`, or `force: true` on a block, SHALL process unmarked blocks too.
 
 #### Scenario: No markers
 - **WHEN** `processGloSharpBlocks(["var x = 42;", "Console.WriteLine(x);\n// ^?"])` is called
@@ -32,37 +47,48 @@ The function SHALL skip code blocks that do not contain glosharp markers (`^?`, 
 - **WHEN** `processGloSharpBlocks(["var x = 42;", "Console.WriteLine(x);"])` is called
 - **THEN** the result map is empty
 
+#### Scenario: Opting unmarked blocks in
+- **WHEN** `processGloSharpBlocks(["var x = 42;"], { processUnmarked: true })` is called
+- **THEN** the result map contains one entry
+
 ### Requirement: Process blocks concurrently
-The function SHALL process all qualifying code blocks concurrently using `Promise.all`.
+The function SHALL start all qualifying blocks concurrently; the bridge's process-wide limiter bounds how many CLI processes actually run at once.
 
 #### Scenario: Concurrent processing
 - **WHEN** `processGloSharpBlocks` is called with 5 code blocks containing markers
-- **THEN** all 5 CLI invocations are initiated concurrently (not sequentially)
+- **THEN** all 5 requests are issued without waiting for each other, and at most the configured concurrency run at once
+
+### Requirement: Report failing blocks
+When the CLI fails for a block, the function SHALL (with `onCliError: 'throw'`, the default) reject with an error naming the block's index and first line and carrying the CLI's exit code and stderr; with `onCliError: 'warn'` it SHALL log that message and leave the block out of the map.
+
+#### Scenario: One block fails
+- **WHEN** the second of two blocks makes the CLI exit with code 1
+- **THEN** the rejection message starts with `block 1 (<first line>):`
 
 ### Requirement: Reuse single glosharp instance
 The function SHALL create a single `createGloSharp()` instance for all blocks in the batch, enabling the bridge's in-memory cache to deduplicate identical code blocks.
 
 #### Scenario: Duplicate code blocks
 - **WHEN** `processGloSharpBlocks(["var x = 42;\n// ^?", "var x = 42;\n// ^?"])` is called
-- **THEN** the CLI is spawned only once (the second block hits the in-memory cache)
+- **THEN** the CLI is spawned only once
 
 ### Requirement: Accept shared options
-The function SHALL accept `TransformerGloSharpOptions` as the second argument, providing shared `project`, `region`, `framework`, `executable`, and `cacheDir` options applied to all blocks (unless overridden per-block).
+The function SHALL accept `TransformerGloSharpOptions` as the second argument, providing shared `project`, `region`, `framework`, `noRestore`, `executable`, `cacheDir`, `configFile`, `complog`, `concurrency` and `timeoutMs` options applied to all blocks (unless overridden per-block).
 
 #### Scenario: Shared framework option
 - **WHEN** `processGloSharpBlocks(blocks, { framework: "net9.0" })` is called
 - **THEN** all CLI invocations include the `--framework net9.0` argument
 
 ### Requirement: Export GloSharpCodeBlock type
-The package SHALL export a `GloSharpCodeBlock` type with shape `{ code: string; project?: string; region?: string }`.
+The package SHALL export the `GloSharpCodeBlock` type.
 
 #### Scenario: Type available for import
 - **WHEN** a TypeScript user imports `{ GloSharpCodeBlock }` from `@glosharp/shiki`
 - **THEN** the type is available for typing variables and function parameters
 
 ### Requirement: Export GloSharpResultMap type
-The package SHALL export a `GloSharpResultMap` type alias for `Map<string, GloSharpResult>`.
+The package SHALL export a `GloSharpResultMap` type: `Map<string, GloSharpResult>` with an optional `keyOptions` property.
 
 #### Scenario: Type available for import
 - **WHEN** a TypeScript user imports `{ GloSharpResultMap }` from `@glosharp/shiki`
-- **THEN** the type is available for typing the return value of `processGloSharpBlocks`
+- **THEN** the type is available for typing the return value of `processGloSharpBlocks`, and a plain `new Map()` is assignable to it

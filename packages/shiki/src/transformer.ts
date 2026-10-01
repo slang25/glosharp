@@ -1,23 +1,73 @@
-import { createGloSharp, type GloSharpOptions, type GloSharpResult, type GloSharpDisplayPart } from '@glosharp/core'
+import {
+  createGloSharp,
+  GloSharpCliError,
+  hasGloSharpMarkers,
+  keyOptions,
+  snippetKey,
+  type GloSharpKeyOptions,
+  type GloSharpOptions,
+  type GloSharpResult,
+} from '@glosharp/core'
 import { createHash } from 'node:crypto'
-import type { ShikiTransformer } from 'shiki'
+import type { ShikiTransformer, ShikiTransformerContext } from 'shiki'
+import { applyGloSharp, type GloSharpRenderOptions } from './render.js'
 
-export interface TransformerGloSharpOptions extends GloSharpOptions {
+export interface TransformerGloSharpOptions extends GloSharpOptions, GloSharpRenderOptions {
   project?: string
+  /** Extract a `#region` by name from each block. */
   region?: string
+  noRestore?: boolean
+  /**
+   * `processGloSharpBlocks` only: also process blocks that contain no Glo#
+   * markers (auto-hovers on every block). Default `false` — unmarked blocks are
+   * skipped and render as plain code.
+   */
+  processUnmarked?: boolean
+  /**
+   * `processGloSharpBlocks` only: what to do when the CLI is missing or fails
+   * for a block. `'throw'` (default) rejects with the block's index and an
+   * excerpt; `'warn'` logs and leaves that block out of the map.
+   */
+  onCliError?: 'throw' | 'warn'
 }
 
 export interface GloSharpCodeBlock {
   code: string
   project?: string
   region?: string
+  framework?: string
+  noRestore?: boolean
+  /** Process this block even if it has no Glo# markers. */
+  force?: boolean
 }
 
-export type GloSharpResultMap = Map<string, GloSharpResult>
+/**
+ * Results keyed by `snippetKey(code, options)` (from `@glosharp/core`).
+ * `keyOptions` records the shared options the batch was processed with, so
+ * `transformerGloSharpFromMap` can compute matching keys without being told.
+ */
+export type GloSharpResultMap = Map<string, GloSharpResult> & { keyOptions?: GloSharpKeyOptions }
 
-// Pre-processed transformer that takes an already-computed result.
-// This is the recommended approach since Shiki's preprocess hook is synchronous.
-export function transformerGloSharpWithResult(result: GloSharpResult): ShikiTransformer {
+export interface TransformerGloSharpFromMapOptions extends GloSharpRenderOptions {
+  /** Options the map was keyed with. Defaults to `resultMap.keyOptions`. */
+  keyOptions?: GloSharpKeyOptions
+  /**
+   * Per-block option overrides, for maps built from `GloSharpCodeBlock`s with
+   * their own `project`/`region`/…: return the same overrides for the same block.
+   * `meta` is the fence meta string, when the pipeline passes one.
+   */
+  blockOptions?: (code: string, meta: string | undefined) => GloSharpKeyOptions | undefined
+}
+
+interface GloSharpMetaBag {
+  glosharp?: GloSharpResult
+}
+
+/**
+ * Shiki transformer for one pre-computed result. Shiki's hooks are
+ * synchronous, so the result must be computed first (`processGloSharpCode`).
+ */
+export function transformerGloSharpWithResult(result: GloSharpResult, options: GloSharpRenderOptions = {}): ShikiTransformer {
   return {
     name: 'glosharp',
 
@@ -26,329 +76,138 @@ export function transformerGloSharpWithResult(result: GloSharpResult): ShikiTran
     },
 
     root(hast) {
-      injectHovers(hast as HastElement, result)
-      injectErrors(hast as HastElement, result)
-      injectCompletions(hast as HastElement, result)
+      applyGloSharp({ root: hast, pre: this.pre, lines: linesOf(this, hast) }, result, options)
     },
   }
 }
 
-// Map-based transformer: looks up pre-computed results by hashing incoming code.
-// Use with processGloSharpBlocks() for the recommended two-step pattern.
-export function transformerGloSharpFromMap(resultMap: GloSharpResultMap): ShikiTransformer {
-  let currentResult: GloSharpResult | undefined
-
+/**
+ * Shiki transformer that looks each code block up in a map produced by
+ * `processGloSharpBlocks`. Blocks not in the map render untouched. One
+ * instance can serve any number of (also concurrent) `codeToHtml` calls.
+ */
+export function transformerGloSharpFromMap(
+  resultMap: GloSharpResultMap,
+  options: TransformerGloSharpFromMapOptions = {},
+): ShikiTransformer {
   return {
     name: 'glosharp',
 
-    preprocess(code) {
-      const hash = createHash('sha256').update(code).digest('hex')
-      currentResult = resultMap.get(hash)
-      return currentResult?.code
+    preprocess(code, shikiOptions) {
+      const meta = rawMeta(shikiOptions)
+      const shared = options.keyOptions ?? resultMap.keyOptions
+      const perBlock = options.blockOptions?.(code, meta)
+      const result =
+        resultMap.get(snippetKey(code, { ...shared, ...perBlock })) ??
+        // Maps keyed by a plain sha256 of the raw code (before 0.1.0-alpha.2).
+        resultMap.get(createHash('sha256').update(code).digest('hex'))
+      ;(this.meta as GloSharpMetaBag).glosharp = result
+      return result?.code
     },
 
     root(hast) {
-      if (!currentResult) return
-      const result = currentResult
-      currentResult = undefined
-      injectHovers(hast as HastElement, result)
-      injectErrors(hast as HastElement, result)
-      injectCompletions(hast as HastElement, result)
+      const result = (this.meta as GloSharpMetaBag).glosharp
+      if (!result) return
+      applyGloSharp({ root: hast, pre: this.pre, lines: linesOf(this, hast) }, result, options)
     },
   }
 }
 
-// Batch-process multiple code blocks concurrently, returning a result map keyed by code hash.
+/**
+ * Process many code blocks with one bridge instance (shared cache, bounded
+ * concurrency) and return a map for `transformerGloSharpFromMap`.
+ *
+ * Blocks without Glo# markers are skipped unless `processUnmarked` is set or
+ * the block has `force: true`.
+ */
 export async function processGloSharpBlocks(
   blocks: Array<string | GloSharpCodeBlock>,
   options: TransformerGloSharpOptions = {},
 ): Promise<GloSharpResultMap> {
   const glosharp = createGloSharp(options)
-  const resultMap: GloSharpResultMap = new Map()
+  const shared = keyOptions(options)
+  const resultMap: GloSharpResultMap = Object.assign(new Map<string, GloSharpResult>(), { keyOptions: shared })
 
   const tasks = blocks
-    .map(block => {
-      const code = typeof block === 'string' ? block : block.code
-      const project = typeof block === 'string' ? options.project : (block.project ?? options.project)
-      const region = typeof block === 'string' ? options.region : (block.region ?? options.region)
-      return { code, project, region }
+    .map((block, index) => {
+      const b: GloSharpCodeBlock = typeof block === 'string' ? { code: block } : block
+      const effective: GloSharpKeyOptions = {
+        ...shared,
+        ...keyOptions({ project: b.project, region: b.region, framework: b.framework, noRestore: b.noRestore }),
+      }
+      return { index, code: b.code, force: b.force, effective }
     })
-  const results = await Promise.all(
-    tasks.map(({ code, project, region }) =>
-      glosharp.process({ code, project, region }).then(result => ({
-        hash: createHash('sha256').update(code).digest('hex'),
-        result,
-      }))
-    )
+    .filter((task) => options.processUnmarked || task.force || hasGloSharpMarkers(task.code))
+
+  const settled = await Promise.allSettled(
+    tasks.map((task) => glosharp.process({ code: task.code, ...task.effective })),
   )
 
-  for (const { hash, result } of results) {
-    resultMap.set(hash, result)
+  const failures: Array<{ index: number; code: string; error: unknown }> = []
+  settled.forEach((outcome, i) => {
+    const task = tasks[i]
+    if (outcome.status === 'fulfilled') resultMap.set(snippetKey(task.code, task.effective), outcome.value)
+    else failures.push({ index: task.index, code: task.code, error: outcome.reason })
+  })
+
+  for (const failure of failures) {
+    const error = blockError(failure)
+    if (options.onCliError === 'warn') console.warn(`[glosharp] ${error.message}`)
+    else throw error
   }
 
   return resultMap
 }
 
-// Helper to pre-process code blocks before running Shiki
+/** Process one snippet (for `transformerGloSharpWithResult`). */
 export async function processGloSharpCode(
   code: string,
   options: TransformerGloSharpOptions = {},
-): Promise<GloSharpResult | null> {
+): Promise<GloSharpResult> {
   const glosharp = createGloSharp(options)
-  return glosharp.process({ code, project: options.project, region: options.region })
+  return glosharp.process({ code, project: options.project, region: options.region, noRestore: options.noRestore })
 }
 
-// Global counter ensures unique CSS anchor names across multiple code blocks on a page.
-let anchorCounter = 0
-
-// ---- HAST manipulation utilities ----
-
-interface HastElement {
-  type: string
-  tagName?: string
-  properties?: Record<string, unknown>
-  children?: HastNode[]
-  value?: string
-}
-
-type HastNode = HastElement
-
-function h(tag: string, props: Record<string, unknown>, children: HastNode[]): HastElement {
-  return { type: 'element', tagName: tag, properties: props, children }
-}
-
-function hText(value: string): HastElement {
-  return { type: 'text', value }
-}
-
-function injectHovers(root: HastElement, result: GloSharpResult): void {
-  const lines = findCodeLines(root)
-
-  // Group hovers by line, then process each line's hovers right-to-left
-  // so that injected popup nodes don't shift column positions of earlier hovers.
-  const hoversByLine = new Map<number, Array<{ hover: GloSharpResult['hovers'][0]; index: number }>>()
-  for (let i = 0; i < result.hovers.length; i++) {
-    const hover = result.hovers[i]
-    let group = hoversByLine.get(hover.line)
-    if (!group) {
-      group = []
-      hoversByLine.set(hover.line, group)
-    }
-    group.push({ hover, index: i })
+function blockError(failure: { index: number; code: string; error: unknown }): Error {
+  const first = failure.code.split('\n').find((l) => l.trim())?.trim() ?? ''
+  const where = `block ${failure.index} (${first.length > 50 ? `${first.slice(0, 49)}…` : first})`
+  const { error } = failure
+  if (error instanceof GloSharpCliError) {
+    return new GloSharpCliError(`${where}: ${error.message}`, {
+      kind: error.kind,
+      command: error.command,
+      args: error.args,
+      exitCode: error.exitCode,
+      signal: error.signal,
+      stderr: error.stderr,
+      snippet: error.snippet,
+      cause: error,
+    })
   }
+  return new Error(`${where}: ${error instanceof Error ? error.message : String(error)}`, { cause: error })
+}
 
-  for (const [lineIdx, group] of hoversByLine) {
-    const line = lines[lineIdx]
-    if (!line) continue
+/** The fence meta string Shiki was given (`meta.__raw`), if any. */
+export function rawMeta(options: { meta?: unknown } | undefined): string | undefined {
+  const meta = options?.meta as { __raw?: unknown } | undefined
+  return typeof meta?.__raw === 'string' ? meta.__raw : undefined
+}
 
-    // Sort right-to-left by character position
-    group.sort((a, b) => b.hover.character - a.hover.character)
+type HastRoot = Parameters<NonNullable<ShikiTransformer['root']>>[0]
 
-    for (const { hover } of group) {
-      const anchorName = `--th-${anchorCounter++}`
-
-      const partNodes: HastNode[] = hover.parts.map((part: GloSharpDisplayPart) =>
-        h('span', { class: `glosharp-${part.kind}` }, [hText(part.text)])
-      )
-
-      const popupChildren: HastNode[] = [
-        h('code', { class: 'glosharp-popup-code' }, partNodes),
-      ]
-
-      if (hover.typeAnnotations && hover.typeAnnotations.length > 0) {
-        const annotationNodes = hover.typeAnnotations.map(a =>
-          h('div', { class: 'glosharp-type-annotation' }, [
-            h('span', { class: 'glosharp-className' }, [hText(a.name)]),
-            hText(' is '),
-            h('span', { class: 'glosharp-type-expansion' }, [hText(a.expansion)]),
-          ])
-        )
-        popupChildren.push(
-          h('div', { class: 'glosharp-popup-types' }, [
-            h('div', { class: 'glosharp-popup-types-header' }, [hText('Types:')]),
-            ...annotationNodes,
-          ])
-        )
-      }
-
-      if (hover.docs?.summary) {
-        popupChildren.push(
-          h('div', { class: 'glosharp-popup-docs' }, [hText(hover.docs.summary)])
-        )
-      }
-
-      wrapTokenAtPosition(line, hover.character, hover.length, anchorName, popupChildren, hover.persistent)
+/** Shiki's line elements. Falls back to a class search for exotic structures. */
+function linesOf(context: ShikiTransformerContext, root: HastRoot) {
+  if (context.lines && context.lines.length > 0) return context.lines
+  const lines: ShikiTransformerContext['lines'][number][] = []
+  const visit = (node: { children?: unknown[] }) => {
+    for (const child of (node.children ?? []) as Array<{ type: string; tagName?: string; properties?: Record<string, unknown>; children?: unknown[] }>) {
+      if (child.type !== 'element') continue
+      const cls = child.properties?.class ?? child.properties?.className
+      const list = Array.isArray(cls) ? cls.map(String) : typeof cls === 'string' ? cls.split(/\s+/) : []
+      if (child.tagName === 'span' && list.includes('line')) lines.push(child as never)
+      else visit(child)
     }
   }
-}
-
-const CS_CODE_REGEX = /^CS\d+$/
-
-function buildErrorCodeNode(code: string): HastElement {
-  if (CS_CODE_REGEX.test(code)) {
-    return h('a', {
-      class: 'glosharp-error-code',
-      href: `https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/${code.toLowerCase()}`,
-      target: '_blank',
-      rel: 'noopener',
-    }, [hText(code)])
-  }
-  return h('span', { class: 'glosharp-error-code' }, [hText(code)])
-}
-
-function injectErrors(root: HastElement, result: GloSharpResult): void {
-  const lines = findCodeLines(root)
-
-  for (const error of result.errors) {
-    const severityClass = `glosharp-severity-${error.severity}`
-
-    const errorMessage = h('div', { class: `glosharp-error-message ${severityClass}` }, [
-      buildErrorCodeNode(error.code),
-      hText(': '),
-      hText(error.message),
-    ])
-
-    if (error.endLine != null && error.endLine > error.line) {
-      // Multi-line: place message after last affected line
-      const lastLine = lines[error.endLine]
-      if (lastLine?.children) {
-        lastLine.children.push(errorMessage)
-      }
-    } else {
-      // Single-line
-      const line = lines[error.line]
-      if (!line) continue
-      if (line.children) {
-        line.children.push(errorMessage)
-      }
-    }
-  }
-}
-
-function injectCompletions(root: HastElement, result: GloSharpResult): void {
-  if (!result.completions || result.completions.length === 0) return
-
-  const lines = findCodeLines(root)
-
-  for (const completion of result.completions) {
-    const line = lines[completion.line]
-    if (!line) continue
-
-    const items = completion.items.map(item =>
-      h('li', { class: `glosharp-completion-item glosharp-completion-kind-${item.kind}` }, [
-        h('span', { class: 'glosharp-completion-kind' }, [hText(item.kind)]),
-        h('span', { class: 'glosharp-completion-label' }, [hText(item.label)]),
-        ...(item.detail ? [h('span', { class: 'glosharp-completion-detail' }, [hText(item.detail)])] : []),
-      ])
-    )
-
-    const completionList = h('ul', { class: 'glosharp-completion-list' }, items)
-
-    if (line.children) {
-      line.children.push(completionList)
-    }
-  }
-}
-
-function findCodeLines(node: HastElement): HastElement[] {
-  const lines: HastElement[] = []
-  walkNode(node, (n) => {
-    if (n.tagName === 'span' && n.properties?.class === 'line') {
-      lines.push(n)
-    }
-  })
+  visit(root)
   return lines
-}
-
-function walkNode(node: HastElement, visitor: (n: HastElement) => void): void {
-  visitor(node)
-  if (node.children) {
-    for (const child of node.children) {
-      if (child.type === 'element') {
-        walkNode(child, visitor)
-      }
-    }
-  }
-}
-
-function wrapTokenAtPosition(
-  line: HastElement,
-  character: number,
-  length: number,
-  anchorName: string,
-  popupChildren: HastNode[],
-  persistent?: boolean,
-): void {
-  const hoverClass = persistent ? 'glosharp-hover glosharp-hover-persistent' : 'glosharp-hover'
-  if (!line.children) return
-
-  let col = 0
-  const targetStart = character
-  const targetEnd = character + length
-
-  for (let i = 0; i < line.children.length; i++) {
-    const child = line.children[i]
-    const text = getTextContent(child)
-    const spanStart = col
-    const spanEnd = col + text.length
-
-    if (spanStart <= targetStart && spanEnd >= targetEnd) {
-      const offsetInToken = targetStart - spanStart
-      const tokenText = text
-
-      // If the hover covers the whole token, wrap it directly.
-      // The popup lives inside the hover wrapper so that (a) :hover on the
-      // wrapper keeps it open while the pointer is over the popup, and (b)
-      // the @supports-not fallback can position it relative to the wrapper.
-      if (offsetInToken === 0 && length === tokenText.length) {
-        const popup = h('div', {
-          class: 'glosharp-popup',
-          style: `position-anchor: ${anchorName}`,
-        }, popupChildren)
-
-        const wrapper = h('span', {
-          class: hoverClass,
-          style: `anchor-name: ${anchorName}`,
-        }, [child, popup])
-
-        line.children.splice(i, 1, wrapper)
-        return
-      }
-
-      // Otherwise, split the token: [before][hover target][after]
-      const props = child.tagName === 'span' ? { ...(child.properties ?? {}) } : {}
-      const parts: HastNode[] = []
-
-      if (offsetInToken > 0) {
-        parts.push(h('span', { ...props }, [hText(tokenText.slice(0, offsetInToken))]))
-      }
-
-      const hoverSpan = h('span', { ...props }, [hText(tokenText.slice(offsetInToken, offsetInToken + length))])
-      const popup = h('div', {
-        class: 'glosharp-popup',
-        style: `position-anchor: ${anchorName}`,
-      }, popupChildren)
-      const wrapper = h('span', {
-        class: 'glosharp-hover',
-        style: `anchor-name: ${anchorName}`,
-      }, [hoverSpan, popup])
-      parts.push(wrapper)
-
-      const afterStart = offsetInToken + length
-      if (afterStart < tokenText.length) {
-        parts.push(h('span', { ...props }, [hText(tokenText.slice(afterStart))]))
-      }
-
-      line.children.splice(i, 1, ...parts)
-      return
-    }
-
-    col = spanEnd
-  }
-}
-
-function getTextContent(node: HastElement): string {
-  if (node.value) return node.value
-  if (!node.children) return ''
-  return node.children.map(getTextContent).join('')
 }
