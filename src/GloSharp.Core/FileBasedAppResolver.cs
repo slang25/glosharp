@@ -132,10 +132,18 @@ public static class FileBasedAppResolver
         return ResolveReferences(path, targetFramework, noRestore);
     }
 
-    internal static string WriteDirectivesFile(string source, string? root = null)
+    internal static string WriteDirectivesFile(string source, string? root = null) =>
+        WriteDirectivesFile(ExtractDirectiveLines(source), root);
+
+    /// <summary>
+    /// Writes <paramref name="directiveLines"/> to <c>&lt;root&gt;/&lt;hash&gt;/snippet.cs</c>, named
+    /// by a hash of the directive set (root: <c>GLOSHARP_CACHE_DIR/file-based-apps</c>, else the
+    /// local application data folder). Identical sets share one file and therefore one SDK
+    /// restore; concurrent writers produce identical content.
+    /// </summary>
+    internal static string WriteDirectivesFile(IReadOnlyList<string> directiveLines, string? root = null)
     {
-        var directives = ExtractDirectiveLines(source);
-        var content = string.Join('\n', directives) + "\n";
+        var content = string.Join('\n', directiveLines) + "\n";
         var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(content)))
             .ToLowerInvariant()[..16];
 
