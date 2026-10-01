@@ -571,6 +571,12 @@ internal static class CliApp
             {
                 var result = await processor.ProcessAsync(source, settings.ToProcessorOptions(file));
 
+                foreach (var warning in result.Meta.Warnings)
+                {
+                    console.Out.WriteLine(DiagnosticFormatter.FormatCanonical(
+                        file, 1, 1, "warning", DiagnosticFormatter.ProcessingWarningCode, warning));
+                }
+
                 if (!result.Meta.CompileSucceeded)
                 {
                     failed.Add(file);
@@ -581,8 +587,12 @@ internal static class CliApp
                         reported++;
                     }
 
-                    // TODO(hiddenErrors): also print result.HiddenErrors (errors in ---cut--- code)
-                    // via DiagnosticFormatter.Format once GloSharpResult exposes them.
+                    foreach (var error in result.HiddenErrors.Where(e => !e.Expected && e.Severity == "error"))
+                    {
+                        console.Out.WriteLine(DiagnosticFormatter.Format(file, error));
+                        reported++;
+                    }
+
                     if (reported == 0)
                     {
                         console.Out.WriteLine(DiagnosticFormatter.FormatCanonical(

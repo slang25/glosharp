@@ -32,7 +32,7 @@ public record GloSharpProcessorOptions
 
 public class GloSharpProcessor
 {
-    internal const string DefaultTargetFramework = "net8.0";
+    internal const string DefaultTargetFramework = FrameworkResolver.DefaultTargetFramework;
     private const string GlobalUsingsPath = "__GlobalUsings.cs";
     private const string WebSdk = "Microsoft.NET.Sdk.Web";
 
@@ -207,6 +207,13 @@ public class GloSharpProcessor
             try { assets = ProjectAssetsResolver.FindAssetsFile(options.ProjectPath); }
             catch (FileNotFoundException) { assets = Path.Combine(options.ProjectPath, "obj", "project.assets.json"); }
             fingerprints.Add("assets:" + ResultCache.FileFingerprint(assets));
+            // The project's own built assembly (and its ProjectReferences') change hovers too
+            try
+            {
+                var outputs = ProjectAssetsResolver.Resolve(assets, options.TargetFramework).ProjectOutputPaths;
+                fingerprints.AddRange(outputs.Select(o => "output:" + ResultCache.FileFingerprint(o)));
+            }
+            catch (Exception ex) when (ex is IOException or InvalidOperationException or System.Text.Json.JsonException) { }
         }
 
         return ResultCache.ComputeKey(source, keyOptions, fingerprints);
@@ -302,7 +309,8 @@ public class GloSharpProcessor
         // Complog / .glocontext takes highest priority — bypasses all other resolution
         if (options.ComplogPath != null)
         {
-            var complog = ResolveComplog(options.ComplogPath, options.ComplogProject);
+            var complog = ResolveComplog(options.ComplogPath, options.ComplogProject, options.TargetFramework);
+            warnings.AddRange(complog.Resolution.Warnings);
             return new SnippetContext
             {
                 References = complog.Resolution.References,
@@ -324,6 +332,7 @@ public class GloSharpProcessor
             projectAssets = ProjectAssetsResolver.Resolve(assetsFilePath, options.TargetFramework);
             targetFramework ??= projectAssets.TargetFramework;
             packages = projectAssets.Packages;
+            warnings.AddRange(projectAssets.Warnings);
         }
         else if (directives.HasDirectives)
         {
@@ -335,6 +344,7 @@ public class GloSharpProcessor
                 projectAssets = FileBasedAppResolver.ResolveReferences(
                     resolveFilePath, options.TargetFramework, options.NoRestore);
                 targetFramework ??= tfmProperty ?? projectAssets.TargetFramework;
+                warnings.AddRange(projectAssets.Warnings);
             }
             catch (Exception ex)
             {
@@ -351,13 +361,22 @@ public class GloSharpProcessor
         targetFramework ??= DefaultTargetFramework;
 
         var sdk = directives.GetSdk();
-        var additionalFrameworks = sdk == WebSdk ? new[] { "Microsoft.AspNetCore.App.Ref" } : null;
+        var additionalFrameworks = new List<string>();
+        if (sdk == WebSdk)
+            additionalFrameworks.Add("Microsoft.AspNetCore.App");
+        if (projectAssets != null)
+            additionalFrameworks.AddRange(projectAssets.FrameworkReferences);
+        var isWeb = additionalFrameworks.Any(f =>
+            f.StartsWith("Microsoft.AspNetCore.App", StringComparison.OrdinalIgnoreCase));
 
-        // Include SDK in key so web/non-web contexts aren't mixed
+        // Include SDK, shared frameworks and project outputs in the key so web/non-web contexts
+        // and rebuilt project assemblies aren't mixed up
         var contextKey = CompilationContextCache.ComputeKey(
             targetFramework,
             projectAssets?.Packages,
-            assetsFilePath ?? sdk);
+            string.Join("\0", new[] { assetsFilePath ?? sdk ?? "" }
+                .Concat(additionalFrameworks.Order(StringComparer.OrdinalIgnoreCase))
+                .Concat((projectAssets?.ProjectOutputPaths ?? []).Select(ResultCache.FileFingerprint))));
 
         var references = _contextCache.GetOrAdd(contextKey, () =>
         {
@@ -372,7 +391,7 @@ public class GloSharpProcessor
             References = references,
             TargetFramework = targetFramework,
             Packages = packages,
-            IsWeb = sdk == WebSdk,
+            IsWeb = isWeb,
         };
     }
 
@@ -380,17 +399,17 @@ public class GloSharpProcessor
     /// Opens and resolves a complog/.glocontext once per (path, project, size, mtime) and caches
     /// the whole resolution — references, options and target framework.
     /// </summary>
-    private ComplogContext ResolveComplog(string path, string? project)
+    private ComplogContext ResolveComplog(string path, string? project, string? targetFramework)
     {
         var info = new FileInfo(path);
         if (!info.Exists)
             throw new FileNotFoundException($"Compilation context file not found: {path}", path);
 
-        var key = $"complog\0{info.FullName}\0{project}\0{info.Length}\0{info.LastWriteTimeUtc.Ticks}";
+        var key = $"complog\0{info.FullName}\0{project}\0{targetFramework}\0{info.Length}\0{info.LastWriteTimeUtc.Ticks}";
         return _contextCache.GetOrAdd(key, () =>
         {
             using var resolver = CompilationContextResolverFactory.Open(path);
-            var resolution = resolver.Resolve(project);
+            var resolution = resolver.Resolve(project, targetFramework);
             return new ComplogContext(
                 resolution,
                 ComplogPackageInference.InferPackages(resolution.References),

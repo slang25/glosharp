@@ -51,6 +51,9 @@ public sealed record ProcessRunResult
 /// </summary>
 public static class ProcessRunner
 {
+    /// <summary>How long to keep reading output after the process exits before giving up.</summary>
+    private static readonly TimeSpan PipeDrainGrace = TimeSpan.FromSeconds(5);
+
     /// <summary>Environment variable overriding <see cref="DefaultTimeout"/>, in seconds.</summary>
     public const string TimeoutEnvironmentVariable = "GLOSHARP_PROCESS_TIMEOUT";
 
@@ -127,22 +130,10 @@ public static class ProcessRunner
         var stderr = new StringBuilder();
         var combined = new StringBuilder();
         var gate = new object();
-        var stdoutDone = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var stderrDone = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
         var exited = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         using var process = new Process { StartInfo = psi, EnableRaisingEvents = true };
         process.Exited += (_, _) => exited.TrySetResult();
-        process.OutputDataReceived += (_, e) =>
-        {
-            if (e.Data == null) { stdoutDone.TrySetResult(); return; }
-            lock (gate) { stdout.AppendLine(e.Data); combined.AppendLine(e.Data); }
-        };
-        process.ErrorDataReceived += (_, e) =>
-        {
-            if (e.Data == null) { stderrDone.TrySetResult(); return; }
-            lock (gate) { stderr.AppendLine(e.Data); combined.AppendLine(e.Data); }
-        };
 
         var stopwatch = Stopwatch.StartNew();
         try
@@ -158,8 +149,12 @@ public static class ProcessRunner
         // Nothing is ever written to the child's stdin; closing it makes tools that would
         // otherwise wait for interactive input (credential prompts) fail fast instead.
         process.StandardInput.Close();
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
+
+        // Drain both pipes on dedicated threads rather than the thread pool: callers often block
+        // on Run() from pool threads, and under load pool-based readers can lag the exit by
+        // seconds, which would truncate output (e.g. an empty `dotnet --version`).
+        var stdoutDone = StartReader(process.StandardOutput, stdout);
+        var stderrDone = StartReader(process.StandardError, stderr);
 
         // Wait for the process itself to exit — not for its pipes to close, which
         // WaitForExitAsync also does: a grandchild that inherited them (a build server) would
@@ -180,15 +175,30 @@ public static class ProcessRunner
             timedOut = true;
         }
 
-        // Exit has been observed (or the tree killed); wait briefly for the pipes to flush.
+        // Exit has been observed (or the tree killed); wait briefly for the pipes to flush. The
+        // bound only guards against a grandchild (a build server) holding the pipes open.
         await Task.WhenAny(
-            Task.WhenAll(stdoutDone.Task, stderrDone.Task),
-            Task.Delay(TimeSpan.FromSeconds(5))).ConfigureAwait(false);
+            Task.WhenAll(stdoutDone, stderrDone),
+            Task.Delay(PipeDrainGrace)).ConfigureAwait(false);
         stopwatch.Stop();
 
         int exitCode;
         try { exitCode = timedOut ? -1 : process.ExitCode; }
         catch (InvalidOperationException) { exitCode = -1; }
+
+        Task StartReader(StreamReader reader, StringBuilder target) =>
+            Task.Factory.StartNew(() =>
+            {
+                try
+                {
+                    while (reader.ReadLine() is { } line)
+                        lock (gate) { target.AppendLine(line); combined.AppendLine(line); }
+                }
+                catch (Exception ex) when (ex is IOException or ObjectDisposedException)
+                {
+                    // The process was killed or disposed mid-read; keep what was captured.
+                }
+            }, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
 
         lock (gate)
         {

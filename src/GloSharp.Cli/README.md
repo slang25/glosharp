@@ -57,8 +57,11 @@ by `actions/setup-dotnet`) turn into annotations:
 /repo/docs/intro.cs(3,9): error CS0029: Cannot implicitly convert type 'string' to 'int' [/repo/docs/intro.cs]
 ```
 
-`GS1001` marks a file that could not be processed at all, and `GS1002` a failed snippet
-whose error has no visible location (e.g. it is in hidden setup code).
+Positions refer to the original file, so markers, `#:` directives and cut lines above an error
+don't shift them. Errors in hidden (cut) setup code are reported at their real location too.
+`GS1001` marks a file that could not be processed at all, `GS1002` a failed snippet with no
+reportable error location, and `GS1003` (a warning, never a failure) a non-fatal problem such as a
+`^?` caret that points past the end of its line or a `#:package` that couldn't be restored.
 
 ## Environment
 

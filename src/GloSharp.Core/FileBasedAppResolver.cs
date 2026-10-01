@@ -39,7 +39,16 @@ public static class FileBasedAppResolver
     public static Version? GetDotnetSdkVersion(string? workingDirectory = null)
     {
         var dir = workingDirectory ?? Directory.GetCurrentDirectory();
-        return SdkVersionByDirectory.GetOrAdd(dir, static d =>
+        if (SdkVersionByDirectory.TryGetValue(dir, out var cached))
+            return cached;
+
+        // Only cache successful probes, so a transient failure isn't remembered for the process
+        var probed = Probe(dir);
+        if (probed != null)
+            SdkVersionByDirectory[dir] = probed;
+        return probed;
+
+        static Version? Probe(string d)
         {
             try
             {
@@ -57,7 +66,7 @@ public static class FileBasedAppResolver
             {
                 return null;
             }
-        });
+        }
     }
 
     /// <summary>

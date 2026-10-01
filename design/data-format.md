@@ -190,6 +190,9 @@ Diagnostics produced by Glo# itself (not the compiler):
 | `GS0001` | Invalid `@langVersion` marker or `langVersion` config value. |
 | `GS0002` | Invalid `@nullable` marker or `nullable` config value. |
 | `GS0003` | An `// @errors:` expectation whose diagnostic was not reported on its target line. |
+| `GS1001` | (`verify` output only) A file could not be processed at all. |
+| `GS1002` | (`verify` output only) A snippet failed with no reportable error location. |
+| `GS1003` | (`verify` output only, warning) An entry from `meta.warnings`. |
 
 (`GS0001`/`GS0002` were called `TH0001`/`TH0002` before the rename.)
 

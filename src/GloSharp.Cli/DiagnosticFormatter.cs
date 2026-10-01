@@ -17,15 +17,17 @@ internal static class DiagnosticFormatter
     /// <summary>Diagnostic code for a failed snippet whose errors have no visible location.</summary>
     public const string VerificationFailedCode = "GS1002";
 
+    /// <summary>Diagnostic code for a non-fatal processing warning (<c>meta.warnings</c>).</summary>
+    public const string ProcessingWarningCode = "GS1003";
+
     /// <summary>Formats one snippet diagnostic for the file it came from.</summary>
     public static string Format(string filePath, GloSharpError error)
     {
-        // TODO(sourceLine): switch to error.SourceLine / error.SourceCharacter once GloSharpError
-        // carries them (0-based positions in the ORIGINAL file text, before #: directives,
-        // markers, cut and region lines are stripped). Line/Character index the processed
-        // `code`, so they drift upwards whenever such lines precede the error.
-        var line = error.Line + 1;
-        var column = error.Character + 1;
+        // Report positions in the original file: Line/Character index the processed `code`, which
+        // drifts upwards whenever #: directives, markers, cut or region lines precede the error.
+        // Hidden-code errors have no processed position (Line is -1) and always carry SourceLine.
+        var line = (error.SourceLine ?? Math.Max(error.Line, 0)) + 1;
+        var column = (error.SourceCharacter ?? Math.Max(error.Character, 0)) + 1;
         return FormatCanonical(filePath, line, column, error.Severity, error.Code, error.Message);
     }
 
