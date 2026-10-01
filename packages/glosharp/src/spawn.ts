@@ -109,7 +109,7 @@ export function runCli(command: string, args: readonly string[], options: RunCli
       const err = stderrText()
       const status = code === null ? `was killed by ${signal}` : `exited with code ${code}`
       finish(
-        new GloSharpCliError(`glosharp ${status}${where}${err ? `:\n${err}` : ''}`, {
+        new GloSharpCliError(exitMessage(status, where, err), {
           kind: 'exit',
           ...context,
           exitCode: code,
@@ -123,14 +123,7 @@ export function runCli(command: string, args: readonly string[], options: RunCli
       const timeoutMs = options.timeoutMs
       timer = setTimeout(() => {
         killTree(child)
-        finish(
-          new GloSharpCliError(
-            `glosharp timed out after ${formatDuration(timeoutMs)}${where}. ` +
-              `A NuGet restore waiting on the network or a credential provider is the usual cause; ` +
-              `raise the limit with the timeoutMs option or GLOSHARP_TIMEOUT_MS.`,
-            { kind: 'timeout', ...context, stderr: stderrText() },
-          ),
-        )
+        finish(new GloSharpCliError(timeoutMessage(timeoutMs, where), { kind: 'timeout', ...context, stderr: stderrText() }))
       }, timeoutMs)
       timer.unref?.()
     }
@@ -157,7 +150,21 @@ function spawnError(error: unknown, context: { command: string; args: readonly s
   })
 }
 
-function killTree(child: ChildProcess): void {
+/** The message for a run killed after `timeoutMs`; `where` is ` (snippet: …)` or empty. */
+export function timeoutMessage(timeoutMs: number, where: string): string {
+  return (
+    `glosharp timed out after ${formatDuration(timeoutMs)}${where}. ` +
+    `A NuGet restore waiting on the network or a credential provider is the usual cause; ` +
+    `raise the limit with the timeoutMs option or GLOSHARP_TIMEOUT_MS.`
+  )
+}
+
+/** The message for a CLI that exited non-zero; matches what `runCli` reports. */
+export function exitMessage(status: string, where: string, stderr: string): string {
+  return `glosharp ${status}${where}${stderr ? `:\n${stderr}` : ''}`
+}
+
+export function killTree(child: ChildProcess): void {
   if (child.exitCode !== null || child.signalCode !== null) return
   if (process.platform === 'win32' && child.pid !== undefined) {
     // `dotnet glosharp` is a muxer plus a child host; kill both.

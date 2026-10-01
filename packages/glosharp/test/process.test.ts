@@ -15,6 +15,9 @@ const stub = (mode: string) => [process.execPath, STUB, mode]
 let logDir: string
 const originalConcurrency = configureGloSharp().concurrency
 
+// These tests exercise the one-CLI-process-per-snippet path; serve.test.ts covers workers.
+configureGloSharp({ workers: 0 })
+
 beforeEach(() => {
   logDir = mkdtempSync(join(tmpdir(), 'glosharp-stub-'))
   process.env.STUB_LOG_DIR = logDir

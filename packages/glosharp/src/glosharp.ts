@@ -2,13 +2,41 @@ import { createHash } from 'node:crypto'
 import { stat } from 'node:fs/promises'
 import path from 'node:path'
 import { GloSharpCliError } from './errors.js'
-import { resolveExecutable } from './executable.js'
+import { resolveExecutable, type ResolvedExecutable } from './executable.js'
 import { globalLimiter, Limiter } from './limiter.js'
+import { defaultWorkers, FALLBACK, getPool, type ServeCall, type ServeRequestOptions } from './pool.js'
 import { runCli } from './spawn.js'
 import type { GloSharpOptions, GloSharpProcessOptions, GloSharpRenderOptions, GloSharpResult } from './types.js'
 
 const DEFAULT_TIMEOUT_MS = 180_000
 const DEFAULT_CACHE_SIZE = 1000
+
+/** The CLI options a call can set; also the `glosharp serve` request option names. */
+interface CliOptions {
+  framework?: string
+  project?: string
+  region?: string
+  noRestore?: boolean
+  cacheDir?: string
+  config?: string
+  complog?: string
+  complogProject?: string
+  theme?: string
+  standalone?: boolean
+}
+
+const CLI_FLAGS: Record<keyof CliOptions, string> = {
+  framework: '--framework',
+  project: '--project',
+  region: '--region',
+  noRestore: '--no-restore',
+  cacheDir: '--cache-dir',
+  config: '--config',
+  complog: '--complog',
+  complogProject: '--complog-project',
+  theme: '--theme',
+  standalone: '--standalone',
+}
 
 export interface GloSharpInstance {
   /** Compile a snippet (or file) and return the extracted type information. */
@@ -24,54 +52,60 @@ export function createGloSharp(options: GloSharpOptions = {}): GloSharpInstance 
   const htmlCache = new LruCache<Promise<string>>(options.cacheSize ?? DEFAULT_CACHE_SIZE)
   const instanceLimiter = options.concurrency !== undefined ? new Limiter(options.concurrency) : undefined
 
-  function buildArgs(command: string, opts: GloSharpProcessOptions): string[] {
-    const args = [command]
-
-    if (opts.file) {
-      args.push(opts.file)
-    } else {
-      args.push('--stdin')
+  /**
+   * The CLI options for a call, per-call values over instance defaults, in
+   * command-line order. Shared by the one-shot command line and `serve`
+   * requests so both paths see exactly the same settings.
+   */
+  function cliOptions(opts: GloSharpRenderOptions): CliOptions {
+    return {
+      framework: opts.framework ?? options.framework,
+      project: opts.project,
+      // Region extraction is text-based, so it works with --stdin as well as files.
+      region: opts.region,
+      noRestore: opts.noRestore,
+      cacheDir: opts.cacheDir ?? options.cacheDir,
+      config: opts.configFile ?? options.configFile,
+      complog: opts.complog ?? options.complog,
+      complogProject: opts.complogProject ?? options.complogProject,
+      theme: opts.theme,
+      standalone: opts.standalone,
     }
+  }
 
-    const framework = opts.framework ?? options.framework
-    if (framework) {
-      args.push('--framework', framework)
+  function buildArgs(command: 'process' | 'render', opts: GloSharpRenderOptions): string[] {
+    const args: string[] = [command, opts.file ? opts.file : '--stdin']
+    for (const [name, value] of Object.entries(cliOptions(opts))) {
+      if (!value) continue
+      if (command !== 'render' && (name === 'theme' || name === 'standalone')) continue
+      const flag = CLI_FLAGS[name as keyof CliOptions]
+      if (value === true) args.push(flag)
+      else args.push(flag, value)
     }
-
-    if (opts.project) {
-      args.push('--project', opts.project)
-    }
-
-    // Region extraction is text-based, so it works with --stdin as well as files.
-    if (opts.region) {
-      args.push('--region', opts.region)
-    }
-
-    if (opts.noRestore) {
-      args.push('--no-restore')
-    }
-
-    const cacheDir = opts.cacheDir ?? options.cacheDir
-    if (cacheDir) {
-      args.push('--cache-dir', cacheDir)
-    }
-
-    const configFile = opts.configFile ?? options.configFile
-    if (configFile) {
-      args.push('--config', configFile)
-    }
-
-    const complog = opts.complog ?? options.complog
-    if (complog) {
-      args.push('--complog', complog)
-    }
-
-    const complogProject = opts.complogProject ?? options.complogProject
-    if (complogProject) {
-      args.push('--complog-project', complogProject)
-    }
-
     return args
+  }
+
+  /** The same settings as a `glosharp serve` request. */
+  function serveCall(command: 'process' | 'render', args: string[], opts: GloSharpRenderOptions, exe: ResolvedExecutable): ServeCall {
+    const serveOptions: ServeRequestOptions = {}
+    if (opts.file) serveOptions.file = opts.file
+    for (const [name, value] of Object.entries(cliOptions(opts))) {
+      if (!value) continue
+      if (command !== 'render' && (name === 'theme' || name === 'standalone')) continue
+      serveOptions[name] = value
+    }
+    // Relative paths and config discovery follow this process's working directory,
+    // as they do for a CLI spawned per snippet.
+    serveOptions.cwd = globalThis.process.cwd()
+    return {
+      code: opts.file ? undefined : (opts.code ?? ''),
+      options: serveOptions,
+      timeoutMs: timeoutFor(opts),
+      signal: opts.signal,
+      snippet: opts.code ?? opts.file,
+      command: exe.command,
+      args: [...exe.prefix, ...args],
+    }
   }
 
   function timeoutFor(opts: GloSharpProcessOptions): number {
@@ -81,19 +115,32 @@ export function createGloSharp(options: GloSharpOptions = {}): GloSharpInstance 
     return Number.isFinite(fromEnv) && fromEnv >= 0 ? fromEnv : DEFAULT_TIMEOUT_MS
   }
 
-  async function run(args: string[], opts: GloSharpProcessOptions): Promise<string> {
-    const { command, prefix } = await resolveExecutable(options.executable)
+  /**
+   * Run a command on a `glosharp serve` worker when the CLI supports it (the
+   * parsed result), else as a CLI process of its own (its stdout).
+   */
+  async function run(
+    command: 'process' | 'render',
+    args: string[],
+    opts: GloSharpRenderOptions,
+  ): Promise<{ served: unknown } | { stdout: string }> {
+    const exe = await resolveExecutable(options.executable)
+    const workers = options.workers ?? defaultWorkers()
     const task = () =>
-      globalLimiter.run(() =>
-        runCli(command, [...prefix, ...args], {
+      globalLimiter.run(async () => {
+        if (workers > 0) {
+          const served = await getPool(exe, workers).request(command, serveCall(command, args, opts, exe))
+          if (served !== FALLBACK) return { served }
+        }
+        const { stdout } = await runCli(exe.command, [...exe.prefix, ...args], {
           stdin: opts.file ? undefined : (opts.code ?? ''),
           timeoutMs: timeoutFor(opts),
           signal: opts.signal,
           snippet: opts.code ?? opts.file,
-        }),
-      )
-    const { stdout } = await (instanceLimiter ? instanceLimiter.run(task) : task())
-    return stdout
+        })
+        return { stdout }
+      })
+    return instanceLimiter ? instanceLimiter.run(task) : task()
   }
 
   /**
@@ -138,16 +185,23 @@ export function createGloSharp(options: GloSharpOptions = {}): GloSharpInstance 
   async function processSnippet(opts: GloSharpProcessOptions): Promise<GloSharpResult> {
     const args = buildArgs('process', opts)
     return cached(cache, await cacheKey(args, opts), async () => {
-      const stdout = await run(args, opts)
-      return normalizeResult(parseResult(stdout, opts))
+      const output = await run('process', args, opts)
+      if ('stdout' in output) return normalizeResult(parseResult(output.stdout, opts))
+      if (!output.served || typeof output.served !== 'object' || Array.isArray(output.served)) {
+        throw invalidServeOutput(output.served, opts)
+      }
+      return normalizeResult(output.served as GloSharpResult)
     })
   }
 
   async function render(opts: GloSharpRenderOptions): Promise<string> {
     const args = buildArgs('render', opts)
-    if (opts.theme) args.push('--theme', opts.theme)
-    if (opts.standalone) args.push('--standalone')
-    return cached(htmlCache, await cacheKey(args, opts), () => run(args, opts))
+    return cached(htmlCache, await cacheKey(args, opts), async () => {
+      const output = await run('render', args, opts)
+      if ('stdout' in output) return output.stdout
+      if (typeof output.served !== 'string') throw invalidServeOutput(output.served, opts)
+      return output.served
+    })
   }
 
   return {
@@ -171,6 +225,15 @@ function parseResult(stdout: string, opts: GloSharpProcessOptions): GloSharpResu
       cause: error,
     })
   }
+}
+
+function invalidServeOutput(value: unknown, opts: GloSharpProcessOptions): GloSharpCliError {
+  const text = JSON.stringify(value) ?? String(value)
+  const excerpt = text.length > 500 ? `${text.slice(0, 500)}… (${text.length} bytes)` : text
+  return new GloSharpCliError(`glosharp serve returned an unexpected result:\n${excerpt}`, {
+    kind: 'invalid-output',
+    snippet: opts.code ?? opts.file,
+  })
 }
 
 /** Fill in fields older CLIs omit, so consumers can rely on them. */

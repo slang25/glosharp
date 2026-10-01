@@ -163,7 +163,8 @@ async function buildEcPages(fixtures: Fixture[]): Promise<Record<string, string>
     themeCssSelector: (theme) => `[data-theme='${theme.type}']`,
     useDarkModeMediaQuery: false,
     // The plugin's hook typings are looser than EC core's; runtime shape matches.
-    plugins: [pluginGloSharp({ executable: STUB }) as unknown as ExpressiveCodePlugin],
+    // workers: 0 — the stub answers one-shot runs only (no `glosharp serve`).
+    plugins: [pluginGloSharp({ executable: STUB, workers: 0 }) as unknown as ExpressiveCodePlugin],
   })
 
   const baseStyles = await ec.getBaseStyles()

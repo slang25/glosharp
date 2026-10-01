@@ -35,6 +35,12 @@ function result(code) {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
+if (args[0] === 'serve') {
+  // Like a CLI from before `glosharp serve` existed.
+  process.stderr.write("glosharp: error: unknown command 'serve'.\nRun 'glosharp --help' for the list of commands.\n")
+  process.exit(2)
+}
+
 if (mode === 'exit-early') {
   // Exit without reading stdin: a large write from the parent hits EPIPE.
   process.stderr.write('Error: --region cannot be used with --stdin\n')

@@ -50,7 +50,7 @@ self-contained HTML fragment for the same input (`theme`, `standalone`).
 const html = await glosharp.render({ code, theme: 'github-light' })
 ```
 
-Inputs are either `code` (sent on stdin) or `file` (a path the CLI reads).
+Inputs are either `code` (the snippet itself) or `file` (a path the CLI reads).
 `region` works with both.
 
 ## Options
@@ -65,9 +65,10 @@ Inputs are either `code` (sent on stdin) or `file` (a path the CLI reads).
 | `configFile` | discovered | Path to `glosharp.config.json` (otherwise discovered from the working directory). |
 | `complog` | none | `.complog` / `.glocontext` compilation context. |
 | `complogProject` | none | Project to use from a multi-project complog. |
-| `concurrency` | none | Extra per-instance cap on concurrent CLI processes (see below). |
+| `concurrency` | none | Extra per-instance cap on snippets in progress (see below). |
 | `timeoutMs` | `$GLOSHARP_TIMEOUT_MS` or `180000` | Kill a CLI run after this long; `0` disables. |
 | `cacheSize` | `1000` | Results kept in the in-memory cache (LRU). |
+| `workers` | `$GLOSHARP_WORKERS` or `min(2, cpus - 1)` | `glosharp serve` worker processes (see below); `0` runs one CLI process per snippet. |
 
 `process(options)` / `render(options)` — per call: `code` or `file`,
 `framework`, `project` (a `.csproj` for NuGet references), `region`,
@@ -89,12 +90,37 @@ dotnet build src/GloSharp.Cli -c Release
 GLOSHARP_EXECUTABLE=$PWD/src/GloSharp.Cli/bin/Release/net8.0/GloSharp.Cli npm run build
 ```
 
+### Workers
+
+Starting the CLI costs about a second per snippet (.NET startup, loading the
+compiler and the reference assemblies), so the bridge keeps a few
+long-running `glosharp serve` processes and sends every snippet to one of
+them. A site with 60 snippets builds in a few seconds instead of tens of
+seconds, and the results are byte-for-byte what one CLI run per snippet gives.
+
+- Workers start on the first snippet (not at import), are shared by every
+  instance using the same CLI, and run several snippets at once. The pool
+  grows up to `workers` processes, only while every worker is busy.
+  `configureGloSharp({ workers: n })` sets the default for instances that
+  don't pass `workers`; `0` turns the pool off.
+- Idle workers don't keep Node running, so a build exits as soon as its work
+  is done, and workers are killed when Node exits. In a long-running process
+  (a dev server, a watcher), `await closeGloSharpWorkers()` stops them; the
+  next snippet starts new ones.
+- A worker that crashes fails only the snippets it was running; the next
+  snippet starts a new one. A snippet that times out (see below) rejects as
+  usual, and its worker is killed once its other snippets are done.
+- A CLI from before `serve` existed (or one speaking another protocol
+  version) is detected on the first snippet: the bridge prints one warning
+  and runs one CLI process per snippet, as before. Update the CLI to get the
+  speed-up.
+
 ### Concurrency, timeouts and caching
 
-- Every CLI run is a full Roslyn compilation (about 100 MB). All instances in
-  a process share one limit: `$GLOSHARP_CONCURRENCY`, or
-  `max(1, min(cpus - 1, 8))`. Change it with
-  `configureGloSharp({ concurrency: 4 })`.
+- Every snippet is a full Roslyn compilation. All instances in a process
+  share one limit on snippets in progress (CLI processes, or requests in
+  flight on workers): `$GLOSHARP_CONCURRENCY`, or `max(1, min(cpus - 1, 8))`.
+  Change it with `configureGloSharp({ concurrency: 4 })`.
 - A run that exceeds `timeoutMs` is killed (the whole process tree on
   Windows) and rejects with a `timeout` error. Running CLIs are killed when
   Node exits.
@@ -117,10 +143,10 @@ When the CLI itself fails, the bridge throws a `GloSharpCliError`:
 | --- | --- |
 | `not-found` | No CLI could be found (the message says how to install it). |
 | `spawn` | The CLI could not be started. |
-| `exit` | The CLI exited non-zero; `exitCode` and `stderr` are set. |
+| `exit` | The CLI exited non-zero, or a worker reported the same failure (or crashed); `exitCode` and `stderr` are set. |
 | `timeout` | It ran longer than `timeoutMs`. |
 | `aborted` | Your `signal` fired. |
-| `invalid-output` | It succeeded but printed something that isn't JSON. |
+| `invalid-output` | It succeeded but printed something that isn't JSON (or a worker wrote a line that isn't a protocol message). |
 
 Every error message names the snippet (its first line).
 
@@ -151,6 +177,8 @@ Every error message names the snippet (its first line).
 - `canonicalizeSnippet(code)` and `hasGloSharpMarkers(code)` — also available
   from `@glosharp/core/snippet`, which has no Node.js dependencies.
 - `resolveExecutable()` / `clearExecutableCache()` — the discovery above.
+- `configureGloSharp({ concurrency, workers })` and `closeGloSharpWorkers()` —
+  see [Workers](#workers).
 
 ## Markers
 
