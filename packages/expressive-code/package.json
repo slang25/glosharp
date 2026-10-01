@@ -2,6 +2,7 @@
   "name": "@glosharp/expressive-code",
   "version": "0.1.0-alpha.1",
   "description": "Expressive Code plugin for glosharp C# type information",
+  "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

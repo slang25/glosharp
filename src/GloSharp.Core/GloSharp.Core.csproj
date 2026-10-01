@@ -8,6 +8,7 @@
     <Version>0.1.0</Version>
     <Description>Core library for GloSharp — compiler-driven type information for C# documentation</Description>
     <Authors>Stuart Lang</Authors>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/slang25/glosharp</PackageProjectUrl>
     <RepositoryUrl>https://github.com/slang25/glosharp</RepositoryUrl>
     <RepositoryType>git</RepositoryType>

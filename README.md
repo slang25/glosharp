@@ -305,3 +305,7 @@ suite) and the OpenSpec workflow.
 - [Roadmap](ROADMAP.md) · [Annotated links](references/links.md)
 
 `openspec/` (specs and change proposals) and `.claude/` are maintainer tooling.
+
+## License
+
+[MIT](LICENSE)

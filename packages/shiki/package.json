@@ -2,6 +2,7 @@
   "name": "@glosharp/shiki",
   "version": "0.1.0-alpha.1",
   "description": "Shiki transformer and Markdown (remark / Sätteri) integration for glosharp C# type information",
+  "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

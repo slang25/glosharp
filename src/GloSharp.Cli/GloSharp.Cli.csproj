@@ -18,6 +18,7 @@
     <Version>0.1.0</Version>
     <Description>C# twoslash — compiler-driven type information for documentation</Description>
     <Authors>Stuart Lang</Authors>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/slang25/glosharp</PackageProjectUrl>
     <RepositoryUrl>https://github.com/slang25/glosharp</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
