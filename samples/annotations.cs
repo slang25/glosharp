@@ -1,4 +1,3 @@
-// @noErrors
 var before = Compute(1);
 // @highlight
 var highlighted = Compute(2);
