@@ -1,104 +1,78 @@
-# GloSharp Examples
+# Glo# Examples
 
-Sample projects showing how to use glosharp in different contexts.
+Four small sites and scripts showing Glo# in different contexts. Each one is an npm workspace of
+this repository and builds against the local packages and a locally built CLI.
 
-## Prerequisites
+| Example | Integration | What to look at |
+| --- | --- | --- |
+| [`expressive-code/`](./expressive-code/) | `@glosharp/expressive-code` in Astro | `astro.config.mjs`: one plugin, every C# block gets hovers |
+| [`astro-blog/`](./astro-blog/) | `@glosharp/shiki` in Astro Markdown | `src/remark-glosharp.mjs` + `astro.config.mjs` |
+| [`docusaurus-docs/`](./docusaurus-docs/) | `@glosharp/shiki` in Docusaurus | `src/plugins/glosharp-plugin.ts` |
+| [`standalone/`](./standalone/) | `@glosharp/shiki` in a Node script | `render.mjs`: C# files in, one HTML page out |
 
-All examples require the glosharp CLI and the npm packages.
+## Running an example from this repository
 
-**From the repo root** (uses local packages — no publishing needed):
-
-```bash
-# Pack and install the CLI as a local dotnet tool
-dotnet pack src/GloSharp.Cli/ -o .nupkg/
-dotnet tool restore  # or: dotnet tool install GloSharp.Cli --local --add-source .nupkg/
-
-# Install npm dependencies (workspaces resolve glosharp packages locally)
-npm install
-
-# Build the TypeScript packages
-npm run build --workspace=packages/glosharp
-npm run build --workspace=packages/shiki
-```
-
-Or if the packages are published, just install the CLI globally:
+From the repository root:
 
 ```bash
-dotnet tool install -g GloSharp.Cli
+# 1. Install dependencies and build the @glosharp/* packages
+npm ci
+npm run build
+
+# 2. Build the CLI and tell the examples where it is
+npm run cli:build
+export GLOSHARP_EXECUTABLE="$PWD/src/GloSharp.Cli/bin/Release/net8.0/GloSharp.Cli"
+# Windows: $env:GLOSHARP_EXECUTABLE = "$PWD\src\GloSharp.Cli\bin\Release\net8.0\GloSharp.Cli.exe"
+
+# 3. Run one
+npm run dev -w examples/expressive-code      # or: npm run build -w examples/expressive-code
+npm run dev -w examples/astro-blog
+npm start   -w examples/docusaurus-docs
+npm run render -w examples/standalone        # then open examples/standalone/output.html
 ```
 
-## Examples
+If `glosharp` is already on your `PATH`, skip the `GLOSHARP_EXECUTABLE` export.
 
-### [`astro-blog/`](./astro-blog/)
+<!-- TODO(merge): if the CLI's target framework changes, update the net8.0 path segment above. -->
 
-An Astro site that uses `@glosharp/shiki` to render C# code blocks with hover
-type information in Markdown blog posts.
+## Using an example outside this repository
+
+The examples depend on `"@glosharp/*": "*"`, which resolves to the local workspace here. In your
+own project, install the CLI and the published packages instead, and keep their versions in step:
 
 ```bash
-cd astro-blog
-npm install
-npm run dev
+dotnet tool install --global GloSharp.Cli --prerelease
+npm install @glosharp/expressive-code          # or @glosharp/shiki
 ```
 
-The key integration point is `astro.config.mjs`, which adds a custom Shiki
-transformer that calls glosharp during Markdown processing.
+## Notes per example
 
-### [`expressive-code/`](./expressive-code/)
+**`expressive-code/`** is the simplest integration: add `pluginGloSharp()` to Expressive Code and
+all C# blocks get hovers, errors and completions, with no stylesheet to add.
 
-An Astro site that uses `astro-expressive-code` with the `@glosharp/expressive-code`
-plugin. This is the simplest framework integration — just add `pluginGloSharp()` to
-your Expressive Code config and all C# code blocks get type hovers automatically.
+**`astro-blog/`** uses Astro's built-in Shiki. Shiki transforms synchronously but glosharp has to
+run the compiler, so a remark plugin runs `processGloSharpBlocks` over each page's C# blocks
+first, and `transformerGloSharpFromMap` applies the results while Shiki highlights. The layout
+imports `@glosharp/shiki/style.css`, which positions the popups. On Astro 7, `remarkPlugins` need
+the `@astrojs/markdown-remark` package installed, which is why it's a dependency.
 
-```bash
-cd expressive-code
-npm install
-npm run dev
-```
+**`docusaurus-docs/`** uses the same two steps inside a remark plugin, and replaces each C# block
+with the rendered HTML. `src/css/custom.css` imports `@glosharp/shiki/style.css` and switches the
+code to the dark Shiki theme in Docusaurus's dark mode.
 
-The key integration point is `astro.config.mjs`, which passes the glosharp plugin
-to `astro-expressive-code`.
+**`standalone/`** reads the `.cs` files next to it and writes `output.html`, inlining
+`@glosharp/shiki/style.css`. If you don't need Shiki, the CLI does this by itself:
+`glosharp render snippet.cs --standalone --output snippet.html`.
 
-### [`docusaurus-docs/`](./docusaurus-docs/)
+## Marker syntax
 
-A Docusaurus documentation site with a custom remark plugin that processes C#
-code blocks through glosharp before rendering.
-
-```bash
-cd docusaurus-docs
-npm install
-npm start
-```
-
-See `src/plugins/glosharp-plugin.ts` for the remark plugin that hooks into
-Docusaurus's Markdown pipeline.
-
-### [`standalone/`](./standalone/)
-
-A minimal Node.js script that reads `.cs` files and generates a self-contained
-HTML page with interactive hover popups. No framework required.
-
-```bash
-cd standalone
-npm install
-npm run render
-open output.html
-```
-
-This is the simplest way to try glosharp — just write C# with markers and
-generate an HTML file.
-
-## Marker Syntax
-
-All examples use the same glosharp marker syntax in C# code:
+The examples use a few markers; see the [marker reference](../README.md#marker-reference) for all
+of them.
 
 | Marker | Purpose |
-|---|---|
-| `// ^?` | Show type/hover info at this column |
-| `// ^|` | Show IntelliSense completions at this column |
-| `// @noErrors` | Assert the snippet compiles cleanly |
-| `// @errors: CS0103` | Mark specific errors as expected |
-| `// @nullable: enable` | Enable nullable reference types |
-| `// ---cut---` | Hide code above from output |
-| `// ---cut-before---` | Same as `---cut---` (long form) |
-| `// ---cut-after---` | Hide code below from output |
-| `// ---cut-start---` / `// ---cut-end---` | Hide a section of code |
+| --- | --- |
+| `// ^?` | On its own line: pin the hover for the token above the caret |
+| `// ^\|` | On its own line: show completions at the caret position above |
+| `// @errors: CS0103` | The next line has this error on purpose; `glosharp verify` fails if it doesn't |
+| `// @noErrors` | Suppress all errors (twoslash semantics). It turns checking off, so avoid it on snippets you want verified |
+| `// ---cut---` | Hide the code above (it's still compiled) |
