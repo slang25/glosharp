@@ -1,5 +1,9 @@
-## ADDED Requirements
+# directive-markers Specification
 
+## Purpose
+Highlight, focus and diff lines with `@highlight`, `@focus` and `@diff`.
+
+## Requirements
 ### Requirement: Parse highlight directive
 The system SHALL recognize `// @highlight` comment lines to mark lines for visual highlighting. When used without arguments, the directive SHALL target the next code line. When used with a line range (`// @highlight: N` or `// @highlight: N-M`), it SHALL target the specified output lines (1-based).
 

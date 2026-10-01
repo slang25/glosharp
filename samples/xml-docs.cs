@@ -1,4 +1,3 @@
-// @noErrors
 var total = PriceMath.ApplyDiscount(100m, 0.2m);
 //                       ^?
 

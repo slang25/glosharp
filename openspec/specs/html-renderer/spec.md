@@ -1,5 +1,8 @@
-## ADDED Requirements
+# html-renderer Specification
 
+## Purpose
+Render glosharp results as self-contained HTML (`glosharp render`).
+## Requirements
 ### Requirement: Generate self-contained HTML fragment from GloSharpResult
 The `HtmlRenderer` SHALL accept a `GloSharpResult`, classified spans, and a theme, and produce an HTML string containing a `<div class="glosharp-code" data-theme="{theme}">` wrapper with a `<style>` block, a `<pre><code>` block with syntax-highlighted tokens, hover popups, diagnostics, persistent query results, custom tag callouts, completion lists, and highlight/focus/diff styling.
 
@@ -189,3 +192,27 @@ The `GloSharpTheme` SHALL include `WarningColor`, `WarningBackground`, `InfoColo
 #### Scenario: Github-light theme info colors
 - **WHEN** rendering with the `github-light` theme
 - **THEN** info underlines use `#0969da` and info message backgrounds use `rgba(9,105,218,0.15)`
+
+### Requirement: Code block whitespace is exactly the source's
+Line breaks inside the code block SHALL come from the newline characters between line spans and from nothing else: `.glosharp-code .line` SHALL be `display: inline`. Chromium serialises a `display: block` boundary as a newline while Firefox serialises it as nothing, so block-level lines plus real newlines double-space the block and double the newlines Chromium puts on the clipboard, while block-level lines without real newlines copy out of Firefox as a single run-on line. Inline lines plus real newlines is the only combination both browsers lay out and copy correctly.
+
+The renderer SHALL therefore emit exactly the source's newlines inside the code block — in particular a nested popup SHALL NOT be followed by one, or it breaks the line after its hover token.
+
+The cost is accepted: a line-level background (`highlight`, `add`, `remove`) ends with the text rather than spanning the block, matching what the Shiki path already does.
+
+#### Scenario: Newlines match the source
+- **WHEN** a result with hovers on several lines is rendered
+- **THEN** the markup between `<code>` and `</code></pre>` contains exactly as many newlines as the rendered source
+
+#### Scenario: Lines are single-spaced in a browser
+- **WHEN** rendered output is loaded in a browser
+- **THEN** the code block's height equals its rendered row count times one line box
+
+#### Scenario: Code copies back out unchanged
+- **WHEN** the code block's contents are selected and copied, in Chromium or Firefox
+- **THEN** the text is the source lines, one per line, without the hidden popup text
+
+#### Scenario: Line-level styling still applies
+- **WHEN** a line carries a highlight or diff class
+- **THEN** it still renders its distinguishing background
+

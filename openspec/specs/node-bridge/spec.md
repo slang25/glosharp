@@ -1,7 +1,10 @@
-## ADDED Requirements
+# node-bridge Specification
 
+## Purpose
+The `@glosharp/core` Node API that drives the CLI.
+## Requirements
 ### Requirement: Factory function creates glosharp instance
-The package SHALL export a `createGloSharp()` function that accepts configuration options and returns a glosharp instance with a `process()` method.
+The package SHALL export a `createGloSharp()` function that accepts configuration options and returns a glosharp instance with `process()` and `render()` methods.
 
 #### Scenario: Create default instance
 - **WHEN** `createGloSharp()` is called with no options
@@ -42,11 +45,23 @@ The package SHALL export TypeScript interfaces for `GloSharpResult`, `GloSharpHo
 - **THEN** TypeScript types the field as `string`
 
 ### Requirement: Cache results during build
-The instance SHALL cache results by source code hash to avoid re-processing identical snippets within a single build.
+The instance SHALL cache results by source code hash to avoid re-processing identical snippets within a single build. `render()` SHALL use a separate cache keyed by the source hash *and* the rendering arguments, since the same source yields different HTML per theme, and SHALL NOT share entries with `process()`.
 
 #### Scenario: Duplicate snippet skips CLI
 - **WHEN** `process()` is called twice with identical source code
 - **THEN** the second call returns the cached result without spawning the CLI
+
+#### Scenario: Duplicate render skips CLI
+- **WHEN** `render()` is called twice with identical source and theme
+- **THEN** the second call returns the cached HTML without spawning the CLI
+
+#### Scenario: Theme is part of the render cache key
+- **WHEN** `render()` is called with the same source under two different themes
+- **THEN** the CLI is spawned once per theme
+
+#### Scenario: Caches are independent
+- **WHEN** `process()` and then `render()` are called with the same source
+- **THEN** `render()` spawns the CLI and returns HTML rather than the cached `GloSharpResult`
 
 ### Requirement: Error handling for CLI failures
 The package SHALL throw a typed error when the CLI is not found, exits with non-zero, or produces invalid JSON.
@@ -175,3 +190,55 @@ The package SHALL export a `GloSharpTag` interface with `name` (`'log' | 'warn' 
 #### Scenario: Type-safe tag line
 - **WHEN** a consumer accesses `result.tags[0].line`
 - **THEN** TypeScript types the field as `number`
+
+### Requirement: Complog option in GloSharpOptions
+The `GloSharpOptions` interface SHALL accept an optional `complog` property specifying a path to a `.complog` file, applied to all `process()` calls on the instance.
+
+#### Scenario: Instance-level complog
+- **WHEN** `createGloSharp({ complog: './build.complog' })` is called and `process()` is invoked
+- **THEN** the CLI is spawned with `--complog ./build.complog`
+
+### Requirement: Complog option in GloSharpProcessOptions
+The `GloSharpProcessOptions` interface SHALL accept an optional `complog` property that overrides the instance-level `complog` for a single call.
+
+#### Scenario: Per-call complog override
+- **WHEN** `glosharp.process({ code: '...', complog: './other.complog' })` is called on an instance with a different `complog`
+- **THEN** the CLI is spawned with `--complog ./other.complog`
+
+#### Scenario: No complog
+- **WHEN** `glosharp.process({ code: '...' })` is called on an instance without `complog`
+- **THEN** the CLI is spawned without `--complog` (existing behavior unchanged)
+
+### Requirement: ComplogProject option in GloSharpOptions
+The `GloSharpOptions` interface SHALL accept an optional `complogProject` property specifying the project name to select from a multi-project complog.
+
+#### Scenario: Instance-level complog project
+- **WHEN** `createGloSharp({ complog: './build.complog', complogProject: 'MyLib' })` is called and `process()` is invoked
+- **THEN** the CLI is spawned with `--complog ./build.complog --complog-project MyLib`
+
+### Requirement: ComplogProject option in GloSharpProcessOptions
+The `GloSharpProcessOptions` interface SHALL accept an optional `complogProject` property that overrides the instance-level value for a single call.
+
+#### Scenario: Per-call complog project override
+- **WHEN** `glosharp.process({ code: '...', complogProject: 'MyApp' })` is called
+- **THEN** the CLI is spawned with `--complog-project MyApp`
+
+### Requirement: Render method returns HTML
+The instance SHALL expose a `render()` method that invokes the CLI's `render` command and returns its HTML output verbatim as a string. It SHALL accept every option `process()` accepts, plus `theme` (a built-in theme name) and `standalone` (wrap the fragment in a full HTML page). Option resolution SHALL match `process()`: per-call options override the instance options.
+
+#### Scenario: Render inline code
+- **WHEN** `glosharp.render({ code: 'var x = 42;\n//  ^?' })` is called
+- **THEN** the CLI is spawned as `render --stdin` with the source on stdin, and the returned string is the CLI's stdout unchanged
+
+#### Scenario: Theme and standalone forwarded
+- **WHEN** `glosharp.render({ code: 'var x = 42;', theme: 'github-light', standalone: true })` is called
+- **THEN** the CLI is spawned with `--theme github-light --standalone`
+
+#### Scenario: Shared option surface
+- **WHEN** `createGloSharp({ complog: './docs.glocontext' })` renders with `{ framework: 'net10.0' }`
+- **THEN** the CLI is spawned with both `--framework net10.0` and `--complog ./docs.glocontext`
+
+#### Scenario: Render failure surfaces stderr
+- **WHEN** the CLI exits non-zero during a render
+- **THEN** `render()` throws an error containing the exit code and stderr
+

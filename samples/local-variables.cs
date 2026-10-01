@@ -1,4 +1,3 @@
-// @noErrors
 var greeting = "Hello, World!";
 //      ^?
 var count = 42;

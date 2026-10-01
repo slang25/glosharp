@@ -1,5 +1,9 @@
-## ADDED Requirements
+# expressive-code-plugin Specification
 
+## Purpose
+The `@glosharp/expressive-code` plugin that renders glosharp results in Expressive Code.
+
+## Requirements
 ### Requirement: Export plugin factory function
 The package SHALL export a `pluginGloSharp()` function that returns an Expressive Code plugin object (typed as EC's `ExpressiveCodePlugin`, built with `definePlugin`) with `preprocessCode` and `annotateCode` hooks, a `PluginStyleSettings` instance as `styleSettings`, `baseStyles`, and a `jsModules` entry. The returned object SHALL type-check wherever EC accepts a plugin (e.g. a `// @ts-check` `ec.config.mjs` using `defineEcConfig`).
 

@@ -1,4 +1,3 @@
-// @noErrors
 var users = new[] { "alice", "bob", "carol" };
 // @log: Returns a cached result after the first call
 var filtered = users.Where(u => u.Length > 3);

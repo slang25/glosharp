@@ -74,11 +74,11 @@ glosharp process src/Example.cs --region getting-started
 # Process with a project context
 glosharp process src/Example.cs --project src/Example.csproj
 
-# Verify all snippets compile (CI mode)
-glosharp verify samples/
+# Verify snippets compile (CI mode); files and/or directories
+glosharp verify samples/ docs/intro.cs
 
-# Output JSON to stdout
-glosharp process src/Example.cs --format json
+# Render HTML instead of JSON
+glosharp render src/Example.cs --standalone --output example.html
 ```
 
 **Responsibilities**:
@@ -86,11 +86,12 @@ glosharp process src/Example.cs --format json
 - Resolve project context (find .csproj, resolve NuGet packages)
 - Call core library
 - Output JSON to stdout (for piping to JS integrations)
-- Exit with non-zero code on compile errors (for CI)
+- `verify` exits non-zero on unexpected errors (for CI). `process` and `render` exit 0 whenever
+  they produce a result: `meta.compileSucceeded` carries the compile status
 
 ### 3. Node.js bridge
 
-**Package**: `glosharp` (npm)
+**Package**: `@glosharp/core` (npm)
 
 **Responsibilities**:
 - Spawn `glosharp` as child process
@@ -99,7 +100,7 @@ glosharp process src/Example.cs --format json
 - Cache results during a build
 
 ```typescript
-import { createGloSharp } from 'glosharp'
+import { createGloSharp } from '@glosharp/core'
 
 const glosharp = createGloSharp({
   // Path to dotnet tool, or auto-detect
@@ -120,21 +121,23 @@ const result = await glosharp.process({
 
 **Package**: `@glosharp/shiki` (npm)
 
-Follows the same pattern as `@shikijs/twoslash`:
+Shiki's transformer hooks are synchronous and glosharp has to run the compiler, so unlike
+`@shikijs/twoslash` it works in two steps: process the blocks first, then let the transformer
+look each result up by its code.
 
 ```typescript
-import { transformerGloSharp } from '@glosharp/shiki'
+import { processGloSharpBlocks, transformerGloSharpFromMap } from '@glosharp/shiki'
+
+const results = await processGloSharpBlocks([code], { project: 'src/Example.csproj' })
 
 const html = await codeToHtml(code, {
   lang: 'csharp',
   themes: { light: 'github-light', dark: 'github-dark' },
-  transformers: [
-    transformerGloSharp({
-      // glosharp options
-    }),
-  ],
+  transformers: [transformerGloSharpFromMap(results)],
 })
 ```
+
+Popup styling ships as `@glosharp/shiki/style.css`.
 
 ### 5. Expressive Code plugin
 

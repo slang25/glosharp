@@ -1,5 +1,9 @@
-## ADDED Requirements
+# batch-processing Specification
 
+## Purpose
+Process many code blocks in one call from the Shiki integration and return results keyed by code hash.
+
+## Requirements
 ### Requirement: Export batch processing function
 The package SHALL export a `processGloSharpBlocks(blocks, options?)` async function that processes multiple code blocks and returns a result map.
 

@@ -1,5 +1,9 @@
-## ADDED Requirements
+# auto-hover-extraction Specification
 
+## Purpose
+Produce hover information for every meaningful token, with `^?` queries marked persistent.
+
+## Requirements
 ### Requirement: Extract hovers for all semantically meaningful tokens
 The system SHALL walk all descendant tokens in the syntax tree and extract hover data for tokens on an allow-list that carry their own symbol: identifier tokens (including contextual keywords such as `var`), predefined type keywords (`int`, `string`, ...), `this`/`base`, and the `new` of target-typed (`new()`) and anonymous object creation. Every other token — operators, punctuation, literals and statement keywords — SHALL be skipped; such tokens SHALL NOT borrow the hover of an enclosing call, declaration or member access.
 

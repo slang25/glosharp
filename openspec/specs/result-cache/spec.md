@@ -1,5 +1,9 @@
-## ADDED Requirements
+# result-cache Specification
 
+## Purpose
+Cache processing results on disk, keyed by content.
+
+## Requirements
 ### Requirement: Disk-based result caching by content hash
 The system SHALL cache `GloSharpResult` JSON to disk when a cache directory is configured. The cache key SHALL be the SHA256 hash of: the glosharp assembly version, the canonical JSON serialisation of the complete effective `GloSharpProcessorOptions` record (after config merge, excluding only `cacheDir`), fingerprints of on-disk inputs referenced by path, and the source code (which includes any `#:` directives), concatenated with null byte separators.
 

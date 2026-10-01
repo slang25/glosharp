@@ -1,5 +1,9 @@
-## ADDED Requirements
+# completion-extraction Specification
 
+## Purpose
+Return completion lists at `^|` query positions.
+
+## Requirements
 ### Requirement: Extract completions at queried positions using CompletionService
 The system SHALL use an `AdhocWorkspace` with `CompletionService.GetCompletionsAsync()` to extract completion items at each `^|` marker position. The workspace SHALL reuse the same MetadataReferences already resolved for compilation.
 

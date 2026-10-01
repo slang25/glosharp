@@ -1,5 +1,9 @@
-## ADDED Requirements
+# file-based-app-directives Specification
 
+## Purpose
+Support .NET 10 file-based app directives (`#:package`, `#:sdk`, `#:property`, `#:project`).
+
+## Requirements
 ### Requirement: Parse file-based app directives
 The system SHALL recognize lines starting with `#:` as file-based app directives. Supported directive types SHALL include `#:package`, `#:sdk`, `#:property`, and `#:project`.
 

@@ -1,5 +1,9 @@
-## ADDED Requirements
+# compilation-context-cache Specification
 
+## Purpose
+Reuse resolved compilation references in-process across snippets.
+
+## Requirements
 ### Requirement: In-process MetadataReference caching
 The system SHALL cache resolved `MetadataReference[]` arrays in memory, keyed by compilation context (target framework, sorted package list, project assets path). Subsequent calls with the same compilation context within the same process SHALL reuse the cached references.
 

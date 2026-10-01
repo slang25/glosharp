@@ -1,8 +1,8 @@
-// Completion after dot access
-Console.
+// Completion on Console members (caret at the start of a member name)
+Console.WriteLine("Hello");
 //      ^|
 
-// Completion for string methods
+// Completion on string members
 var greeting = "Hello, World!";
-greeting.
-//       ^|
+var shout = greeting.ToUpper();
+//                   ^|

@@ -1,5 +1,9 @@
-## ADDED Requirements
+# error-code-links Specification
 
+## Purpose
+Link compiler error codes in rendered output to their documentation.
+
+## Requirements
 ### Requirement: Clickable error codes linking to Microsoft docs
 When an error code matches the pattern `CS` followed by digits (e.g., `CS1002`, `CS0246`), renderers SHALL wrap the error code in an `<a>` element linking to `https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/{code}` where `{code}` is the lowercased error code (e.g., `cs1002`).
 

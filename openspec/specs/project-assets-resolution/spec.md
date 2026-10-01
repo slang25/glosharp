@@ -1,5 +1,9 @@
-## ADDED Requirements
+# project-assets-resolution Specification
 
+## Purpose
+Resolve NuGet references from a project's `project.assets.json`.
+
+## Requirements
 ### Requirement: Parse project.assets.json for resolved assemblies
 The system SHALL parse a `project.assets.json` file and extract resolved NuGet package assembly paths for a given target framework moniker.
 
