@@ -29,6 +29,11 @@ Thumbs.db
 # Build artifacts
 *.nupkg
 .nupkg/
+artifacts/
+*.binlog
+
+# glosharp result caches (glosharp.config.json "cacheDir", --cache-dir)
+.glosharp-cache/
 
 # Example output
 examples/standalone/output.html
