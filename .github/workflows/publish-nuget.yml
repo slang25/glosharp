@@ -2,48 +2,97 @@ name: Publish NuGet packages
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: >-
+          Exact version to publish (e.g. 0.2.0-alpha.3). Leave empty to publish
+          the next <preid>.N prerelease after what nuget.org already has. Pass the
+          same value to "Publish npm packages" to keep the CLI and npm in step.
+        required: false
+        default: ''
+      preid:
+        description: Prerelease identifier used when version is empty.
+        required: false
+        default: alpha
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-nuget
+  cancel-in-progress: false
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
 
 jobs:
+  ci:
+    name: CI
+    uses: ./.github/workflows/ci.yml
+
   publish:
     name: Publish to NuGet
+    needs: ci
     runs-on: ubuntu-latest
     permissions:
-      id-token: write
       contents: read
+      id-token: write # NuGet trusted publishing
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5.4.0
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: |
+            8.0.x
+            10.0.x
 
-      - name: Get next alpha version
+      - name: Setup Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: '24'
+
+      - name: Compute version
         id: version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_PREID: ${{ inputs.preid }}
         run: |
-          # Query NuGet for the latest published alpha version of GloSharp.Core
-          CURRENT=$(dotnet package search GloSharp.Core --source https://api.nuget.org/v3/index.json --prerelease --exact-match --format json \
-            | jq -r '[.searchResult[0].packages[] | select(.version | test("alpha"))] | sort_by(.version) | last | .version // empty' 2>/dev/null || echo "")
-          if [ -z "$CURRENT" ]; then
-            NEXT="0.1.0-alpha.1"
-          else
-            BASE=$(echo "$CURRENT" | sed 's/\.[0-9]*$//')
-            NUM=$(echo "$CURRENT" | grep -o '[0-9]*$')
-            NEXT="${BASE}.$((NUM + 1))"
-          fi
-          echo "Publishing version: $NEXT"
-          echo "version=$NEXT" >> "$GITHUB_OUTPUT"
+          # Semver-aware (alpha.10 > alpha.9) and fails loudly on registry errors.
+          VERSION=$(node .github/scripts/next-version.mjs --registry nuget \
+            --preid "$INPUT_PREID" --version "$INPUT_VERSION" \
+            GloSharp.Core GloSharp.Cli)
+          echo "Publishing version: $VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Pack
-        run: dotnet pack -c Release -p:Version=${{ steps.version.outputs.version }}
+        run: >-
+          dotnet pack -c Release -o artifacts/nupkg
+          -p:Version=${{ steps.version.outputs.version }}
+          -p:ContinuousIntegrationBuild=true
+
+      - name: Smoke-test the packed tool
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          dotnet tool install GloSharp.Cli --tool-path "$RUNNER_TEMP/glosharp" \
+            --add-source artifacts/nupkg --version "$VERSION"
+          "$RUNNER_TEMP/glosharp/glosharp" --version
+          echo 'var answer = 42;' | "$RUNNER_TEMP/glosharp/glosharp" process --stdin > /dev/null
 
       - name: NuGet login
-        uses: NuGet/login@v1
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
         id: login
         with:
           user: ${{ secrets.NUGET_USER }}
 
+      # --skip-duplicate makes a re-run after a partial failure safe.
       - name: Publish packages
+        env:
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
         run: |
-          dotnet nuget push src/GloSharp.Core/bin/Release/GloSharp.Core.*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ steps.login.outputs.NUGET_API_KEY }}
-          dotnet nuget push src/GloSharp.Cli/bin/Release/GloSharp.Cli.*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ steps.login.outputs.NUGET_API_KEY }}
+          for pkg in GloSharp.Core GloSharp.Cli; do
+            dotnet nuget push "artifacts/nupkg/${pkg}.${{ steps.version.outputs.version }}.nupkg" \
+              --source https://api.nuget.org/v3/index.json --api-key "$NUGET_API_KEY" --skip-duplicate
+          done
