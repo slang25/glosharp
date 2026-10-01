@@ -1,7 +1,16 @@
 {
   "name": "@glosharp/shiki",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "description": "Shiki transformer and Markdown (remark / Sätteri) integration for glosharp C# type information",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/slang25/glosharp.git",
+    "directory": "packages/shiki"
+  },
+  "homepage": "https://github.com/slang25/glosharp/tree/main/packages/shiki#readme",
+  "bugs": {
+    "url": "https://github.com/slang25/glosharp/issues"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -22,7 +31,7 @@
     "prepack": "npm run build"
   },
   "dependencies": {
-    "@glosharp/core": "0.1.0-alpha.1",
+    "@glosharp/core": "0.1.0-alpha.2",
     "@types/hast": "^3.0.4"
   },
   "peerDependencies": {
