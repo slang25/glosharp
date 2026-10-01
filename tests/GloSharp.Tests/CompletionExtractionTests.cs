@@ -18,6 +18,23 @@ public class CompletionExtractionTests
     }
 
     [Test]
+    public async Task Process_CompletionKind_PrefersInstanceMemberOverSameNamedExtension()
+    {
+        // string.Trim exists as an instance method and (via first-class spans) as a
+        // MemoryExtensions extension; Roslyn merges them into one item with unstable tags.
+        var source = "var s = \"x\";\nvar t = s.Trim();\n//        ^|";
+
+        for (var run = 0; run < 3; run++)
+        {
+            var result = await new GloSharpProcessor().ProcessAsync(source);
+            var items = result.Completions[0].Items;
+
+            await Assert.That(items.Single(i => i.Label == "Trim").Kind).IsEqualTo("Method");
+            await Assert.That(items.Single(i => i.Label == "Select").Kind).IsEqualTo("ExtensionMethod");
+        }
+    }
+
+    [Test]
     public async Task Process_CompletionForLocals_IncludesLocalVariable()
     {
         var source = "var myName = \"test\";\nmyN\n// ^|";

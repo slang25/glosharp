@@ -628,8 +628,7 @@ public class GloSharpProcessor
         var completions = new List<GloSharpCompletion>();
         var compilationCode = markers.CompilationCode;
 
-        var host = MefHostServices.Create(MefHostServices.DefaultAssemblies);
-        using var workspace = new AdhocWorkspace(host);
+        using var workspace = new AdhocWorkspace(SyntaxClassifier.Host);
         var project = workspace.AddProject("GloSharpCompletion", LanguageNames.CSharp)
             .WithCompilationOptions(built.Compilation.Options)
             .WithParseOptions(built.Tree.Options)
@@ -641,6 +640,8 @@ public class GloSharpProcessor
 
         var completionService = CompletionService.GetService(document);
         if (completionService == null) return completions;
+        var semanticModel = await document.GetSemanticModelAsync();
+        var syntaxRoot = await document.GetSyntaxRootAsync();
 
         foreach (var query in markers.CompletionQueries)
         {
@@ -660,6 +661,7 @@ public class GloSharpProcessor
             var completionList = await completionService.GetCompletionsAsync(document, position);
 
             var items = new List<GloSharpCompletionItem>();
+            var receiverType = GetMemberAccessReceiverType(syntaxRoot, semanticModel, position);
             if (completionList != null)
             {
                 // Filter by the identifier already typed before the caret, as an editor would
@@ -668,8 +670,19 @@ public class GloSharpProcessor
                     ? compilationCode[span.Start..position]
                     : "";
 
+                // Roslyn's item order is not stable between runs for items that sort equally, and
+                // the dedupe below keeps the first of each label — so sort deterministically, as an
+                // editor would (sort text, then label), preferring an instance member over an
+                // extension method of the same name.
+                var ordered = completionList.ItemsList
+                    .OrderBy(i => i.SortText, StringComparer.Ordinal)
+                    .ThenBy(i => i.DisplayText, StringComparer.Ordinal)
+                    .ThenBy(i => i.Tags.Contains("ExtensionMethod") ? 1 : 0)
+                    .ThenBy(i => string.Join(",", i.Tags), StringComparer.Ordinal)
+                    .ThenBy(i => i.InlineDescription, StringComparer.Ordinal);
+
                 var seen = new HashSet<string>(StringComparer.Ordinal);
-                foreach (var item in completionList.ItemsList)
+                foreach (var item in ordered)
                 {
                     if (prefix.Length > 0 && !item.FilterText.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
                         continue;
@@ -681,7 +694,7 @@ public class GloSharpProcessor
                     items.Add(new GloSharpCompletionItem
                     {
                         Label = item.DisplayText,
-                        Kind = item.Tags.FirstOrDefault() ?? "Unknown",
+                        Kind = GetCompletionKind(item, receiverType, semanticModel!, position),
                         Detail = item.InlineDescription.Length > 0 ? item.InlineDescription : null,
                     });
                 }
@@ -702,6 +715,35 @@ public class GloSharpProcessor
         }
 
         return completions;
+    }
+
+    /// <summary>The type of <c>x</c> when completing a member name after <c>x.</c>.</summary>
+    private static ITypeSymbol? GetMemberAccessReceiverType(SyntaxNode? root, SemanticModel? model, int position)
+    {
+        if (root == null || model == null) return null;
+        var token = root.FindToken(position);
+        if (token.IsKind(SyntaxKind.DotToken) || token.SpanStart >= position)
+            token = token.IsKind(SyntaxKind.DotToken) ? token : token.GetPreviousToken();
+        return token.Parent is MemberAccessExpressionSyntax access && access.OperatorToken == token
+            ? model.GetTypeInfo(access.Expression).Type
+            : null;
+    }
+
+    /// <summary>
+    /// The item's symbol kind. Roslyn merges an instance method and an extension method of the
+    /// same name into one item whose tags come from whichever symbol it saw first — which varies
+    /// between runs — so for member access decide from the receiver type's own members.
+    /// </summary>
+    private static string GetCompletionKind(CompletionItem item, ITypeSymbol? receiverType, SemanticModel model, int position)
+    {
+        var kind = item.Tags.FirstOrDefault() ?? "Unknown";
+        if (receiverType == null || kind is not ("Method" or "ExtensionMethod"))
+            return kind;
+
+        var isInstanceMember = model
+            .LookupSymbols(position, receiverType, item.DisplayText, includeReducedExtensionMethods: false)
+            .Any(s => s.Kind == SymbolKind.Method);
+        return isInstanceMember ? "Method" : "ExtensionMethod";
     }
 
     // ---- Hovers -------------------------------------------------------

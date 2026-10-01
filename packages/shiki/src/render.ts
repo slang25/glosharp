@@ -239,7 +239,8 @@ function errorBlock(error: GloSharpError): Element {
         'a',
         {
           class: 'glosharp-error-code',
-          href: `https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/${error.code.toLowerCase()}`,
+          // Roslyn's own help link; the F1 redirect finds the page wherever the code is documented
+          href: `https://msdn.microsoft.com/query/roslyn.query?appId=roslyn&k=k(${error.code.toUpperCase()})`,
           target: '_blank',
           rel: ['noopener'],
         },

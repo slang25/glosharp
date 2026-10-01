@@ -1,16 +1,16 @@
 {
   "sample": "regions.cs",
-  "source": "using System.Collections.Generic;\n\n// This file demonstrates region extraction.\n// Use --region getting-started to extract just the region below.\n\n#region getting-started\nvar names = new List<string> { \"Alice\", \"Bob\", \"Charlie\" };\nforeach (var name in names)\n//          ^?\n{\n    Console.WriteLine($\"Hello, {name}!\");\n    //               ^?\n}\n#endregion\n\n#region advanced\nvar dict = new Dictionary<string, int>\n//  ^?\n{\n    [\"one\"] = 1,\n    [\"two\"] = 2,\n};\n#endregion\n",
+  "source": "using System.Collections.Generic;\n\n// This file demonstrates region extraction.\n// Use --region getting-started to extract just the region below.\n\n#region getting-started\nvar names = new List<string> { \"Alice\", \"Bob\", \"Charlie\" };\nforeach (var name in names)\n//           ^?\n{\n    Console.WriteLine($\"Hello, {name}!\");\n    //      ^?\n}\n#endregion\n\n#region advanced\nvar dict = new Dictionary<string, int>\n//  ^?\n{\n    [\"one\"] = 1,\n    [\"two\"] = 2,\n};\n#endregion\n",
   "result": {
     "code": "using System.Collections.Generic;\n\n// This file demonstrates region extraction.\n// Use --region getting-started to extract just the region below.\n\n#region getting-started\nvar names = new List<string> { \"Alice\", \"Bob\", \"Charlie\" };\nforeach (var name in names)\n{\n    Console.WriteLine($\"Hello, {name}!\");\n}\n#endregion\n\n#region advanced\nvar dict = new Dictionary<string, int>\n{\n    [\"one\"] = 1,\n    [\"two\"] = 2,\n};\n#endregion\n",
-    "original": "using System.Collections.Generic;\n\n// This file demonstrates region extraction.\n// Use --region getting-started to extract just the region below.\n\n#region getting-started\nvar names = new List<string> { \"Alice\", \"Bob\", \"Charlie\" };\nforeach (var name in names)\n//          ^?\n{\n    Console.WriteLine($\"Hello, {name}!\");\n    //               ^?\n}\n#endregion\n\n#region advanced\nvar dict = new Dictionary<string, int>\n//  ^?\n{\n    [\"one\"] = 1,\n    [\"two\"] = 2,\n};\n#endregion\n",
+    "original": "using System.Collections.Generic;\n\n// This file demonstrates region extraction.\n// Use --region getting-started to extract just the region below.\n\n#region getting-started\nvar names = new List<string> { \"Alice\", \"Bob\", \"Charlie\" };\nforeach (var name in names)\n//           ^?\n{\n    Console.WriteLine($\"Hello, {name}!\");\n    //      ^?\n}\n#endregion\n\n#region advanced\nvar dict = new Dictionary<string, int>\n//  ^?\n{\n    [\"one\"] = 1,\n    [\"two\"] = 2,\n};\n#endregion\n",
     "lang": "csharp",
     "hovers": [
       {
         "line": 7,
-        "character": 9,
-        "length": 3,
-        "text": "(class) string",
+        "character": 13,
+        "length": 4,
+        "text": "(local variable) string? name",
         "parts": [
           {
             "kind": "punctuation",
@@ -18,7 +18,7 @@
           },
           {
             "kind": "text",
-            "text": "class"
+            "text": "local variable"
           },
           {
             "kind": "punctuation",
@@ -31,22 +31,28 @@
           {
             "kind": "keyword",
             "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "?"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "localName",
+            "text": "name"
           }
         ],
-        "docs": {
-          "summary": "Represents text as a sequence of UTF-16 code units.",
-          "params": [],
-          "examples": [],
-          "exceptions": []
-        },
-        "symbolKind": "Class",
-        "targetText": "var",
+        "symbolKind": "Local",
+        "targetText": "name",
         "persistent": true
       },
       {
         "line": 9,
-        "character": 21,
-        "length": 1,
+        "character": 12,
+        "length": 9,
         "text": "(method) void Console.WriteLine(string? value) (+ 17 overloads)",
         "parts": [
           {
@@ -127,7 +133,7 @@
           ]
         },
         "symbolKind": "Method",
-        "targetText": "(",
+        "targetText": "WriteLine",
         "overloadCount": 18,
         "persistent": true
       },
@@ -476,9 +482,9 @@
       },
       {
         "line": 7,
-        "character": 13,
-        "length": 4,
-        "text": "(local variable) string? name",
+        "character": 9,
+        "length": 3,
+        "text": "(class) string",
         "parts": [
           {
             "kind": "punctuation",
@@ -486,7 +492,7 @@
           },
           {
             "kind": "text",
-            "text": "local variable"
+            "text": "class"
           },
           {
             "kind": "punctuation",
@@ -499,22 +505,16 @@
           {
             "kind": "keyword",
             "text": "string"
-          },
-          {
-            "kind": "punctuation",
-            "text": "?"
-          },
-          {
-            "kind": "space",
-            "text": " "
-          },
-          {
-            "kind": "localName",
-            "text": "name"
           }
         ],
-        "symbolKind": "Local",
-        "targetText": "name"
+        "docs": {
+          "summary": "Represents text as a sequence of UTF-16 code units.",
+          "params": [],
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Class",
+        "targetText": "var"
       },
       {
         "line": 7,
@@ -605,93 +605,6 @@
         },
         "symbolKind": "Class",
         "targetText": "Console"
-      },
-      {
-        "line": 9,
-        "character": 12,
-        "length": 9,
-        "text": "(method) void Console.WriteLine(string? value) (+ 17 overloads)",
-        "parts": [
-          {
-            "kind": "punctuation",
-            "text": "("
-          },
-          {
-            "kind": "text",
-            "text": "method"
-          },
-          {
-            "kind": "punctuation",
-            "text": ")"
-          },
-          {
-            "kind": "space",
-            "text": " "
-          },
-          {
-            "kind": "keyword",
-            "text": "void"
-          },
-          {
-            "kind": "space",
-            "text": " "
-          },
-          {
-            "kind": "className",
-            "text": "Console"
-          },
-          {
-            "kind": "punctuation",
-            "text": "."
-          },
-          {
-            "kind": "methodName",
-            "text": "WriteLine"
-          },
-          {
-            "kind": "punctuation",
-            "text": "("
-          },
-          {
-            "kind": "keyword",
-            "text": "string"
-          },
-          {
-            "kind": "punctuation",
-            "text": "?"
-          },
-          {
-            "kind": "space",
-            "text": " "
-          },
-          {
-            "kind": "parameterName",
-            "text": "value"
-          },
-          {
-            "kind": "punctuation",
-            "text": ")"
-          }
-        ],
-        "docs": {
-          "summary": "Writes the specified string value, followed by the current line terminator, to the standard output stream.",
-          "params": [
-            {
-              "name": "value",
-              "text": "The value to write."
-            }
-          ],
-          "examples": [],
-          "exceptions": [
-            {
-              "type": "IOException",
-              "text": "An I/O error occurred."
-            }
-          ]
-        },
-        "symbolKind": "Method",
-        "targetText": "WriteLine",
-        "overloadCount": 18
       },
       {
         "line": 9,
@@ -926,270 +839,6 @@
         },
         "symbolKind": "Struct",
         "targetText": "int"
-      },
-      {
-        "line": 16,
-        "character": 4,
-        "length": 1,
-        "text": "(local variable) Dictionary<string, int>? dict",
-        "parts": [
-          {
-            "kind": "punctuation",
-            "text": "("
-          },
-          {
-            "kind": "text",
-            "text": "local variable"
-          },
-          {
-            "kind": "punctuation",
-            "text": ")"
-          },
-          {
-            "kind": "space",
-            "text": " "
-          },
-          {
-            "kind": "className",
-            "text": "Dictionary"
-          },
-          {
-            "kind": "punctuation",
-            "text": "<"
-          },
-          {
-            "kind": "keyword",
-            "text": "string"
-          },
-          {
-            "kind": "punctuation",
-            "text": ","
-          },
-          {
-            "kind": "space",
-            "text": " "
-          },
-          {
-            "kind": "keyword",
-            "text": "int"
-          },
-          {
-            "kind": "punctuation",
-            "text": ">"
-          },
-          {
-            "kind": "punctuation",
-            "text": "?"
-          },
-          {
-            "kind": "space",
-            "text": " "
-          },
-          {
-            "kind": "localName",
-            "text": "dict"
-          }
-        ],
-        "symbolKind": "Local",
-        "targetText": "["
-      },
-      {
-        "line": 16,
-        "character": 10,
-        "length": 1,
-        "text": "(local variable) Dictionary<string, int>? dict",
-        "parts": [
-          {
-            "kind": "punctuation",
-            "text": "("
-          },
-          {
-            "kind": "text",
-            "text": "local variable"
-          },
-          {
-            "kind": "punctuation",
-            "text": ")"
-          },
-          {
-            "kind": "space",
-            "text": " "
-          },
-          {
-            "kind": "className",
-            "text": "Dictionary"
-          },
-          {
-            "kind": "punctuation",
-            "text": "<"
-          },
-          {
-            "kind": "keyword",
-            "text": "string"
-          },
-          {
-            "kind": "punctuation",
-            "text": ","
-          },
-          {
-            "kind": "space",
-            "text": " "
-          },
-          {
-            "kind": "keyword",
-            "text": "int"
-          },
-          {
-            "kind": "punctuation",
-            "text": ">"
-          },
-          {
-            "kind": "punctuation",
-            "text": "?"
-          },
-          {
-            "kind": "space",
-            "text": " "
-          },
-          {
-            "kind": "localName",
-            "text": "dict"
-          }
-        ],
-        "symbolKind": "Local",
-        "targetText": "]"
-      },
-      {
-        "line": 17,
-        "character": 4,
-        "length": 1,
-        "text": "(local variable) Dictionary<string, int>? dict",
-        "parts": [
-          {
-            "kind": "punctuation",
-            "text": "("
-          },
-          {
-            "kind": "text",
-            "text": "local variable"
-          },
-          {
-            "kind": "punctuation",
-            "text": ")"
-          },
-          {
-            "kind": "space",
-            "text": " "
-          },
-          {
-            "kind": "className",
-            "text": "Dictionary"
-          },
-          {
-            "kind": "punctuation",
-            "text": "<"
-          },
-          {
-            "kind": "keyword",
-            "text": "string"
-          },
-          {
-            "kind": "punctuation",
-            "text": ","
-          },
-          {
-            "kind": "space",
-            "text": " "
-          },
-          {
-            "kind": "keyword",
-            "text": "int"
-          },
-          {
-            "kind": "punctuation",
-            "text": ">"
-          },
-          {
-            "kind": "punctuation",
-            "text": "?"
-          },
-          {
-            "kind": "space",
-            "text": " "
-          },
-          {
-            "kind": "localName",
-            "text": "dict"
-          }
-        ],
-        "symbolKind": "Local",
-        "targetText": "["
-      },
-      {
-        "line": 17,
-        "character": 10,
-        "length": 1,
-        "text": "(local variable) Dictionary<string, int>? dict",
-        "parts": [
-          {
-            "kind": "punctuation",
-            "text": "("
-          },
-          {
-            "kind": "text",
-            "text": "local variable"
-          },
-          {
-            "kind": "punctuation",
-            "text": ")"
-          },
-          {
-            "kind": "space",
-            "text": " "
-          },
-          {
-            "kind": "className",
-            "text": "Dictionary"
-          },
-          {
-            "kind": "punctuation",
-            "text": "<"
-          },
-          {
-            "kind": "keyword",
-            "text": "string"
-          },
-          {
-            "kind": "punctuation",
-            "text": ","
-          },
-          {
-            "kind": "space",
-            "text": " "
-          },
-          {
-            "kind": "keyword",
-            "text": "int"
-          },
-          {
-            "kind": "punctuation",
-            "text": ">"
-          },
-          {
-            "kind": "punctuation",
-            "text": "?"
-          },
-          {
-            "kind": "space",
-            "text": " "
-          },
-          {
-            "kind": "localName",
-            "text": "dict"
-          }
-        ],
-        "symbolKind": "Local",
-        "targetText": "]"
       }
     ],
     "errors": [],
@@ -1197,10 +846,14 @@
     "highlights": [],
     "tags": [],
     "hidden": [],
+    "hiddenErrors": [],
     "meta": {
       "targetFramework": "net8.0",
       "packages": [],
-      "compileSucceeded": true
+      "compileSucceeded": true,
+      "langVersion": "latest",
+      "nullable": "enable",
+      "warnings": []
     }
   }
 }

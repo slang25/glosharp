@@ -94,6 +94,10 @@ body {
    pull the pointer off the token and flicker). */
 .glosharp-popup {
   position-area: bottom !important;
+  /* The fragment lets popups flip when they don't fit; inside a frame that is
+     about to grow they always fit after the resize, so never flip (Firefox would
+     otherwise flip above the token before the frame has grown). */
+  position-try-fallbacks: none !important;
   margin-top: 4px !important;
   margin-bottom: 0 !important;
   max-width: calc(100vw - ${edgeInset * 2}px) !important;
@@ -282,19 +286,33 @@ function frameScript(edgeInset: number, dark: string, light: string): string {
     resize(Math.max(baseHeight, Math.ceil(below + rect.height) + EDGE));
   }
 
-  document.addEventListener('pointerover', function (event) {
+  function onOpen(event) {
     var found = popupFor(event.target);
     if (!found) return;
     clearTimeout(shrinkTimer);
     requestAnimationFrame(function () { growFor(found.popup, found.anchor); });
-  });
+  }
 
-  document.addEventListener('pointerout', function (event) {
+  function onClose(event) {
     if (!popupFor(event.target)) return;
     clearTimeout(shrinkTimer);
     shrinkTimer = setTimeout(function () {
       if (currentHeight !== baseHeight) resize(baseHeight);
     }, 80);
+  }
+
+  // Popups open on keyboard focus as well as hover, so grow for both.
+  document.addEventListener('pointerover', onOpen);
+  document.addEventListener('focusin', onOpen);
+  document.addEventListener('pointerout', onClose);
+  document.addEventListener('focusout', onClose);
+
+  // The fragment is script-free, so Escape-to-dismiss lives here: blurring the
+  // focused token closes its popup (and shrinks the frame via focusout).
+  document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    var active = document.activeElement;
+    if (active && popupFor(active) && typeof active.blur === 'function') active.blur();
   });
 
   window.addEventListener('message', function (event) {

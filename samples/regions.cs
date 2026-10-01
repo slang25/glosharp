@@ -6,10 +6,10 @@ using System.Collections.Generic;
 #region getting-started
 var names = new List<string> { "Alice", "Bob", "Charlie" };
 foreach (var name in names)
-//          ^?
+//           ^?
 {
     Console.WriteLine($"Hello, {name}!");
-    //               ^?
+    //      ^?
 }
 #endregion
 

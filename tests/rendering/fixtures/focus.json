@@ -1,9 +1,9 @@
 {
   "sample": "focus.cs",
-  "source": "// @noErrors\nvar numbers = Enumerable.Range(1, 10).ToArray();\n// @focus\nvar evens = numbers.Where(n => n % 2 == 0).ToArray();\nConsole.WriteLine(string.Join(\", \", evens));\n",
+  "source": "var numbers = Enumerable.Range(1, 10).ToArray();\n// @focus\nvar evens = numbers.Where(n => n % 2 == 0).ToArray();\nConsole.WriteLine(string.Join(\", \", evens));\n",
   "result": {
     "code": "var numbers = Enumerable.Range(1, 10).ToArray();\nvar evens = numbers.Where(n => n % 2 == 0).ToArray();\nConsole.WriteLine(string.Join(\", \", evens));\n",
-    "original": "// @noErrors\nvar numbers = Enumerable.Range(1, 10).ToArray();\n// @focus\nvar evens = numbers.Where(n => n % 2 == 0).ToArray();\nConsole.WriteLine(string.Join(\", \", evens));\n",
+    "original": "var numbers = Enumerable.Range(1, 10).ToArray();\n// @focus\nvar evens = numbers.Where(n => n % 2 == 0).ToArray();\nConsole.WriteLine(string.Join(\", \", evens));\n",
     "lang": "csharp",
     "hovers": [
       {
@@ -106,7 +106,7 @@
           }
         ],
         "docs": {
-          "summary": "Provides a set of ( in Visual Basic) methods for querying objects that implement IEnumerable`1.",
+          "summary": "Provides a set of static (Shared in Visual Basic) methods for querying objects that implement IEnumerable<T>.",
           "params": [],
           "examples": [],
           "exceptions": []
@@ -226,7 +226,7 @@
           "exceptions": [
             {
               "type": "ArgumentOutOfRangeException",
-              "text": "count is less than 0. -or- start + count -1 is larger than MaxValue."
+              "text": "count is less than 0. -or- start + count -1 is larger than Int32.MaxValue."
             }
           ]
         },
@@ -317,11 +317,11 @@
           }
         ],
         "docs": {
-          "summary": "Creates an array from a IEnumerable`1.",
+          "summary": "Creates an array from a IEnumerable<T>.",
           "params": [
             {
               "name": "source",
-              "text": "An IEnumerable`1 to create an array from."
+              "text": "An IEnumerable<T> to create an array from."
             }
           ],
           "returns": "An array that contains the elements from the input sequence.",
@@ -329,7 +329,7 @@
           "exceptions": [
             {
               "type": "ArgumentNullException",
-              "text": "source is ."
+              "text": "source is null."
             }
           ]
         },
@@ -462,7 +462,7 @@
         "line": 1,
         "character": 20,
         "length": 5,
-        "text": "(extension) IEnumerable<int> IEnumerable<int>.Where<int>(Func<int, bool> predicate) (+ 1 overloads)",
+        "text": "(extension) IEnumerable<int> IEnumerable<int>.Where<int>(Func<int, bool> predicate) (+ 1 overload)",
         "parts": [
           {
             "kind": "punctuation",
@@ -586,19 +586,19 @@
           "params": [
             {
               "name": "source",
-              "text": "An IEnumerable`1 to filter."
+              "text": "An IEnumerable<T> to filter."
             },
             {
               "name": "predicate",
               "text": "A function to test each element for a condition."
             }
           ],
-          "returns": "An IEnumerable`1 that contains elements from the input sequence that satisfy the condition.",
+          "returns": "An IEnumerable<T> that contains elements from the input sequence that satisfy the condition.",
           "examples": [],
           "exceptions": [
             {
               "type": "ArgumentNullException",
-              "text": "source or predicate is ."
+              "text": "source or predicate is null."
             }
           ]
         },
@@ -684,302 +684,6 @@
       },
       {
         "line": 1,
-        "character": 33,
-        "length": 1,
-        "text": "(extension) IEnumerable<int> IEnumerable<int>.Where<int>(Func<int, bool> predicate) (+ 1 overloads)",
-        "parts": [
-          {
-            "kind": "punctuation",
-            "text": "("
-          },
-          {
-            "kind": "text",
-            "text": "extension"
-          },
-          {
-            "kind": "punctuation",
-            "text": ")"
-          },
-          {
-            "kind": "space",
-            "text": " "
-          },
-          {
-            "kind": "interfaceName",
-            "text": "IEnumerable"
-          },
-          {
-            "kind": "punctuation",
-            "text": "<"
-          },
-          {
-            "kind": "keyword",
-            "text": "int"
-          },
-          {
-            "kind": "punctuation",
-            "text": ">"
-          },
-          {
-            "kind": "space",
-            "text": " "
-          },
-          {
-            "kind": "interfaceName",
-            "text": "IEnumerable"
-          },
-          {
-            "kind": "punctuation",
-            "text": "<"
-          },
-          {
-            "kind": "keyword",
-            "text": "int"
-          },
-          {
-            "kind": "punctuation",
-            "text": ">"
-          },
-          {
-            "kind": "punctuation",
-            "text": "."
-          },
-          {
-            "kind": "text",
-            "text": "Where"
-          },
-          {
-            "kind": "punctuation",
-            "text": "<"
-          },
-          {
-            "kind": "keyword",
-            "text": "int"
-          },
-          {
-            "kind": "punctuation",
-            "text": ">"
-          },
-          {
-            "kind": "punctuation",
-            "text": "("
-          },
-          {
-            "kind": "delegateName",
-            "text": "Func"
-          },
-          {
-            "kind": "punctuation",
-            "text": "<"
-          },
-          {
-            "kind": "keyword",
-            "text": "int"
-          },
-          {
-            "kind": "punctuation",
-            "text": ","
-          },
-          {
-            "kind": "space",
-            "text": " "
-          },
-          {
-            "kind": "keyword",
-            "text": "bool"
-          },
-          {
-            "kind": "punctuation",
-            "text": ">"
-          },
-          {
-            "kind": "space",
-            "text": " "
-          },
-          {
-            "kind": "parameterName",
-            "text": "predicate"
-          },
-          {
-            "kind": "punctuation",
-            "text": ")"
-          }
-        ],
-        "docs": {
-          "summary": "Filters a sequence of values based on a predicate.",
-          "params": [
-            {
-              "name": "source",
-              "text": "An IEnumerable`1 to filter."
-            },
-            {
-              "name": "predicate",
-              "text": "A function to test each element for a condition."
-            }
-          ],
-          "returns": "An IEnumerable`1 that contains elements from the input sequence that satisfy the condition.",
-          "examples": [],
-          "exceptions": [
-            {
-              "type": "ArgumentNullException",
-              "text": "source or predicate is ."
-            }
-          ]
-        },
-        "symbolKind": "Method",
-        "targetText": "%",
-        "overloadCount": 2
-      },
-      {
-        "line": 1,
-        "character": 37,
-        "length": 2,
-        "text": "(extension) IEnumerable<int> IEnumerable<int>.Where<int>(Func<int, bool> predicate) (+ 1 overloads)",
-        "parts": [
-          {
-            "kind": "punctuation",
-            "text": "("
-          },
-          {
-            "kind": "text",
-            "text": "extension"
-          },
-          {
-            "kind": "punctuation",
-            "text": ")"
-          },
-          {
-            "kind": "space",
-            "text": " "
-          },
-          {
-            "kind": "interfaceName",
-            "text": "IEnumerable"
-          },
-          {
-            "kind": "punctuation",
-            "text": "<"
-          },
-          {
-            "kind": "keyword",
-            "text": "int"
-          },
-          {
-            "kind": "punctuation",
-            "text": ">"
-          },
-          {
-            "kind": "space",
-            "text": " "
-          },
-          {
-            "kind": "interfaceName",
-            "text": "IEnumerable"
-          },
-          {
-            "kind": "punctuation",
-            "text": "<"
-          },
-          {
-            "kind": "keyword",
-            "text": "int"
-          },
-          {
-            "kind": "punctuation",
-            "text": ">"
-          },
-          {
-            "kind": "punctuation",
-            "text": "."
-          },
-          {
-            "kind": "text",
-            "text": "Where"
-          },
-          {
-            "kind": "punctuation",
-            "text": "<"
-          },
-          {
-            "kind": "keyword",
-            "text": "int"
-          },
-          {
-            "kind": "punctuation",
-            "text": ">"
-          },
-          {
-            "kind": "punctuation",
-            "text": "("
-          },
-          {
-            "kind": "delegateName",
-            "text": "Func"
-          },
-          {
-            "kind": "punctuation",
-            "text": "<"
-          },
-          {
-            "kind": "keyword",
-            "text": "int"
-          },
-          {
-            "kind": "punctuation",
-            "text": ","
-          },
-          {
-            "kind": "space",
-            "text": " "
-          },
-          {
-            "kind": "keyword",
-            "text": "bool"
-          },
-          {
-            "kind": "punctuation",
-            "text": ">"
-          },
-          {
-            "kind": "space",
-            "text": " "
-          },
-          {
-            "kind": "parameterName",
-            "text": "predicate"
-          },
-          {
-            "kind": "punctuation",
-            "text": ")"
-          }
-        ],
-        "docs": {
-          "summary": "Filters a sequence of values based on a predicate.",
-          "params": [
-            {
-              "name": "source",
-              "text": "An IEnumerable`1 to filter."
-            },
-            {
-              "name": "predicate",
-              "text": "A function to test each element for a condition."
-            }
-          ],
-          "returns": "An IEnumerable`1 that contains elements from the input sequence that satisfy the condition.",
-          "examples": [],
-          "exceptions": [
-            {
-              "type": "ArgumentNullException",
-              "text": "source or predicate is ."
-            }
-          ]
-        },
-        "symbolKind": "Method",
-        "targetText": "==",
-        "overloadCount": 2
-      },
-      {
-        "line": 1,
         "character": 43,
         "length": 7,
         "text": "(extension) int[] IEnumerable<int>.ToArray<int>()",
@@ -1062,11 +766,11 @@
           }
         ],
         "docs": {
-          "summary": "Creates an array from a IEnumerable`1.",
+          "summary": "Creates an array from a IEnumerable<T>.",
           "params": [
             {
               "name": "source",
-              "text": "An IEnumerable`1 to create an array from."
+              "text": "An IEnumerable<T> to create an array from."
             }
           ],
           "returns": "An array that contains the elements from the input sequence.",
@@ -1074,7 +778,7 @@
           "exceptions": [
             {
               "type": "ArgumentNullException",
-              "text": "source is ."
+              "text": "source is null."
             }
           ]
         },
@@ -1363,16 +1067,16 @@
               "text": "A collection that contains the objects to concatenate."
             }
           ],
-          "returns": "A string that consists of the elements of values delimited by the separator string. -or- Empty if values has no elements.",
+          "returns": "A string that consists of the elements of values delimited by the separator string. -or- String.Empty if values has no elements.",
           "examples": [],
           "exceptions": [
             {
               "type": "ArgumentNullException",
-              "text": "values is ."
+              "text": "values is null."
             },
             {
               "type": "OutOfMemoryException",
-              "text": "The length of the resulting string overflows the maximum allowed length (MaxValue)."
+              "text": "The length of the resulting string overflows the maximum allowed length (Int32.MaxValue)."
             }
           ]
         },
@@ -1443,10 +1147,14 @@
     ],
     "tags": [],
     "hidden": [],
+    "hiddenErrors": [],
     "meta": {
       "targetFramework": "net8.0",
       "packages": [],
-      "compileSucceeded": true
+      "compileSucceeded": true,
+      "langVersion": "latest",
+      "nullable": "enable",
+      "warnings": []
     }
   }
 }

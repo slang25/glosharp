@@ -1,9 +1,9 @@
 {
   "sample": "local-variables.cs",
-  "source": "// @noErrors\nvar greeting = \"Hello, World!\";\n//      ^?\nvar count = 42;\n//    ^?\nConsole.WriteLine($\"{greeting} {count}\");\n//^?\n//      ^?\n//                   ^?\n//                              ^?\n",
+  "source": "var greeting = \"Hello, World!\";\n//      ^?\nvar count = 42;\n//    ^?\nConsole.WriteLine($\"{greeting} {count}\");\n//^?\n//      ^?\n//                   ^?\n//                              ^?\n",
   "result": {
     "code": "var greeting = \"Hello, World!\";\nvar count = 42;\nConsole.WriteLine($\"{greeting} {count}\");\n",
-    "original": "// @noErrors\nvar greeting = \"Hello, World!\";\n//      ^?\nvar count = 42;\n//    ^?\nConsole.WriteLine($\"{greeting} {count}\");\n//^?\n//      ^?\n//                   ^?\n//                              ^?\n",
+    "original": "var greeting = \"Hello, World!\";\n//      ^?\nvar count = 42;\n//    ^?\nConsole.WriteLine($\"{greeting} {count}\");\n//^?\n//      ^?\n//                   ^?\n//                              ^?\n",
     "lang": "csharp",
     "hovers": [
       {
@@ -373,10 +373,14 @@
     "highlights": [],
     "tags": [],
     "hidden": [],
+    "hiddenErrors": [],
     "meta": {
       "targetFramework": "net8.0",
       "packages": [],
-      "compileSucceeded": true
+      "compileSucceeded": true,
+      "langVersion": "latest",
+      "nullable": "enable",
+      "warnings": []
     }
   }
 }

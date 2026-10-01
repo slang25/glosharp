@@ -135,8 +135,8 @@ async function buildShikiPages(fixtures: Fixture[]): Promise<Record<string, stri
       transformers: [transformerGloSharpFromMap(resultMap)],
     })
     const stripped = html
-      .replace(/anchor-name:\s*--th-\d+;?/g, '')
-      .replace(/position-anchor:\s*--th-\d+;?/g, '')
+      .replace(/anchor-name:\s*--[\w-]+;?/g, '')
+      .replace(/position-anchor:\s*--[\w-]+;?/g, '')
     assertGloSharpRendered(stripped, id)
     darkSections.push(caseSection(id, stripped))
   }

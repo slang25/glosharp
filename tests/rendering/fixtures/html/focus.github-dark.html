@@ -1,175 +1,388 @@
 <div class="glosharp-code" data-theme="github-dark">
 <style>
-
-.glosharp-code {
+.glosharp-code[data-theme="github-dark"] {
   anchor-scope: all;
+  color-scheme: dark;
 }
-/* Line breaks come from the newline characters between line spans, not from the
-   spans themselves — there can only be one source of them. Chromium copies a
-   `display: block` boundary as a newline while Firefox copies it as nothing, so
-   block lines plus real newlines double-space the block and double the newlines
-   Chromium puts on the clipboard, while block lines without real newlines copy
-   as a single run-on line in Firefox. Inline lines plus real newlines is the one
-   combination both browsers lay out and copy correctly (and is what the Shiki
-   path has always done). The cost is that line-level backgrounds end at the end
-   of the text rather than spanning the block. */
-.glosharp-code .line {
+.glosharp-code[data-theme="github-dark"] pre {
+  margin: 0;
+  padding: 16px;
+  overflow-x: auto;
+  border-radius: 6px;
+  background: #0d1117;
+  color: #e6edf3;
+  font-family: ui-monospace, 'Cascadia Code', 'JetBrains Mono', 'Fira Code', SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  font-variant-ligatures: none;
+  tab-size: 4;
+  text-align: left;
+}
+.glosharp-code[data-theme="github-dark"] pre > code {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  white-space: inherit;
+}
+.glosharp-code[data-theme="github-dark"] .line {
   display: inline;
 }
-.glosharp-hover {
-  border-bottom: 1px dotted currentColor;
-  cursor: pointer;
+.glosharp-code[data-theme="github-dark"] .glosharp-hover {
+  position: static;
+  border-bottom: 1px dotted transparent;
+  border-radius: 2px;
 }
-.glosharp-popup {
+.glosharp-code[data-theme="github-dark"] pre:hover .glosharp-hover,
+.glosharp-code[data-theme="github-dark"] .glosharp-hover-persistent {
+  border-bottom-color: color-mix(in srgb, currentColor 45%, transparent);
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-hover:hover,
+.glosharp-code[data-theme="github-dark"] .glosharp-hover:focus-visible {
+  border-bottom-color: currentColor;
+  background: color-mix(in srgb, #539bf5 14%, transparent);
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-hover:focus {
+  outline: none;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-hover:focus-visible {
+  outline: 2px solid #539bf5;
+  outline-offset: 1px;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-popup {
   display: none;
   position: fixed;
-  position-area: top;
-  margin-bottom: 4px;
+  position-area: bottom span-right;
+  position-try-fallbacks: bottom span-left, bottom span-all, top span-right, top span-left, top span-all;
+  position-visibility: anchors-visible;
   z-index: 100;
-  max-width: 500px;
-  padding: 8px 12px;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: min(560px, calc(100vw - 16px));
+  max-height: none;
+  overflow: visible;
+  margin: 6px 0;
+  padding: 0;
   border: 1px solid #30363d;
-  border-radius: 4px;
+  border-radius: 6px;
   background: #161b22;
   color: #e6edf3;
-  font-size: 0.875em;
+  box-shadow: 0 6px 20px rgba(1, 4, 9, 0.6);
+  font-size: 90%;
+  font-style: normal;
+  font-weight: normal;
   line-height: 1.5;
-  white-space: pre-wrap;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  text-align: left;
+  white-space: normal;
+  cursor: auto;
 }
-.glosharp-hover:hover > .glosharp-popup,
-.glosharp-popup:hover {
+.glosharp-code[data-theme="github-dark"] .glosharp-popup::before,
+.glosharp-code[data-theme="github-dark"] .glosharp-popup::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 8px;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-popup::before {
+  bottom: 100%;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-popup::after {
+  top: 100%;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-hover:hover > .glosharp-popup,
+.glosharp-code[data-theme="github-dark"] .glosharp-hover:focus-visible > .glosharp-popup {
   display: block;
 }
-.glosharp-popup-code {
-  font-family: inherit;
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-code {
+  display: block;
+  max-height: 12em;
+  overflow-y: auto;
+  padding: 6px 10px;
+  background: none;
+  color: inherit;
+  font-family: ui-monospace, 'Cascadia Code', 'JetBrains Mono', 'Fira Code', SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: inherit;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
 }
-.glosharp-popup-docs {
-  margin-top: 6px;
-  padding-top: 6px;
-  border-top: 1px solid #30363d;
-}
-.glosharp-popup-summary {
-  font-style: italic;
-}
-.glosharp-popup-params,
-.glosharp-popup-returns {
-  margin-top: 4px;
-  padding-top: 4px;
-  border-top: 1px solid #30363d;
-}
-.glosharp-popup-section-label {
-  font-size: 0.8em;
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-overloads {
   opacity: 0.7;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 2px;
 }
-.glosharp-popup-param {
-  display: flex;
-  gap: 6px;
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-types,
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-docs {
+  display: block;
+  padding: 6px 10px;
+  border-top: 1px solid #30363d;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-docs {
+  max-height: min(24em, 45vh);
+  overflow-y: auto;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-type-annotation,
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-summary,
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-params,
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-returns,
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-remarks,
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-example,
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-exceptions,
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-param,
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-exception,
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-section-label {
+  display: block;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-params,
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-returns,
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-remarks,
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-example,
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-exceptions {
+  margin-top: 6px;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-remarks {
+  white-space: pre-line;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-section-label {
+  margin-bottom: 1px;
+  font-size: 0.75em;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-param,
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-exception {
   margin: 1px 0;
 }
-.glosharp-popup-param-name {
-  font-weight: bold;
-  white-space: nowrap;
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-param-name,
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-exception-type,
+.glosharp-code[data-theme="github-dark"] .glosharp-type-annotation {
+  font-family: ui-monospace, 'Cascadia Code', 'JetBrains Mono', 'Fira Code', SFMono-Regular, Menlo, Consolas, monospace;
 }
-.glosharp-error-underline {
-  border-bottom: 2px wavy #f85149;
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-param-name,
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-exception-type {
+  font-weight: 600;
 }
-.glosharp-error-underline.glosharp-severity-warning {
-  border-bottom-color: #d29922;
-}
-.glosharp-error-underline.glosharp-severity-info {
-  border-bottom-color: #539bf5;
-}
-.glosharp-error-message {
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-example-code {
   display: block;
-  padding: 2px 8px;
   margin-top: 2px;
-  background: rgba(248, 81, 73, 0.1);
-  border-left: 3px solid #f85149;
-  color: #f85149;
-  font-size: 0.85em;
+  padding: 4px 6px;
+  border-radius: 4px;
+  background: color-mix(in srgb, #e6edf3 8%, transparent);
+  font-family: ui-monospace, 'Cascadia Code', 'JetBrains Mono', 'Fira Code', SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: pre-wrap;
 }
-.glosharp-error-message.glosharp-severity-warning {
-  background: rgba(210, 153, 34, 0.15);
-  border-left-color: #d29922;
-  color: #d29922;
+.glosharp-code[data-theme="github-dark"] .glosharp-callout {
+  display: block;
+  margin: 2px 0 4px;
+  white-space: pre-wrap;
+  user-select: none;
+  -webkit-user-select: none;
 }
-.glosharp-error-message.glosharp-severity-info {
-  background: rgba(83, 155, 245, 0.15);
-  border-left-color: #539bf5;
-  color: #539bf5;
+.glosharp-code[data-theme="github-dark"] .glosharp-static,
+.glosharp-code[data-theme="github-dark"] .glosharp-completion {
+  padding-left: min(var(--glosharp-column, 0ch), max(0px, 100% - 34ch));
 }
-.glosharp-error-code {
-  font-weight: bold;
+.glosharp-code[data-theme="github-dark"] .glosharp-static-container {
+  display: inline-block;
+  position: relative;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin-top: 4px;
+  vertical-align: top;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  background: #161b22;
+  color: #e6edf3;
+  font-size: 90%;
+  line-height: 1.5;
+  white-space: normal;
 }
-a.glosharp-error-code {
+.glosharp-code[data-theme="github-dark"] .glosharp-static-container::before {
+  content: "";
+  position: absolute;
+  top: -5px;
+  left: 8px;
+  width: 8px;
+  height: 8px;
+  border-top: 1px solid #30363d;
+  border-left: 1px solid #30363d;
+  background: #161b22;
+  transform: rotate(45deg);
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-error-message,
+.glosharp-code[data-theme="github-dark"] .glosharp-tag {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 4px 10px;
+  border-left: 3px solid;
+  border-radius: 0 4px 4px 0;
+  font-size: 0.875em;
+  line-height: 1.5;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-callout-icon {
+  flex: none;
+  margin-top: 0.2em;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-callout-text {
+  min-width: 0;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-error-code {
+  font-weight: 600;
+}
+.glosharp-code[data-theme="github-dark"] a.glosharp-error-code {
   color: inherit;
   text-decoration: none;
 }
-a.glosharp-error-code:hover {
+.glosharp-code[data-theme="github-dark"] a.glosharp-error-code:hover,
+.glosharp-code[data-theme="github-dark"] a.glosharp-error-code:focus-visible {
   text-decoration: underline;
 }
-.glosharp-completion-list {
-  list-style: none;
-  margin: 4px 0 0 0;
-  padding: 4px 0;
-  border: 1px solid #30363d;
-  border-radius: 4px;
-  background: #161b22;
-  font-size: 0.875em;
-  max-height: 200px;
+.glosharp-code[data-theme="github-dark"] .glosharp-tag-title {
+  font-weight: 600;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-error-underline {
+  text-decoration-line: underline;
+  text-decoration-style: wavy;
+  text-decoration-thickness: 1.5px;
+  text-decoration-skip-ink: none;
+  text-underline-offset: 3px;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-error-marker::before {
+  content: "\a0\a0";
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-error-underline.glosharp-severity-error {
+  text-decoration-color: #f85149;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-error-message.glosharp-severity-error {
+  border-left-color: #f85149;
+  background: rgba(248, 81, 73, 0.1);
+  color: #f85149;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-error-underline.glosharp-severity-warning {
+  text-decoration-color: #d29922;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-error-message.glosharp-severity-warning {
+  border-left-color: #d29922;
+  background: rgba(210, 153, 34, 0.15);
+  color: #d29922;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-error-underline.glosharp-severity-info {
+  text-decoration-color: #539bf5;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-error-message.glosharp-severity-info {
+  border-left-color: #539bf5;
+  background: rgba(83, 155, 245, 0.15);
+  color: #539bf5;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-tag-log {
+  border-left-color: #539bf5;
+  background: rgba(83, 155, 245, 0.15);
+  color: #539bf5;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-tag-warn {
+  border-left-color: #d29922;
+  background: rgba(210, 153, 34, 0.15);
+  color: #d29922;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-tag-error {
+  border-left-color: #f85149;
+  background: rgba(248, 81, 73, 0.1);
+  color: #f85149;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-tag-annotate {
+  border-left-color: #bc8cff;
+  background: rgba(188, 140, 255, 0.12);
+  color: #bc8cff;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-completion-list {
+  display: inline-block;
+  box-sizing: border-box;
+  min-width: 18ch;
+  max-width: 100%;
+  max-height: 13em;
   overflow-y: auto;
-}
-.glosharp-completion-item {
-  display: flex;
-  gap: 8px;
-  padding: 2px 8px;
-  align-items: center;
-}
-.glosharp-completion-kind {
-  font-size: 0.75em;
-  opacity: 0.7;
-  min-width: 60px;
-}
-.glosharp-completion-label {
+  margin-top: 2px;
+  padding: 3px 0;
+  vertical-align: top;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  background: #161b22;
   color: #e6edf3;
+  box-shadow: 0 6px 20px rgba(1, 4, 9, 0.6);
+  font-size: 90%;
+  line-height: 1.5;
+  white-space: nowrap;
 }
-.glosharp-completion-detail {
-  opacity: 0.6;
-  font-size: 0.85em;
+.glosharp-code[data-theme="github-dark"] .glosharp-completion-list:focus-visible {
+  outline: 2px solid #539bf5;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-completion-item,
+.glosharp-code[data-theme="github-dark"] .glosharp-completion-empty {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  padding: 0 10px;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-completion-item:first-child {
+  background: color-mix(in srgb, #539bf5 18%, transparent);
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-completion-empty {
+  font-style: italic;
+  opacity: 0.7;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-completion-kind {
+  flex: none;
+  width: 10ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.8em;
+  opacity: 0.65;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-completion-detail {
   margin-left: auto;
+  font-size: 0.85em;
+  opacity: 0.65;
 }
-.glosharp-highlight {
+.glosharp-code[data-theme="github-dark"] .glosharp-highlight {
   background: rgba(173, 124, 255, 0.15);
 }
-.glosharp-focus-dim {
+.glosharp-code[data-theme="github-dark"] .glosharp-focus-dim {
   opacity: 0.4;
   transition: opacity 0.2s;
 }
-.glosharp-diff-add {
-  background: rgba(46, 160, 67, 0.15);
-  border-left: 3px solid #2ea043;
+.glosharp-code[data-theme="github-dark"] pre:hover .glosharp-focus-dim {
+  opacity: 1;
 }
-.glosharp-diff-remove {
+.glosharp-code[data-theme="github-dark"] .glosharp-diff-add {
+  background: rgba(46, 160, 67, 0.15);
+  box-shadow: -3px 0 #2ea043;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-diff-remove {
   background: rgba(248, 81, 73, 0.15);
-  border-left: 3px solid #f85149;
+  box-shadow: -3px 0 #f85149;
+}
+@media (prefers-reduced-motion: reduce) {
+  .glosharp-code[data-theme="github-dark"] .glosharp-focus-dim {
+    transition: none;
+  }
 }
 @supports not (anchor-name: --x) {
-  .glosharp-hover {
+  .glosharp-code[data-theme="github-dark"] .glosharp-hover {
     position: relative;
   }
-  .glosharp-popup {
+  .glosharp-code[data-theme="github-dark"] .glosharp-popup {
     position: absolute;
-    bottom: 100%;
+    top: 100%;
     left: 0;
   }
 }
 </style>
-<pre style="background:#0d1117;color:#e6edf3;padding:16px;border-radius:6px;overflow-x:auto;margin:0;font-family:'Cascadia Code','Fira Code',Consolas,monospace;"><code><span class="line glosharp-focus-dim"><span class="glosharp-hover" style="anchor-name:--gs57851d1d-0"><span style="color:#ff7b72">var</span><div class="glosharp-popup" style="position-anchor:--gs57851d1d-0"><code class="glosharp-popup-code"><span style="color:#ff7b72">int</span><span style="color:#e6edf3">[</span><span style="color:#e6edf3">]</span></code></div></span> <span class="glosharp-hover" style="anchor-name:--gs57851d1d-1"><span>numbers</span><div class="glosharp-popup" style="position-anchor:--gs57851d1d-1"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span><span style="color:#e6edf3">local variable</span><span style="color:#e6edf3">)</span><span style="color:#e6edf3"> </span><span style="color:#ff7b72">int</span><span style="color:#e6edf3">[</span><span style="color:#e6edf3">]</span><span style="color:#e6edf3">?</span><span style="color:#e6edf3"> </span><span style="color:#e6edf3">numbers</span></code></div></span> <span style="color:#ff7b72">=</span> <span class="glosharp-hover" style="anchor-name:--gs57851d1d-2"><span style="color:#f0883e">Enumerable</span><div class="glosharp-popup" style="position-anchor:--gs57851d1d-2"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span><span style="color:#e6edf3">class</span><span style="color:#e6edf3">)</span><span style="color:#e6edf3"> </span><span style="color:#f0883e">Enumerable</span></code><div class="glosharp-popup-docs"><div class="glosharp-popup-summary">Provides a set of ( in Visual Basic) methods for querying objects that implement IEnumerable`1.</div></div></div></span><span style="color:#ff7b72">.</span><span class="glosharp-hover" style="anchor-name:--gs57851d1d-3"><span style="color:#d2a8ff">Range</span><div class="glosharp-popup" style="position-anchor:--gs57851d1d-3"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span><span style="color:#e6edf3">method</span><span style="color:#e6edf3">)</span><span style="color:#e6edf3"> </span><span style="color:#f0883e">IEnumerable</span><span style="color:#e6edf3">&lt;</span><span style="color:#ff7b72">int</span><span style="color:#e6edf3">&gt;</span><span style="color:#e6edf3"> </span><span style="color:#f0883e">Enumerable</span><span style="color:#e6edf3">.</span><span style="color:#d2a8ff">Range</span><span style="color:#e6edf3">(</span><span style="color:#ff7b72">int</span><span style="color:#e6edf3"> </span><span style="color:#e6edf3">start</span><span style="color:#e6edf3">,</span><span style="color:#e6edf3"> </span><span style="color:#ff7b72">int</span><span style="color:#e6edf3"> </span><span style="color:#e6edf3">count</span><span style="color:#e6edf3">)</span></code><div class="glosharp-popup-docs"><div class="glosharp-popup-summary">Generates a sequence of integral numbers within a specified range.</div><div class="glosharp-popup-params"><div class="glosharp-popup-section-label">Parameters</div><div class="glosharp-popup-param"><span class="glosharp-popup-param-name">start</span> — The value of the first integer in the sequence.</div><div class="glosharp-popup-param"><span class="glosharp-popup-param-name">count</span> — The number of sequential integers to generate.</div></div><div class="glosharp-popup-returns"><div class="glosharp-popup-section-label">Returns</div>An IEnumerable&lt;Int32&gt; in C# or IEnumerable(Of Int32) in Visual Basic that contains a range of sequential integral numbers.</div></div></div></span><span>(</span><span style="color:#79c0ff">1</span><span>,</span> <span style="color:#79c0ff">10</span><span>)</span><span style="color:#ff7b72">.</span><span class="glosharp-hover" style="anchor-name:--gs57851d1d-4"><span style="color:#d2a8ff">ToArray</span><div class="glosharp-popup" style="position-anchor:--gs57851d1d-4"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span><span style="color:#e6edf3">extension</span><span style="color:#e6edf3">)</span><span style="color:#e6edf3"> </span><span style="color:#ff7b72">int</span><span style="color:#e6edf3">[</span><span style="color:#e6edf3">]</span><span style="color:#e6edf3"> </span><span style="color:#f0883e">IEnumerable</span><span style="color:#e6edf3">&lt;</span><span style="color:#ff7b72">int</span><span style="color:#e6edf3">&gt;</span><span style="color:#e6edf3">.</span><span style="color:#e6edf3">ToArray</span><span style="color:#e6edf3">&lt;</span><span style="color:#ff7b72">int</span><span style="color:#e6edf3">&gt;</span><span style="color:#e6edf3">(</span><span style="color:#e6edf3">)</span></code><div class="glosharp-popup-docs"><div class="glosharp-popup-summary">Creates an array from a IEnumerable`1.</div><div class="glosharp-popup-params"><div class="glosharp-popup-section-label">Parameters</div><div class="glosharp-popup-param"><span class="glosharp-popup-param-name">source</span> — An IEnumerable`1 to create an array from.</div></div><div class="glosharp-popup-returns"><div class="glosharp-popup-section-label">Returns</div>An array that contains the elements from the input sequence.</div></div></div></span><span>(</span><span>)</span><span>;</span></span>
-<span class="line"><span class="glosharp-hover" style="anchor-name:--gs57851d1d-5"><span style="color:#ff7b72">var</span><div class="glosharp-popup" style="position-anchor:--gs57851d1d-5"><code class="glosharp-popup-code"><span style="color:#ff7b72">int</span><span style="color:#e6edf3">[</span><span style="color:#e6edf3">]</span></code></div></span> <span class="glosharp-hover" style="anchor-name:--gs57851d1d-6"><span>evens</span><div class="glosharp-popup" style="position-anchor:--gs57851d1d-6"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span><span style="color:#e6edf3">local variable</span><span style="color:#e6edf3">)</span><span style="color:#e6edf3"> </span><span style="color:#ff7b72">int</span><span style="color:#e6edf3">[</span><span style="color:#e6edf3">]</span><span style="color:#e6edf3">?</span><span style="color:#e6edf3"> </span><span style="color:#e6edf3">evens</span></code></div></span> <span style="color:#ff7b72">=</span> <span class="glosharp-hover" style="anchor-name:--gs57851d1d-7"><span>numbers</span><div class="glosharp-popup" style="position-anchor:--gs57851d1d-7"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span><span style="color:#e6edf3">local variable</span><span style="color:#e6edf3">)</span><span style="color:#e6edf3"> </span><span style="color:#ff7b72">int</span><span style="color:#e6edf3">[</span><span style="color:#e6edf3">]</span><span style="color:#e6edf3">?</span><span style="color:#e6edf3"> </span><span style="color:#e6edf3">numbers</span></code></div></span><span style="color:#ff7b72">.</span><span class="glosharp-hover" style="anchor-name:--gs57851d1d-8"><span style="color:#d2a8ff">Where</span><div class="glosharp-popup" style="position-anchor:--gs57851d1d-8"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span><span style="color:#e6edf3">extension</span><span style="color:#e6edf3">)</span><span style="color:#e6edf3"> </span><span style="color:#f0883e">IEnumerable</span><span style="color:#e6edf3">&lt;</span><span style="color:#ff7b72">int</span><span style="color:#e6edf3">&gt;</span><span style="color:#e6edf3"> </span><span style="color:#f0883e">IEnumerable</span><span style="color:#e6edf3">&lt;</span><span style="color:#ff7b72">int</span><span style="color:#e6edf3">&gt;</span><span style="color:#e6edf3">.</span><span style="color:#e6edf3">Where</span><span style="color:#e6edf3">&lt;</span><span style="color:#ff7b72">int</span><span style="color:#e6edf3">&gt;</span><span style="color:#e6edf3">(</span><span style="color:#f0883e">Func</span><span style="color:#e6edf3">&lt;</span><span style="color:#ff7b72">int</span><span style="color:#e6edf3">,</span><span style="color:#e6edf3"> </span><span style="color:#ff7b72">bool</span><span style="color:#e6edf3">&gt;</span><span style="color:#e6edf3"> </span><span style="color:#e6edf3">predicate</span><span style="color:#e6edf3">)</span></code><div class="glosharp-popup-docs"><div class="glosharp-popup-summary">Filters a sequence of values based on a predicate.</div><div class="glosharp-popup-params"><div class="glosharp-popup-section-label">Parameters</div><div class="glosharp-popup-param"><span class="glosharp-popup-param-name">source</span> — An IEnumerable`1 to filter.</div><div class="glosharp-popup-param"><span class="glosharp-popup-param-name">predicate</span> — A function to test each element for a condition.</div></div><div class="glosharp-popup-returns"><div class="glosharp-popup-section-label">Returns</div>An IEnumerable`1 that contains elements from the input sequence that satisfy the condition.</div></div></div></span><span>(</span><span class="glosharp-hover" style="anchor-name:--gs57851d1d-9"><span>n</span><div class="glosharp-popup" style="position-anchor:--gs57851d1d-9"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span><span style="color:#e6edf3">parameter</span><span style="color:#e6edf3">)</span><span style="color:#e6edf3"> </span><span style="color:#ff7b72">int</span><span style="color:#e6edf3"> </span><span style="color:#e6edf3">n</span></code></div></span> <span style="color:#ff7b72">=&gt;</span> <span class="glosharp-hover" style="anchor-name:--gs57851d1d-10"><span>n</span><div class="glosharp-popup" style="position-anchor:--gs57851d1d-10"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span><span style="color:#e6edf3">parameter</span><span style="color:#e6edf3">)</span><span style="color:#e6edf3"> </span><span style="color:#ff7b72">int</span><span style="color:#e6edf3"> </span><span style="color:#e6edf3">n</span></code></div></span> <span class="glosharp-hover" style="anchor-name:--gs57851d1d-11"><span style="color:#ff7b72">%</span><div class="glosharp-popup" style="position-anchor:--gs57851d1d-11"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span><span style="color:#e6edf3">extension</span><span style="color:#e6edf3">)</span><span style="color:#e6edf3"> </span><span style="color:#f0883e">IEnumerable</span><span style="color:#e6edf3">&lt;</span><span style="color:#ff7b72">int</span><span style="color:#e6edf3">&gt;</span><span style="color:#e6edf3"> </span><span style="color:#f0883e">IEnumerable</span><span style="color:#e6edf3">&lt;</span><span style="color:#ff7b72">int</span><span style="color:#e6edf3">&gt;</span><span style="color:#e6edf3">.</span><span style="color:#e6edf3">Where</span><span style="color:#e6edf3">&lt;</span><span style="color:#ff7b72">int</span><span style="color:#e6edf3">&gt;</span><span style="color:#e6edf3">(</span><span style="color:#f0883e">Func</span><span style="color:#e6edf3">&lt;</span><span style="color:#ff7b72">int</span><span style="color:#e6edf3">,</span><span style="color:#e6edf3"> </span><span style="color:#ff7b72">bool</span><span style="color:#e6edf3">&gt;</span><span style="color:#e6edf3"> </span><span style="color:#e6edf3">predicate</span><span style="color:#e6edf3">)</span></code><div class="glosharp-popup-docs"><div class="glosharp-popup-summary">Filters a sequence of values based on a predicate.</div><div class="glosharp-popup-params"><div class="glosharp-popup-section-label">Parameters</div><div class="glosharp-popup-param"><span class="glosharp-popup-param-name">source</span> — An IEnumerable`1 to filter.</div><div class="glosharp-popup-param"><span class="glosharp-popup-param-name">predicate</span> — A function to test each element for a condition.</div></div><div class="glosharp-popup-returns"><div class="glosharp-popup-section-label">Returns</div>An IEnumerable`1 that contains elements from the input sequence that satisfy the condition.</div></div></div></span> <span style="color:#79c0ff">2</span> <span class="glosharp-hover" style="anchor-name:--gs57851d1d-12"><span style="color:#ff7b72">==</span><div class="glosharp-popup" style="position-anchor:--gs57851d1d-12"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span><span style="color:#e6edf3">extension</span><span style="color:#e6edf3">)</span><span style="color:#e6edf3"> </span><span style="color:#f0883e">IEnumerable</span><span style="color:#e6edf3">&lt;</span><span style="color:#ff7b72">int</span><span style="color:#e6edf3">&gt;</span><span style="color:#e6edf3"> </span><span style="color:#f0883e">IEnumerable</span><span style="color:#e6edf3">&lt;</span><span style="color:#ff7b72">int</span><span style="color:#e6edf3">&gt;</span><span style="color:#e6edf3">.</span><span style="color:#e6edf3">Where</span><span style="color:#e6edf3">&lt;</span><span style="color:#ff7b72">int</span><span style="color:#e6edf3">&gt;</span><span style="color:#e6edf3">(</span><span style="color:#f0883e">Func</span><span style="color:#e6edf3">&lt;</span><span style="color:#ff7b72">int</span><span style="color:#e6edf3">,</span><span style="color:#e6edf3"> </span><span style="color:#ff7b72">bool</span><span style="color:#e6edf3">&gt;</span><span style="color:#e6edf3"> </span><span style="color:#e6edf3">predicate</span><span style="color:#e6edf3">)</span></code><div class="glosharp-popup-docs"><div class="glosharp-popup-summary">Filters a sequence of values based on a predicate.</div><div class="glosharp-popup-params"><div class="glosharp-popup-section-label">Parameters</div><div class="glosharp-popup-param"><span class="glosharp-popup-param-name">source</span> — An IEnumerable`1 to filter.</div><div class="glosharp-popup-param"><span class="glosharp-popup-param-name">predicate</span> — A function to test each element for a condition.</div></div><div class="glosharp-popup-returns"><div class="glosharp-popup-section-label">Returns</div>An IEnumerable`1 that contains elements from the input sequence that satisfy the condition.</div></div></div></span> <span style="color:#79c0ff">0</span><span>)</span><span style="color:#ff7b72">.</span><span class="glosharp-hover" style="anchor-name:--gs57851d1d-13"><span style="color:#d2a8ff">ToArray</span><div class="glosharp-popup" style="position-anchor:--gs57851d1d-13"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span><span style="color:#e6edf3">extension</span><span style="color:#e6edf3">)</span><span style="color:#e6edf3"> </span><span style="color:#ff7b72">int</span><span style="color:#e6edf3">[</span><span style="color:#e6edf3">]</span><span style="color:#e6edf3"> </span><span style="color:#f0883e">IEnumerable</span><span style="color:#e6edf3">&lt;</span><span style="color:#ff7b72">int</span><span style="color:#e6edf3">&gt;</span><span style="color:#e6edf3">.</span><span style="color:#e6edf3">ToArray</span><span style="color:#e6edf3">&lt;</span><span style="color:#ff7b72">int</span><span style="color:#e6edf3">&gt;</span><span style="color:#e6edf3">(</span><span style="color:#e6edf3">)</span></code><div class="glosharp-popup-docs"><div class="glosharp-popup-summary">Creates an array from a IEnumerable`1.</div><div class="glosharp-popup-params"><div class="glosharp-popup-section-label">Parameters</div><div class="glosharp-popup-param"><span class="glosharp-popup-param-name">source</span> — An IEnumerable`1 to create an array from.</div></div><div class="glosharp-popup-returns"><div class="glosharp-popup-section-label">Returns</div>An array that contains the elements from the input sequence.</div></div></div></span><span>(</span><span>)</span><span>;</span></span>
-<span class="line glosharp-focus-dim"><span class="glosharp-hover" style="anchor-name:--gs57851d1d-14"><span style="color:#f0883e">Console</span><div class="glosharp-popup" style="position-anchor:--gs57851d1d-14"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span><span style="color:#e6edf3">class</span><span style="color:#e6edf3">)</span><span style="color:#e6edf3"> </span><span style="color:#f0883e">Console</span></code><div class="glosharp-popup-docs"><div class="glosharp-popup-summary">Represents the standard input, output, and error streams for console applications. This class cannot be inherited.</div></div></div></span><span style="color:#ff7b72">.</span><span class="glosharp-hover" style="anchor-name:--gs57851d1d-15"><span style="color:#d2a8ff">WriteLine</span><div class="glosharp-popup" style="position-anchor:--gs57851d1d-15"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span><span style="color:#e6edf3">method</span><span style="color:#e6edf3">)</span><span style="color:#e6edf3"> </span><span style="color:#ff7b72">void</span><span style="color:#e6edf3"> </span><span style="color:#f0883e">Console</span><span style="color:#e6edf3">.</span><span style="color:#d2a8ff">WriteLine</span><span style="color:#e6edf3">(</span><span style="color:#ff7b72">string</span><span style="color:#e6edf3">?</span><span style="color:#e6edf3"> </span><span style="color:#e6edf3">value</span><span style="color:#e6edf3">)</span></code><div class="glosharp-popup-docs"><div class="glosharp-popup-summary">Writes the specified string value, followed by the current line terminator, to the standard output stream.</div><div class="glosharp-popup-params"><div class="glosharp-popup-section-label">Parameters</div><div class="glosharp-popup-param"><span class="glosharp-popup-param-name">value</span> — The value to write.</div></div></div></div></span><span>(</span><span class="glosharp-hover" style="anchor-name:--gs57851d1d-16"><span style="color:#ff7b72">string</span><div class="glosharp-popup" style="position-anchor:--gs57851d1d-16"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span><span style="color:#e6edf3">class</span><span style="color:#e6edf3">)</span><span style="color:#e6edf3"> </span><span style="color:#ff7b72">string</span></code><div class="glosharp-popup-docs"><div class="glosharp-popup-summary">Represents text as a sequence of UTF-16 code units.</div></div></div></span><span style="color:#ff7b72">.</span><span class="glosharp-hover" style="anchor-name:--gs57851d1d-17"><span style="color:#d2a8ff">Join</span><div class="glosharp-popup" style="position-anchor:--gs57851d1d-17"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span><span style="color:#e6edf3">method</span><span style="color:#e6edf3">)</span><span style="color:#e6edf3"> </span><span style="color:#ff7b72">string</span><span style="color:#e6edf3"> </span><span style="color:#ff7b72">string</span><span style="color:#e6edf3">.</span><span style="color:#d2a8ff">Join</span><span style="color:#e6edf3">&lt;</span><span style="color:#ff7b72">int</span><span style="color:#e6edf3">&gt;</span><span style="color:#e6edf3">(</span><span style="color:#ff7b72">string</span><span style="color:#e6edf3">?</span><span style="color:#e6edf3"> </span><span style="color:#e6edf3">separator</span><span style="color:#e6edf3">,</span><span style="color:#e6edf3"> </span><span style="color:#f0883e">IEnumerable</span><span style="color:#e6edf3">&lt;</span><span style="color:#ff7b72">int</span><span style="color:#e6edf3">&gt;</span><span style="color:#e6edf3"> </span><span style="color:#e6edf3">values</span><span style="color:#e6edf3">)</span></code><div class="glosharp-popup-docs"><div class="glosharp-popup-summary">Concatenates the members of a collection, using the specified separator between each member.</div><div class="glosharp-popup-params"><div class="glosharp-popup-section-label">Parameters</div><div class="glosharp-popup-param"><span class="glosharp-popup-param-name">separator</span> — The string to use as a separator. separator is included in the returned string only if values has more than one element.</div><div class="glosharp-popup-param"><span class="glosharp-popup-param-name">values</span> — A collection that contains the objects to concatenate.</div></div><div class="glosharp-popup-returns"><div class="glosharp-popup-section-label">Returns</div>A string that consists of the elements of values delimited by the separator string. -or- Empty if values has no elements.</div></div></div></span><span>(</span><span style="color:#a5d6ff">&quot;, &quot;</span><span>,</span> <span class="glosharp-hover" style="anchor-name:--gs57851d1d-18"><span>evens</span><div class="glosharp-popup" style="position-anchor:--gs57851d1d-18"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span><span style="color:#e6edf3">local variable</span><span style="color:#e6edf3">)</span><span style="color:#e6edf3"> </span><span style="color:#ff7b72">int</span><span style="color:#e6edf3">[</span><span style="color:#e6edf3">]</span><span style="color:#e6edf3">?</span><span style="color:#e6edf3"> </span><span style="color:#e6edf3">evens</span></code></div></span><span>)</span><span>)</span><span>;</span></span>
-<span class="line glosharp-focus-dim"></span></code></pre>
+<pre><code><span class="line glosharp-focus-dim"><span class="glosharp-hover" tabindex="0" aria-describedby="gsb51bf224-0" style="anchor-name:--gsb51bf224-0"><span style="color:#ff7b72">var</span><span class="glosharp-popup" role="tooltip" id="gsb51bf224-0" style="position-anchor:--gsb51bf224-0"><code class="glosharp-popup-code"><span style="color:#ff7b72">int</span><span style="color:#e6edf3">[</span><span style="color:#e6edf3">]</span></code></span></span> <span class="glosharp-hover" tabindex="0" aria-describedby="gsb51bf224-1" style="anchor-name:--gsb51bf224-1"><span>numbers</span><span class="glosharp-popup" role="tooltip" id="gsb51bf224-1" style="position-anchor:--gsb51bf224-1"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span>local variable<span style="color:#e6edf3">)</span> <span style="color:#ff7b72">int</span><span style="color:#e6edf3">[</span><span style="color:#e6edf3">]</span><span style="color:#e6edf3">?</span> <span style="color:#e6edf3">numbers</span></code></span></span> <span style="color:#ff7b72">=</span> <span class="glosharp-hover" tabindex="0" aria-describedby="gsb51bf224-2" style="anchor-name:--gsb51bf224-2"><span style="color:#f0883e">Enumerable</span><span class="glosharp-popup" role="tooltip" id="gsb51bf224-2" style="position-anchor:--gsb51bf224-2"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span>class<span style="color:#e6edf3">)</span> <span style="color:#f0883e">Enumerable</span></code><span class="glosharp-popup-docs"><span class="glosharp-popup-summary">Provides a set of static (Shared in Visual Basic) methods for querying objects that implement IEnumerable&lt;T&gt;.</span></span></span></span><span style="color:#ff7b72">.</span><span class="glosharp-hover" tabindex="0" aria-describedby="gsb51bf224-3" style="anchor-name:--gsb51bf224-3"><span style="color:#d2a8ff">Range</span><span class="glosharp-popup" role="tooltip" id="gsb51bf224-3" style="position-anchor:--gsb51bf224-3"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span>method<span style="color:#e6edf3">)</span> <span style="color:#f0883e">IEnumerable</span><span style="color:#e6edf3">&lt;</span><span style="color:#ff7b72">int</span><span style="color:#e6edf3">&gt;</span> <span style="color:#f0883e">Enumerable</span><span style="color:#e6edf3">.</span><span style="color:#d2a8ff">Range</span><span style="color:#e6edf3">(</span><span style="color:#ff7b72">int</span> <span style="color:#e6edf3">start</span><span style="color:#e6edf3">,</span> <span style="color:#ff7b72">int</span> <span style="color:#e6edf3">count</span><span style="color:#e6edf3">)</span></code><span class="glosharp-popup-docs"><span class="glosharp-popup-summary">Generates a sequence of integral numbers within a specified range.</span><span class="glosharp-popup-params"><span class="glosharp-popup-section-label">Parameters</span><span class="glosharp-popup-param"><span class="glosharp-popup-param-name">start</span> — The value of the first integer in the sequence.</span><span class="glosharp-popup-param"><span class="glosharp-popup-param-name">count</span> — The number of sequential integers to generate.</span></span><span class="glosharp-popup-returns"><span class="glosharp-popup-section-label">Returns</span>An IEnumerable&lt;Int32&gt; in C# or IEnumerable(Of Int32) in Visual Basic that contains a range of sequential integral numbers.</span><span class="glosharp-popup-exceptions"><span class="glosharp-popup-section-label">Exceptions</span><span class="glosharp-popup-exception"><span class="glosharp-popup-exception-type">ArgumentOutOfRangeException</span> — count is less than 0. -or- start + count -1 is larger than Int32.MaxValue.</span></span></span></span></span>(<span style="color:#79c0ff">1</span>, <span style="color:#79c0ff">10</span>)<span style="color:#ff7b72">.</span><span class="glosharp-hover" tabindex="0" aria-describedby="gsb51bf224-4" style="anchor-name:--gsb51bf224-4"><span style="color:#d2a8ff">ToArray</span><span class="glosharp-popup" role="tooltip" id="gsb51bf224-4" style="position-anchor:--gsb51bf224-4"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span>extension<span style="color:#e6edf3">)</span> <span style="color:#ff7b72">int</span><span style="color:#e6edf3">[</span><span style="color:#e6edf3">]</span> <span style="color:#f0883e">IEnumerable</span><span style="color:#e6edf3">&lt;</span><span style="color:#ff7b72">int</span><span style="color:#e6edf3">&gt;</span><span style="color:#e6edf3">.</span>ToArray<span style="color:#e6edf3">&lt;</span><span style="color:#ff7b72">int</span><span style="color:#e6edf3">&gt;</span><span style="color:#e6edf3">(</span><span style="color:#e6edf3">)</span></code><span class="glosharp-popup-docs"><span class="glosharp-popup-summary">Creates an array from a IEnumerable&lt;T&gt;.</span><span class="glosharp-popup-params"><span class="glosharp-popup-section-label">Parameters</span><span class="glosharp-popup-param"><span class="glosharp-popup-param-name">source</span> — An IEnumerable&lt;T&gt; to create an array from.</span></span><span class="glosharp-popup-returns"><span class="glosharp-popup-section-label">Returns</span>An array that contains the elements from the input sequence.</span><span class="glosharp-popup-exceptions"><span class="glosharp-popup-section-label">Exceptions</span><span class="glosharp-popup-exception"><span class="glosharp-popup-exception-type">ArgumentNullException</span> — source is null.</span></span></span></span></span>();</span>
+<span class="line"><span class="glosharp-hover" tabindex="0" aria-describedby="gsb51bf224-5" style="anchor-name:--gsb51bf224-5"><span style="color:#ff7b72">var</span><span class="glosharp-popup" role="tooltip" id="gsb51bf224-5" style="position-anchor:--gsb51bf224-5"><code class="glosharp-popup-code"><span style="color:#ff7b72">int</span><span style="color:#e6edf3">[</span><span style="color:#e6edf3">]</span></code></span></span> <span class="glosharp-hover" tabindex="0" aria-describedby="gsb51bf224-6" style="anchor-name:--gsb51bf224-6"><span>evens</span><span class="glosharp-popup" role="tooltip" id="gsb51bf224-6" style="position-anchor:--gsb51bf224-6"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span>local variable<span style="color:#e6edf3">)</span> <span style="color:#ff7b72">int</span><span style="color:#e6edf3">[</span><span style="color:#e6edf3">]</span><span style="color:#e6edf3">?</span> <span style="color:#e6edf3">evens</span></code></span></span> <span style="color:#ff7b72">=</span> <span class="glosharp-hover" tabindex="0" aria-describedby="gsb51bf224-7" style="anchor-name:--gsb51bf224-7"><span>numbers</span><span class="glosharp-popup" role="tooltip" id="gsb51bf224-7" style="position-anchor:--gsb51bf224-7"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span>local variable<span style="color:#e6edf3">)</span> <span style="color:#ff7b72">int</span><span style="color:#e6edf3">[</span><span style="color:#e6edf3">]</span><span style="color:#e6edf3">?</span> <span style="color:#e6edf3">numbers</span></code></span></span><span style="color:#ff7b72">.</span><span class="glosharp-hover" tabindex="0" aria-describedby="gsb51bf224-8" style="anchor-name:--gsb51bf224-8"><span style="color:#d2a8ff">Where</span><span class="glosharp-popup" role="tooltip" id="gsb51bf224-8" style="position-anchor:--gsb51bf224-8"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span>extension<span style="color:#e6edf3">)</span> <span style="color:#f0883e">IEnumerable</span><span style="color:#e6edf3">&lt;</span><span style="color:#ff7b72">int</span><span style="color:#e6edf3">&gt;</span> <span style="color:#f0883e">IEnumerable</span><span style="color:#e6edf3">&lt;</span><span style="color:#ff7b72">int</span><span style="color:#e6edf3">&gt;</span><span style="color:#e6edf3">.</span>Where<span style="color:#e6edf3">&lt;</span><span style="color:#ff7b72">int</span><span style="color:#e6edf3">&gt;</span><span style="color:#e6edf3">(</span><span style="color:#f0883e">Func</span><span style="color:#e6edf3">&lt;</span><span style="color:#ff7b72">int</span><span style="color:#e6edf3">,</span> <span style="color:#ff7b72">bool</span><span style="color:#e6edf3">&gt;</span> <span style="color:#e6edf3">predicate</span><span style="color:#e6edf3">)</span> <span class="glosharp-popup-overloads">(+1 overload)</span></code><span class="glosharp-popup-docs"><span class="glosharp-popup-summary">Filters a sequence of values based on a predicate.</span><span class="glosharp-popup-params"><span class="glosharp-popup-section-label">Parameters</span><span class="glosharp-popup-param"><span class="glosharp-popup-param-name">source</span> — An IEnumerable&lt;T&gt; to filter.</span><span class="glosharp-popup-param"><span class="glosharp-popup-param-name">predicate</span> — A function to test each element for a condition.</span></span><span class="glosharp-popup-returns"><span class="glosharp-popup-section-label">Returns</span>An IEnumerable&lt;T&gt; that contains elements from the input sequence that satisfy the condition.</span><span class="glosharp-popup-exceptions"><span class="glosharp-popup-section-label">Exceptions</span><span class="glosharp-popup-exception"><span class="glosharp-popup-exception-type">ArgumentNullException</span> — source or predicate is null.</span></span></span></span></span>(<span class="glosharp-hover" tabindex="0" aria-describedby="gsb51bf224-9" style="anchor-name:--gsb51bf224-9"><span>n</span><span class="glosharp-popup" role="tooltip" id="gsb51bf224-9" style="position-anchor:--gsb51bf224-9"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span>parameter<span style="color:#e6edf3">)</span> <span style="color:#ff7b72">int</span> <span style="color:#e6edf3">n</span></code></span></span> <span style="color:#ff7b72">=&gt;</span> <span class="glosharp-hover" tabindex="0" aria-describedby="gsb51bf224-10" style="anchor-name:--gsb51bf224-10"><span>n</span><span class="glosharp-popup" role="tooltip" id="gsb51bf224-10" style="position-anchor:--gsb51bf224-10"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span>parameter<span style="color:#e6edf3">)</span> <span style="color:#ff7b72">int</span> <span style="color:#e6edf3">n</span></code></span></span> <span style="color:#ff7b72">%</span> <span style="color:#79c0ff">2</span> <span style="color:#ff7b72">==</span> <span style="color:#79c0ff">0</span>)<span style="color:#ff7b72">.</span><span class="glosharp-hover" tabindex="0" aria-describedby="gsb51bf224-11" style="anchor-name:--gsb51bf224-11"><span style="color:#d2a8ff">ToArray</span><span class="glosharp-popup" role="tooltip" id="gsb51bf224-11" style="position-anchor:--gsb51bf224-11"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span>extension<span style="color:#e6edf3">)</span> <span style="color:#ff7b72">int</span><span style="color:#e6edf3">[</span><span style="color:#e6edf3">]</span> <span style="color:#f0883e">IEnumerable</span><span style="color:#e6edf3">&lt;</span><span style="color:#ff7b72">int</span><span style="color:#e6edf3">&gt;</span><span style="color:#e6edf3">.</span>ToArray<span style="color:#e6edf3">&lt;</span><span style="color:#ff7b72">int</span><span style="color:#e6edf3">&gt;</span><span style="color:#e6edf3">(</span><span style="color:#e6edf3">)</span></code><span class="glosharp-popup-docs"><span class="glosharp-popup-summary">Creates an array from a IEnumerable&lt;T&gt;.</span><span class="glosharp-popup-params"><span class="glosharp-popup-section-label">Parameters</span><span class="glosharp-popup-param"><span class="glosharp-popup-param-name">source</span> — An IEnumerable&lt;T&gt; to create an array from.</span></span><span class="glosharp-popup-returns"><span class="glosharp-popup-section-label">Returns</span>An array that contains the elements from the input sequence.</span><span class="glosharp-popup-exceptions"><span class="glosharp-popup-section-label">Exceptions</span><span class="glosharp-popup-exception"><span class="glosharp-popup-exception-type">ArgumentNullException</span> — source is null.</span></span></span></span></span>();</span>
+<span class="line glosharp-focus-dim"><span class="glosharp-hover" tabindex="0" aria-describedby="gsb51bf224-12" style="anchor-name:--gsb51bf224-12"><span style="color:#f0883e">Console</span><span class="glosharp-popup" role="tooltip" id="gsb51bf224-12" style="position-anchor:--gsb51bf224-12"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span>class<span style="color:#e6edf3">)</span> <span style="color:#f0883e">Console</span></code><span class="glosharp-popup-docs"><span class="glosharp-popup-summary">Represents the standard input, output, and error streams for console applications. This class cannot be inherited.</span></span></span></span><span style="color:#ff7b72">.</span><span class="glosharp-hover" tabindex="0" aria-describedby="gsb51bf224-13" style="anchor-name:--gsb51bf224-13"><span style="color:#d2a8ff">WriteLine</span><span class="glosharp-popup" role="tooltip" id="gsb51bf224-13" style="position-anchor:--gsb51bf224-13"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span>method<span style="color:#e6edf3">)</span> <span style="color:#ff7b72">void</span> <span style="color:#f0883e">Console</span><span style="color:#e6edf3">.</span><span style="color:#d2a8ff">WriteLine</span><span style="color:#e6edf3">(</span><span style="color:#ff7b72">string</span><span style="color:#e6edf3">?</span> <span style="color:#e6edf3">value</span><span style="color:#e6edf3">)</span> <span class="glosharp-popup-overloads">(+17 overloads)</span></code><span class="glosharp-popup-docs"><span class="glosharp-popup-summary">Writes the specified string value, followed by the current line terminator, to the standard output stream.</span><span class="glosharp-popup-params"><span class="glosharp-popup-section-label">Parameters</span><span class="glosharp-popup-param"><span class="glosharp-popup-param-name">value</span> — The value to write.</span></span><span class="glosharp-popup-exceptions"><span class="glosharp-popup-section-label">Exceptions</span><span class="glosharp-popup-exception"><span class="glosharp-popup-exception-type">IOException</span> — An I/O error occurred.</span></span></span></span></span>(<span class="glosharp-hover" tabindex="0" aria-describedby="gsb51bf224-14" style="anchor-name:--gsb51bf224-14"><span style="color:#ff7b72">string</span><span class="glosharp-popup" role="tooltip" id="gsb51bf224-14" style="position-anchor:--gsb51bf224-14"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span>class<span style="color:#e6edf3">)</span> <span style="color:#ff7b72">string</span></code><span class="glosharp-popup-docs"><span class="glosharp-popup-summary">Represents text as a sequence of UTF-16 code units.</span></span></span></span><span style="color:#ff7b72">.</span><span class="glosharp-hover" tabindex="0" aria-describedby="gsb51bf224-15" style="anchor-name:--gsb51bf224-15"><span style="color:#d2a8ff">Join</span><span class="glosharp-popup" role="tooltip" id="gsb51bf224-15" style="position-anchor:--gsb51bf224-15"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span>method<span style="color:#e6edf3">)</span> <span style="color:#ff7b72">string</span> <span style="color:#ff7b72">string</span><span style="color:#e6edf3">.</span><span style="color:#d2a8ff">Join</span><span style="color:#e6edf3">&lt;</span><span style="color:#ff7b72">int</span><span style="color:#e6edf3">&gt;</span><span style="color:#e6edf3">(</span><span style="color:#ff7b72">string</span><span style="color:#e6edf3">?</span> <span style="color:#e6edf3">separator</span><span style="color:#e6edf3">,</span> <span style="color:#f0883e">IEnumerable</span><span style="color:#e6edf3">&lt;</span><span style="color:#ff7b72">int</span><span style="color:#e6edf3">&gt;</span> <span style="color:#e6edf3">values</span><span style="color:#e6edf3">)</span> <span class="glosharp-popup-overloads">(+8 overloads)</span></code><span class="glosharp-popup-docs"><span class="glosharp-popup-summary">Concatenates the members of a collection, using the specified separator between each member.</span><span class="glosharp-popup-params"><span class="glosharp-popup-section-label">Parameters</span><span class="glosharp-popup-param"><span class="glosharp-popup-param-name">separator</span> — The string to use as a separator. separator is included in the returned string only if values has more than one element.</span><span class="glosharp-popup-param"><span class="glosharp-popup-param-name">values</span> — A collection that contains the objects to concatenate.</span></span><span class="glosharp-popup-returns"><span class="glosharp-popup-section-label">Returns</span>A string that consists of the elements of values delimited by the separator string. -or- String.Empty if values has no elements.</span><span class="glosharp-popup-exceptions"><span class="glosharp-popup-section-label">Exceptions</span><span class="glosharp-popup-exception"><span class="glosharp-popup-exception-type">ArgumentNullException</span> — values is null.</span><span class="glosharp-popup-exception"><span class="glosharp-popup-exception-type">OutOfMemoryException</span> — The length of the resulting string overflows the maximum allowed length (Int32.MaxValue).</span></span></span></span></span>(<span style="color:#a5d6ff">&quot;, &quot;</span>, <span class="glosharp-hover" tabindex="0" aria-describedby="gsb51bf224-16" style="anchor-name:--gsb51bf224-16"><span>evens</span><span class="glosharp-popup" role="tooltip" id="gsb51bf224-16" style="position-anchor:--gsb51bf224-16"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span>local variable<span style="color:#e6edf3">)</span> <span style="color:#ff7b72">int</span><span style="color:#e6edf3">[</span><span style="color:#e6edf3">]</span><span style="color:#e6edf3">?</span> <span style="color:#e6edf3">evens</span></code></span></span>));</span>
+</code></pre>
 </div>

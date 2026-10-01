@@ -152,7 +152,7 @@ describe('transformerGloSharpWithResult', () => {
     expect(html).toContain('glosharp-error-message glosharp-severity-error')
     expect(html).toMatch(/<span class="glosharp-error-underline glosharp-severity-error">[^]*?undeclared/)
     expect(html).toContain('CS0103')
-    expect(html).toContain('href="https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/cs0103"')
+    expect(html).toContain('href="https://msdn.microsoft.com/query/roslyn.query?appId=roslyn&#x26;k=k(CS0103)"')
   })
 
   it('renders expected (@errors) diagnostics too, marked as expected', async () => {

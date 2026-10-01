@@ -87,7 +87,7 @@ The `root` hook SHALL wrap each diagnostic's range in `<span class="glosharp-err
 
 #### Scenario: Error code linked to docs
 - **WHEN** the glosharp result contains a diagnostic with code `CS0246`
-- **THEN** the error code in the message element is an `<a>` linking to `https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/cs0246`
+- **THEN** the error code in the message element is an `<a>` linking to `https://msdn.microsoft.com/query/roslyn.query?appId=roslyn&k=k(CS0246)`
 
 #### Scenario: Multi-line diagnostic underlines
 - **WHEN** the glosharp result contains a diagnostic spanning lines 2-4
