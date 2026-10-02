@@ -1,3 +1,4 @@
+import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { createEngine, recordStubArgs, resetStub, select, useStubResults } from './helpers.js'
 
@@ -21,8 +22,8 @@ describe('CLI failures (onCliError)', () => {
   it('names the document and block when the CLI crashes', async () => {
     useStubResults({ 'boom': { exit: 1, stderr: "Error: Region 'demo' not found in source file." } })
     const { render } = createEngine()
-    const rendering = render('// boom', { file: `${process.cwd()}/docs/guide.md` })
-    await expect(rendering).rejects.toThrow(/docs\/guide\.md, code block 1 of 3[\s\S]*Region 'demo' not found/)
+    const rendering = render('// boom', { file: join(process.cwd(), 'docs', 'guide.md') })
+    await expect(rendering).rejects.toThrow(/docs[\\/]guide\.md, code block 1 of 3[\s\S]*Region 'demo' not found/)
     // Not an installation problem, so no install instructions
     await expect(rendering).rejects.not.toThrow(/dotnet tool install/)
   })
@@ -54,11 +55,12 @@ describe('compile diagnostics (failOnErrors)', () => {
       },
     })
     const { render, warnings } = createEngine()
-    const { ast } = await render('// @highlight\nint count = "three";', { file: `${process.cwd()}/src/pages/errors.md`, blockIndex: 2 })
+    const { ast } = await render('// @highlight\nint count = "three";', { file: join(process.cwd(), 'src', 'pages', 'errors.md'), blockIndex: 2 })
 
     expect(select(ast, '.glosharp-error-message')).toHaveLength(1)
     expect(warnings).toHaveLength(1)
-    expect(warnings[0]).toContain('src/pages/errors.md, code block 3 of 3 (starting "// @highlight")')
+    // The document path is shown with the platform's separators
+    expect(warnings[0]).toContain(`${join('src', 'pages', 'errors.md')}, code block 3 of 3 (starting "// @highlight")`)
     expect(warnings[0]).toContain("line 2: CS0029: Cannot implicitly convert type 'string' to 'int'")
     expect(warnings[0]).toContain('failOnErrors')
   })

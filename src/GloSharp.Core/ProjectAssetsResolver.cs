@@ -292,14 +292,7 @@ public static class ProjectAssetsResolver
         };
     }
 
-    private static MetadataReference CreateReference(string path)
-    {
-        var xmlPath = Path.ChangeExtension(path, ".xml");
-        var docProvider = File.Exists(xmlPath)
-            ? XmlDocumentationProvider.CreateFromFile(xmlPath)
-            : null;
-        return MetadataReference.CreateFromFile(path, documentation: docProvider);
-    }
+    private static MetadataReference CreateReference(string path) => MetadataReferenceCache.Get(path);
 
     private static void ResolveProjectReference(
         JsonProperty entry,

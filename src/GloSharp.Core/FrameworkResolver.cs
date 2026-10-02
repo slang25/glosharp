@@ -103,14 +103,7 @@ public static class FrameworkResolver
     {
         return Directory.GetFiles(refPath, "*.dll")
             .OrderBy(dll => dll, StringComparer.Ordinal)
-            .Select(dll =>
-            {
-                var xmlPath = Path.ChangeExtension(dll, ".xml");
-                var docProvider = File.Exists(xmlPath)
-                    ? XmlDocumentationProvider.CreateFromFile(xmlPath)
-                    : null;
-                return (MetadataReference)MetadataReference.CreateFromFile(dll, documentation: docProvider);
-            })
+            .Select(MetadataReferenceCache.Get)
             .ToList();
     }
 

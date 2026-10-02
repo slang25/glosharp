@@ -80,17 +80,31 @@ public static class ProcessRunner
         IReadOnlyDictionary<string, string?>? environment = null,
         CancellationToken cancellationToken = default)
     {
-        return RunAsync(fileName, arguments, workingDirectory, timeout, environment, cancellationToken)
+        // Truly synchronous: blocking on the async path from a thread-pool thread needs another
+        // pool thread to complete it, and many concurrent callers (parallel tests, `glosharp
+        // serve` resolving several snippets) starve the pool and stall for minutes. In
+        // synchronous mode RunCoreAsync never awaits anything, so it completes inline.
+        return RunCoreAsync(fileName, arguments, workingDirectory, timeout, environment, cancellationToken, synchronous: true)
             .GetAwaiter().GetResult();
     }
 
-    public static async Task<ProcessRunResult> RunAsync(
+    public static Task<ProcessRunResult> RunAsync(
         string fileName,
         IEnumerable<string> arguments,
         string? workingDirectory = null,
         TimeSpan? timeout = null,
         IReadOnlyDictionary<string, string?>? environment = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        RunCoreAsync(fileName, arguments, workingDirectory, timeout, environment, cancellationToken, synchronous: false);
+
+    private static async Task<ProcessRunResult> RunCoreAsync(
+        string fileName,
+        IEnumerable<string> arguments,
+        string? workingDirectory,
+        TimeSpan? timeout,
+        IReadOnlyDictionary<string, string?>? environment,
+        CancellationToken cancellationToken,
+        bool synchronous)
     {
         var args = arguments.ToList();
         var psi = new ProcessStartInfo(fileName)
@@ -162,13 +176,24 @@ public static class ProcessRunner
         var effectiveTimeout = timeout ?? DefaultTimeout;
         if (process.HasExited)
             exited.TrySetResult();
-        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        var delay = Task.Delay(effectiveTimeout, timeoutCts.Token);
-        var first = await Task.WhenAny(exited.Task, delay).ConfigureAwait(false);
-        timeoutCts.Cancel();
+
+        bool exitedInTime;
+        if (synchronous)
+        {
+            // Blocks this thread only; a cancellation kills the tree, which ends the wait.
+            using var registration = cancellationToken.Register(() => KillTree(process));
+            exitedInTime = process.WaitForExit(effectiveTimeout) && !cancellationToken.IsCancellationRequested;
+        }
+        else
+        {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            var delay = Task.Delay(effectiveTimeout, timeoutCts.Token);
+            exitedInTime = await Task.WhenAny(exited.Task, delay).ConfigureAwait(false) == exited.Task;
+            timeoutCts.Cancel();
+        }
 
         var timedOut = false;
-        if (first != exited.Task)
+        if (!exitedInTime)
         {
             KillTree(process);
             cancellationToken.ThrowIfCancellationRequested();
@@ -177,9 +202,13 @@ public static class ProcessRunner
 
         // Exit has been observed (or the tree killed); wait briefly for the pipes to flush. The
         // bound only guards against a grandchild (a build server) holding the pipes open.
-        await Task.WhenAny(
-            Task.WhenAll(stdoutDone, stderrDone),
-            Task.Delay(PipeDrainGrace)).ConfigureAwait(false);
+        // The readers run on dedicated threads, so a blocking wait needs no pool thread.
+        if (synchronous)
+            Task.WaitAll([stdoutDone, stderrDone], PipeDrainGrace);
+        else
+            await Task.WhenAny(
+                Task.WhenAll(stdoutDone, stderrDone),
+                Task.Delay(PipeDrainGrace)).ConfigureAwait(false);
         stopwatch.Stop();
 
         int exitCode;
