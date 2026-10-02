@@ -7,6 +7,8 @@ import { pluginGloSharp, type PluginGloSharpOptions } from '../src/plugin.js'
 
 export const STUB = join(import.meta.dirname!, 'glosharp-stub.mjs')
 chmodSync(STUB, 0o755)
+/** Run the stub through node: Windows can't spawn a .mjs file directly (EFTYPE). */
+export const STUB_EXECUTABLE: [string, string] = [process.execPath, STUB]
 
 const dir = mkdtempSync(join(tmpdir(), 'glosharp-ec-test-'))
 let counter = 0
@@ -44,7 +46,7 @@ export function createEngine(
 ): TestEngine {
   const warnings: string[] = []
   const engine = new ExpressiveCodeEngine({
-    plugins: [...(extra.plugins ?? []), pluginGloSharp({ executable: STUB, ...options })],
+    plugins: [...(extra.plugins ?? []), pluginGloSharp({ executable: STUB_EXECUTABLE, ...options })],
     themes: extra.themes,
     logger: { warn: (m: string) => warnings.push(m), error: (m: string) => warnings.push(m) },
   })

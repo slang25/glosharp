@@ -5,7 +5,7 @@ import { pluginLineNumbers } from '@expressive-code/plugin-line-numbers'
 import { selectAll, toHtml, type Element } from '@expressive-code/core/hast'
 import { pluginGloSharp } from '../src/plugin.js'
 import { alignLines, syncLines } from '../src/line-sync.js'
-import { STUB, classes, lineCodeText, resetStub, useStubResults } from './helpers.js'
+import { STUB_EXECUTABLE, classes, lineCodeText, resetStub, useStubResults } from './helpers.js'
 
 afterEach(resetStub)
 
@@ -37,7 +37,7 @@ async function renderWithEc(meta: string) {
   useStubResults({ 'Console.WriteLine(total)': RESULT })
   const ec = new ExpressiveCode({
     themes: [await loadShikiTheme('github-dark')],
-    plugins: [pluginGloSharp({ executable: STUB }), pluginCollapsibleSections(), pluginLineNumbers()],
+    plugins: [pluginGloSharp({ executable: STUB_EXECUTABLE }), pluginCollapsibleSections(), pluginLineNumbers()],
   })
   const { renderedGroupAst } = await ec.render({ code: SOURCE, language: 'csharp', meta })
   return { ast: renderedGroupAst, html: toHtml(renderedGroupAst) }

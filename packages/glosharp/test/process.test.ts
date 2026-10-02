@@ -87,8 +87,8 @@ describe('process-level robustness', () => {
 
     const pidFile = readdirSync(logDir).find((f) => f.endsWith('.pid'))!
     const pid = Number(readFileSync(join(logDir, pidFile), 'utf8'))
-    await new Promise((r) => setTimeout(r, 100))
-    expect(isAlive(pid)).toBe(false)
+    // Killing is asynchronous (taskkill on Windows), so allow it a moment
+    await expect.poll(() => isAlive(pid), { timeout: 5000 }).toBe(false)
   })
 
   it('honours an AbortSignal', async () => {

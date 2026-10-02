@@ -34,7 +34,9 @@ describe('which', () => {
     expect(checked).toEqual(['C:\\tools\\glosharp.com', 'C:\\tools\\glosharp.exe', 'C:\\Program Files\\dotnet tools\\glosharp.com', 'C:\\Program Files\\dotnet tools\\glosharp.exe'])
   })
 
-  it('splits a POSIX PATH on ":" and requires the execute bit', async () => {
+  // These simulate a POSIX host on the real filesystem; Windows paths contain ':' and
+  // have no execute bit, so they only make sense off Windows (Windows has its own tests).
+  it.skipIf(process.platform === 'win32')('splits a POSIX PATH on ":" and requires the execute bit', async () => {
     const noExec = join(root, 'posix', 'noexec')
     const exec = join(root, 'posix', 'exec')
     touch(join(noExec, 'glosharp'), false)
@@ -64,7 +66,7 @@ describe('executable resolution', () => {
     expect(resolved).toEqual({ command: 'dotnet', prefix: ['/opt/glosharp/GloSharp.Cli.dll'], source: 'env' })
   })
 
-  it('finds the global tool in ~/.dotnet/tools when it is not on PATH', async () => {
+  it.skipIf(process.platform === 'win32')('finds the global tool in ~/.dotnet/tools when it is not on PATH', async () => {
     const home = join(root, 'home')
     touch(join(home, '.dotnet', 'tools', 'glosharp'))
     const resolved = await resolveExecutable(undefined, { env: { PATH: '' }, cwd: root, home, platform: 'linux' })

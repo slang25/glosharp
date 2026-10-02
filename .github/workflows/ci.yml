@@ -35,6 +35,8 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
+    # Fail a hung run quickly instead of holding a runner for the 6 h default
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -73,6 +75,8 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+    # Fail a hung run quickly instead of holding a runner for the 6 h default
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -129,6 +133,8 @@ jobs:
   docs:
     name: Docs, website & examples
     runs-on: ubuntu-latest
+    # Fail a hung run quickly instead of holding a runner for the 6 h default
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -180,6 +186,8 @@ jobs:
   web-rendering:
     name: Web rendering
     runs-on: ubuntu-latest
+    # Fail a hung run quickly instead of holding a runner for the 6 h default
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
