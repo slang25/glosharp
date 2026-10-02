@@ -57,8 +57,13 @@ jobs:
         run: dotnet build --no-restore -c Release
 
       # global.json opts `dotnet test` into Microsoft.Testing.Platform (TUnit).
+      # --hangdump: if the run stops making progress, list the tests in flight and write a
+      # dump instead of being cancelled by the job timeout (which discards the log).
       - name: Test
-        run: dotnet test --no-build -c Release --report-trx --results-directory TestResults
+        timeout-minutes: 20
+        run: >-
+          dotnet test --no-build -c Release --report-trx --results-directory TestResults
+          --hangdump --hangdump-timeout 8m --hangdump-type Mini
 
       - name: Upload test results
         if: failure()
