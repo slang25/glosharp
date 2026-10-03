@@ -264,6 +264,7 @@ public static class ProcessRunner
                 // On macOS, Process.Kill(entireProcessTree: true) can hang the whole machine: on
                 // GitHub's macOS runners it froze the VM (root processes included) within seconds,
                 // every time, while killing the same trees from a ps snapshot never did.
+                // https://github.com/dotnet/runtime/issues/131944
                 if (OperatingSystem.IsMacOS())
                     KillTreeFromSnapshot(process);
                 else
