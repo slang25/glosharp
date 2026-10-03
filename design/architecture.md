@@ -219,4 +219,4 @@ Produces self-contained HTML with inline CSS. Uses CSS anchor positioning for ho
 - **The JSON boundary is the contract** — everything downstream of the CLI is a thin adapter
 - **Fail loud in CI** — compile errors should break the build
 - **Framework-agnostic core** — the .NET library knows nothing about Shiki or EC
-- **Build-time only** — no runtime JS required in the rendered output (CSS anchor positioning)
+- **Build-time compilation** — no compiler in the browser; popups use CSS anchor positioning where it suffices and a small client module where it doesn't (see [ADR-0010](../docs/adr/0010-js-where-css-falls-short.md))

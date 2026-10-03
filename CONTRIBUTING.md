@@ -21,7 +21,8 @@
 | `tests/rendering` | Browser rendering suite: committed fixtures, gallery, Playwright (no .NET) |
 | `samples/` | Curated snippets; the source of the rendering fixtures |
 | `examples/`, `website/` | Example sites and the project website |
-| `openspec/` | Specs and change proposals |
+| `GLOSSARY.md`, `docs/adr/` | Domain language and architecture decision records |
+| `docs/agents/` | Configuration for the agent skills (issue tracker, triage labels, domain docs) |
 
 ## Build
 
@@ -242,17 +243,20 @@ Set these up once, before the first release:
 - The `GITHUB_TOKEN` creates the GitHub Release; the workflow requests `contents: write` for that
   job only.
 
-## OpenSpec workflow
+## Planning and domain docs
 
-Features are specified in `openspec/` before they're built:
-
-- `openspec/specs/<capability>/spec.md` is the current behaviour, as requirements with scenarios.
-- A change lives in `openspec/changes/<name>/` (proposal, design, tasks, and delta specs). The
-  `/opsx:propose`, `/opsx:apply` and `/opsx:archive` commands in `.claude/commands/` drive it, or
-  use the [`openspec`](https://github.com/Fission-AI/OpenSpec) CLI directly.
-- When a change is done, archive it: `openspec archive <name>` merges its delta specs into
-  `openspec/specs/` and moves it to `openspec/changes/archive/`.
-- `openspec validate --specs` checks the spec files.
+- `GLOSSARY.md` defines the project's language (snippet, marker, hover, GloContext, ...). Use its
+  terms in code, docs and issues, and update it when a term is settled.
+- `docs/adr/` records decisions that are hard to reverse and would surprise a newcomer, one short
+  file each. Check the relevant ADRs before changing an area, and add one when you make such a
+  decision.
+- Work is tracked in GitHub Issues. Large, fuzzy efforts are planned as a map of decision tickets
+  with the `/wayfinder` skill; `AGENTS.md` and `docs/agents/` configure the agent skills.
+- The planning skills (`/wayfinder`, `/to-spec`, `/to-tickets`, `/grilling`, `/domain-modeling`,
+  `/triage`, ...) are [Matt Pocock's skills](https://github.com/mattpocock/skills), installed per
+  user rather than vendored here: `npx skills add mattpocock/skills -g`. The repo is already
+  configured for them, so there's no need to run `/setup-matt-pocock-skills`.
+- Behaviour is specified by the tests, not by prose specs.
 
 ## Commits and pull requests
 

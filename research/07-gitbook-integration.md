@@ -49,7 +49,7 @@ A and B compose: readers get precomputed static HTML by hash; the editor webfram
 
 ## Why the render side is already solved
 
-`glosharp render` output is the ideal iframe payload: a self-contained `<div class="glosharp-code">` with an inline `<style>` and a **hard spec requirement of zero `<script>`/JS event attributes** (openspec/specs/html-renderer/spec.md) — all hover interactivity is CSS-only. Inside an iframe that constraint is a feature, not a limitation. The Shiki path (140-line stylesheet, CSS anchor positioning with `@supports` fallback) works too if we prefer client-side assembly from `GloSharpResult` JSON. The Expressive Code path is the wrong fit here (requires its JS module).
+`glosharp render` output is the ideal iframe payload: a self-contained `<div class="glosharp-code">` with an inline `<style>` and a **hard spec requirement of zero `<script>`/JS event attributes** (then specified in `openspec/specs/html-renderer/spec.md`, since removed) — all hover interactivity is CSS-only. Inside an iframe that constraint is a feature, not a limitation. The Shiki path (140-line stylesheet, CSS anchor positioning with `@supports` fallback) works too if we prefer client-side assembly from `GloSharpResult` JSON. The Expressive Code path is the wrong fit here (requires its JS module).
 
 The existing rendering test-loop (`tests/rendering/`: fixtures → gallery → Playwright invariants, no .NET needed) can validate the iframe shell — especially the viewport-containment invariant, since popups cannot escape iframe bounds.
 
