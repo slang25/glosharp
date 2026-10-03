@@ -242,7 +242,7 @@ message contract over real `glosharp render` artifacts.
 ## Limits
 
 - Snippets are stale until CI runs, including in the editor. Live preview would
-  need Roslyn in the browser (see decision 006).
+  need Roslyn in the browser (see [ADR-0013](../../docs/adr/0013-gitbook-ci-precomputed-artifacts.md)).
 - One iframe per snippet. Each shell is tiny and cacheable, but N snippets is N
   documents.
 - Each theme is a separate `glosharp render` (a full compile), plus one

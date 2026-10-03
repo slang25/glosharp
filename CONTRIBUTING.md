@@ -252,6 +252,10 @@ Set these up once, before the first release:
   decision.
 - Work is tracked in GitHub Issues. Large, fuzzy efforts are planned as a map of decision tickets
   with the `/wayfinder` skill; `AGENTS.md` and `docs/agents/` configure the agent skills.
+- The planning skills (`/wayfinder`, `/to-spec`, `/to-tickets`, `/grilling`, `/domain-modeling`,
+  `/triage`, ...) are [Matt Pocock's skills](https://github.com/mattpocock/skills), installed per
+  user rather than vendored here: `npx skills add mattpocock/skills -g`. The repo is already
+  configured for them, so there's no need to run `/setup-matt-pocock-skills`.
 - Behaviour is specified by the tests, not by prose specs.
 
 ## Commits and pull requests

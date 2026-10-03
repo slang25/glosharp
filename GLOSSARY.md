@@ -2,7 +2,7 @@
 
 GloSharp compiles the C# snippets embedded in documentation and extracts what the compiler knows about them (hovers, diagnostics, completions) so docs sites can render IDE-quality, twoslash-style code, and so a snippet that stops compiling fails the docs build instead of reaching readers.
 
-The product is written **GloSharp** in prose, identifiers and package names; **Glo#** is a display form for logos and site headers only.
+The product is **GloSharp** wherever plain text matters (identifiers, package names, URLs, anything people search for); **Glo#** is its display form, used for logos, headers and branded prose.
 
 ## Language
 
@@ -147,7 +147,7 @@ A rendered row below a code line that is never part of the copyable code: a diag
 _Avoid_: block content, line extras, message box
 
 **Snippet key**:
-The identity used to look up a snippet's result or artifact: a hash of the snippet's canonical form plus any options that change the result.
+The identity used to look up a snippet's result or artifact: a hash of the snippet's canonical form. Integrations that look up results also fold in any options that change the result; artifact keys cover the code alone.
 _Avoid_: code hash, content hash, cache key
 
 **Artifact**:
