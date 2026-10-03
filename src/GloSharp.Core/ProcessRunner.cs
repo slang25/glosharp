@@ -290,7 +290,14 @@ public static class ProcessRunner
     private static void KillTreeFromSnapshot(Process process)
     {
         var descendants = Descendants(process.Id);
-        process.Kill();
+        try
+        {
+            process.Kill();
+        }
+        catch (Exception e) when (e is InvalidOperationException or Win32Exception)
+        {
+            // The root exited after the snapshot; its descendants may still hold the pipes.
+        }
         foreach (var pid in descendants)
         {
             try
@@ -316,7 +323,16 @@ public static class ProcessRunner
                 UseShellExecute = false,
             };
             using var ps = Process.Start(psi)!;
-            var output = ps.StandardOutput.ReadToEnd();
+            // Read on a dedicated thread so the 5s limit is real (ReadToEnd only returns once ps
+            // closes stdout) and so a starved thread pool can't delay timeout handling.
+            var output = "";
+            var reader = new Thread(() => output = ps.StandardOutput.ReadToEnd()) { IsBackground = true };
+            reader.Start();
+            if (!reader.Join(5000))
+            {
+                try { ps.Kill(); } catch (Exception e) when (e is InvalidOperationException or Win32Exception) { }
+                return [];
+            }
             ps.WaitForExit(5000);
             foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
             {
