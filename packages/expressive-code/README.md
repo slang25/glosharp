@@ -9,11 +9,11 @@ It works anywhere Expressive Code does: Astro (`astro-expressive-code`), Starlig
 The plugin calls the `glosharp` .NET CLI to compile each snippet with Roslyn. You need the **.NET 8 SDK or later** on the machine that builds your site (including CI).
 
 ```sh
-# 1. The CLI (pick one)
-dotnet tool install --global GloSharp.Cli
+# 1. The CLI (pick one; --prerelease while only previews are published)
+dotnet tool install --global GloSharp.Cli --prerelease
 # ...or as a local tool, in the directory you run your site build from
 dotnet new tool-manifest     # only if you don't have .config/dotnet-tools.json yet
-dotnet tool install GloSharp.Cli
+dotnet tool install GloSharp.Cli --prerelease
 
 # 2. The plugin
 npm install @glosharp/expressive-code

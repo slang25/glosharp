@@ -26,11 +26,11 @@ Because pack ids and versions come from untrusted manifests and are combined int
 - **THEN** the resolver refuses the identity and the reader reports the invalid manifest entry instead of touching any path outside the configured roots
 
 ### Requirement: nuget.org download populates the glosharp cache
-When earlier sources miss, the resolver SHALL download `https://api.nuget.org/v3-flatcontainer/{id}/{version}/{id}.{version}.nupkg` (id and version lowercased), extract only the `ref/**/*.dll` entries into the glosharp cache at `<cache>/<id>/<version>/…` preserving relative paths, and serve from the cache thereafter. Partial downloads SHALL NOT be visible in the cache (extract to a temp directory, then atomic rename).
+When earlier sources miss, the resolver SHALL download `https://api.nuget.org/v3-flatcontainer/{id}/{version}/{id}.{version}.nupkg` (id and version lowercased), extract only the `ref/**/*.dll` entries, plus the XML documentation files beside them (`ref/**/*.xml`, used for hover docs), into the glosharp cache at `<cache>/<id>/<version>/…` preserving relative paths, and serve from the cache thereafter. Partial downloads SHALL NOT be visible in the cache (extract to a temp directory, then atomic rename).
 
 #### Scenario: Successful download
 - **WHEN** the pack is not available locally and the network is reachable
-- **THEN** the nupkg is downloaded, its ref DLLs land in the glosharp cache, and the requested files are returned
+- **THEN** the nupkg is downloaded, its ref DLLs and their XML docs land in the glosharp cache (no `lib/`, nuspec or other entries), and the requested files are returned
 
 #### Scenario: Interrupted download leaves no partial cache entry
 - **WHEN** a download or extraction fails midway

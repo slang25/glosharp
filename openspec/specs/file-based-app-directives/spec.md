@@ -70,10 +70,10 @@ When `#:package` directives are present and no `--project` flag is provided, the
 
 #### Scenario: Snippet read from stdin
 - **WHEN** a snippet with `#:` directives is processed without a source file path (e.g. `--stdin` from the Node bridge)
-- **THEN** only the directive lines are written to a stable temp file named by a hash of the directive set (`$TMPDIR/glosharp/file-based-apps/glosharp-<hash>.cs`), so identical directive sets reuse one SDK artifacts directory instead of leaking one per snippet, and the snippet's own (possibly intentionally broken) code cannot fail resolution
+- **THEN** only the directive lines are written to a stable file named by a hash of the directive set (under `GLOSHARP_CACHE_DIR/file-based-apps`, else the platform local-app-data `glosharp/file-based-apps` folder), so identical directive sets reuse one SDK artifacts directory instead of leaking one per snippet, and the snippet's own (possibly intentionally broken) code cannot fail resolution
 
 ### Requirement: Require .NET 10+ SDK for file-based app directives
-When `#:` directives are detected, the system SHALL verify that the installed .NET SDK is version 10.0 or later. If an older SDK is installed, the system SHALL fail with a clear error message.
+When `#:` directives are detected, the system SHALL verify that the installed .NET SDK is version 10.0 or later. If an older SDK is installed, package resolution SHALL fail with a clear message, which, like any other resolution failure (see "Resolution failure" above), is reported in `meta.warnings` while the snippet is compiled against the framework only.
 
 #### Scenario: SDK version check passes
 - **WHEN** source contains `#:` directives and `dotnet --version` reports 10.0.100 or later
@@ -81,7 +81,7 @@ When `#:` directives are detected, the system SHALL verify that the installed .N
 
 #### Scenario: SDK version check fails
 - **WHEN** source contains `#:` directives and `dotnet --version` reports 9.0.100
-- **THEN** the system fails with an error message indicating .NET 10 SDK is required and suggesting `--project` as an alternative
+- **THEN** processing continues with framework-only references, and `meta.warnings` contains a message indicating the .NET 10 SDK is required and suggesting `--project` as an alternative
 
 ### Requirement: SDK-based framework pack resolution
 When `#:sdk` directives specify a non-default SDK (e.g., `Microsoft.NET.Sdk.Web`), the SDK's restore SHALL include the additional framework references (e.g., `Microsoft.AspNetCore.App.Ref`). The system SHALL read these from the generated `project.assets.json` without custom logic.

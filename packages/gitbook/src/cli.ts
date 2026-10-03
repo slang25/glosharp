@@ -147,7 +147,7 @@ export async function run(argv: string[]): Promise<number> {
   if (executable?.includes(path.sep) && !existsSync(executable)) {
     process.stderr.write(
       `--executable ${executable} does not exist.\n` +
-        `Install the CLI (dotnet tool install -g GloSharp.Cli), or point at a build ` +
+        `Install the CLI (dotnet tool install -g GloSharp.Cli --prerelease), or point at a build ` +
         `of it (dotnet build src/GloSharp.Cli -c Release).\n`,
     )
     return 1

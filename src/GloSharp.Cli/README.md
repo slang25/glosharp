@@ -10,10 +10,14 @@ Source and documentation: https://github.com/slang25/glosharp
 ## Install
 
 ```sh
-dotnet tool install --global GloSharp.Cli
+dotnet tool install --global GloSharp.Cli --prerelease
 # or, per repository
-dotnet new tool-manifest && dotnet tool install GloSharp.Cli
+dotnet new tool-manifest && dotnet tool install GloSharp.Cli --prerelease
 ```
+
+Glo# is in preview and only prerelease versions are published, so `--prerelease` is needed
+until a stable release exists. Keep the tool on the same version as the `@glosharp/*` npm
+packages you use.
 
 The tool targets .NET 8 and rolls forward to any newer runtime (9, 10, 11, …), so it runs on
 machines that only have a recent SDK.
