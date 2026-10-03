@@ -44,9 +44,9 @@ jobs:
         uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5.4.0
         with:
           dotnet-version: ${{ env.DOTNET_VERSIONS }}
-          # No NuGet package cache: on macOS, runs that restored it kept wedging the
-          # runner during the tests (no log, step timeout never fired), while runs with
-          # a fresh package folder passed. Restore only takes seconds without it.
+          # No NuGet package cache: restore only takes seconds without it. (The macOS
+          # runner freezes once blamed on the cache were Process.Kill(entireProcessTree)
+          # hanging the VM; see ProcessRunner.KillTree.)
 
       - name: Restore
         run: dotnet restore
