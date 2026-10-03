@@ -23,7 +23,7 @@ ts() { # serving paths needs root; operators can only proxy
 
 host() { tailscale status --json | python3 -c 'import json,sys; print(json.load(sys.stdin)["Self"]["DNSName"].rstrip("."))'; }
 
-# "<port> <target>" for every preview in our range
+# "<port>\t<target>" for every preview in our range (targets may contain spaces)
 previews() {
   tailscale serve status --json | python3 -c '
 import json, sys
@@ -32,7 +32,7 @@ for hostport, web in sorted((cfg.get("Web") or {}).items()):
     port = int(hostport.rsplit(":", 1)[1])
     if '"$FIRST_PORT"' <= port <= '"$LAST_PORT"':
         h = web["Handlers"].get("/", {})
-        print(port, h.get("Path") or h.get("Proxy") or "?")'
+        print(port, h.get("Path") or h.get("Proxy") or "?", sep="\t")'
 }
 
 stop() {
@@ -47,11 +47,11 @@ case "${1:-}" in
   "" | -h | --help) sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
   ls)
     h="$(host)"
-    previews | while read -r port target; do echo "https://$h:$port/  ->  $target"; done
+    previews | while IFS=$'\t' read -r port target; do echo "https://$h:$port/  ->  $target"; done
     exit 0 ;;
   stop)
     if [ "${2:-}" = all ]; then
-      previews | while read -r port _; do stop "$port"; done
+      previews | while IFS=$'\t' read -r port _; do stop "$port"; done
     else
       stop "${2:?usage: preview.sh stop <port>|all}"
     fi
@@ -72,9 +72,9 @@ else
 fi
 
 # Reuse the port already serving this target; otherwise take the first free one.
-port="$(previews | awk -v t="$target" '$2 == t { print $1; exit }')"
+port="$(previews | awk -F'\t' -v t="$target" '$2 == t { print $1; exit }')"
 if [ -z "$port" ]; then
-  used=" $(previews | cut -d' ' -f1 | tr '\n' ' ')"
+  used=" $(previews | cut -f1 | tr '\n' ' ')"
   for p in $(seq $FIRST_PORT $LAST_PORT); do
     [[ "$used" == *" $p "* ]] || { port=$p; break; }
   done
