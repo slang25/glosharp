@@ -52,6 +52,21 @@ build_dotnet() {
     dotnet build --no-restore -c Release
 }
 
+# What .github/actions/glosharp-cli-from-source does: pack the tool, install it
+# from the package and smoke-test it, which catches packaging and runtime
+# roll-forward problems the direct build can't. A unique version per run, since
+# NuGet caches packages by version; a private package cache so runs don't pile
+# up in ~/.nuget.
+cli_pack_smoke() {
+  local version="0.0.0-local.$(date +%s)" dir="$GLOSHARP_REPO/.dev/pack"
+  rm -rf "$dir" && mkdir -p "$dir" &&
+    dotnet pack src/GloSharp.Cli/GloSharp.Cli.csproj -c Release -o "$dir/nupkg" -p:Version="$version" &&
+    NUGET_PACKAGES="$dir/packages" dotnet tool install GloSharp.Cli --tool-path "$dir/tool" \
+      --add-source "$dir/nupkg" --version "$version" &&
+    "$dir/tool/glosharp" --version &&
+    echo 'var answer = 42;' | "$dir/tool/glosharp" process --stdin | grep -q '"compileSucceeded": *true'
+}
+
 ensure_browsers() { (cd tests/rendering && npx playwright install chromium firefox); }
 
 free_port() { node -e 'const s = require("net").createServer().listen(0, "127.0.0.1", () => { console.log(s.address().port); s.close() })'; }
@@ -66,6 +81,7 @@ stage_packages() {
 
 stage_node() {
   step version-check node scripts/version.mjs check
+  step cli-pack-smoke cli_pack_smoke
   stage_packages
   step check-pack node .github/scripts/check-pack.mjs
   step gitbook-typecheck npm run typecheck:integration -w @glosharp/gitbook
