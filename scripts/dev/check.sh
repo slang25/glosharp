@@ -41,7 +41,7 @@ ensure_dotnet8() {
 
 ensure_npm() {
   local stamp="$GLOSHARP_REPO/.dev/npm-ci.stamp" want
-  want="$(sha256sum package-lock.json | cut -d' ' -f1)"
+  want="$(node -p "require('crypto').createHash('sha256').update(require('fs').readFileSync('package-lock.json')).digest('hex')")"
   [ -d node_modules ] && [ "$(cat "$stamp" 2> /dev/null)" = "$want" ] && return
   npm ci --no-audit --no-fund && echo "$want" > "$stamp"
 }
@@ -54,7 +54,7 @@ build_dotnet() {
 
 ensure_browsers() { (cd tests/rendering && npx playwright install chromium firefox); }
 
-free_port() { python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1])'; }
+free_port() { node -e 'const s = require("net").createServer().listen(0, "127.0.0.1", () => { console.log(s.address().port); s.close() })'; }
 
 stage_dotnet() {
   step dotnet-test dotnet test --no-build -c Release
