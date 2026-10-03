@@ -8,9 +8,10 @@
 #   scripts/dev/check.sh node rendering  any of: dotnet node docs rendering
 #   scripts/dev/check.sh setup           just bring the worktree up to date
 #
-# Setup runs first every time and is cheap when nothing changed: it installs
-# missing prerequisites (the .NET 8 runtime via dotnetup, Playwright browsers),
-# runs `npm ci` when package-lock.json changed, and builds the CLI and packages.
+# Setup runs first every time and is cheap when nothing changed: it installs the
+# .NET 8 runtime via dotnetup if it's missing, runs `npm ci` when
+# package-lock.json changed, and builds the CLI and packages. The rendering stage
+# installs the Playwright browsers it needs.
 set -uo pipefail
 
 source "$(dirname "${BASH_SOURCE[0]}")/env.sh"
