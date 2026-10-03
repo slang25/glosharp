@@ -50,3 +50,6 @@ TestResults/
 
 # Context
 .context/
+
+# Local dev state (scripts/dev): CLI shim, logs
+.dev/

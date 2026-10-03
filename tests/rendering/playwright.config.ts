@@ -1,5 +1,8 @@
 import { defineConfig, devices } from '@playwright/test'
 
+// scripts/serve-gallery.ts reads GALLERY_PORT too.
+const baseURL = `http://localhost:${process.env.GALLERY_PORT ?? 4173}`
+
 export default defineConfig({
   testDir: './specs',
   fullyParallel: true,
@@ -7,12 +10,12 @@ export default defineConfig({
   retries: 0,
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : [['list']],
   use: {
-    baseURL: 'http://localhost:4173',
+    baseURL,
     trace: 'retain-on-failure',
   },
   webServer: {
     command: 'npm run gallery:build && npm run gallery:serve',
-    url: 'http://localhost:4173',
+    url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
   },
