@@ -6,8 +6,10 @@ export GLOSHARP_REPO
 
 # `glosharp` on PATH runs this worktree's Release build of the CLI (built by
 # check.sh, or `npm run cli:build`); the integrations and examples find it there.
-# GLOSHARP_EXECUTABLE stays unset: it overrides the mocked executable in the
-# @glosharp/core unit tests and fails them.
+# GLOSHARP_EXECUTABLE is cleared: it would win over PATH (possibly naming some
+# other build), and it overrides the mocked executable in the @glosharp/core unit
+# tests and fails them.
+unset GLOSHARP_EXECUTABLE
 mkdir -p "$GLOSHARP_REPO/.dev/bin"
 if [ ! -x "$GLOSHARP_REPO/.dev/bin/glosharp" ]; then
   cat > "$GLOSHARP_REPO/.dev/bin/glosharp" <<EOF
