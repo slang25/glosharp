@@ -10,9 +10,9 @@
 #   scripts/dev/preview.sh ls           list previews
 #   scripts/dev/preview.sh stop <port>|all
 #
-# Prints the URL and checks that it answers. Previews persist across reboots
-# until stopped. Vite/Astro dev servers need scripts/dev/env.sh sourced so they
-# accept the tailnet host name.
+# Prints the URL once it answers 200; otherwise reports it on stderr and exits 1.
+# Previews persist across reboots until stopped. Vite/Astro dev servers need
+# scripts/dev/env.sh sourced so they accept the tailnet host name.
 set -euo pipefail
 
 FIRST_PORT=9400 LAST_PORT=9499
@@ -84,5 +84,5 @@ fi
 
 url="https://$(host):$port/$page"
 code="$(curl -sSL -o /dev/null -w '%{http_code}' --max-time 15 "$url" || true)"
+[ "$code" = 200 ] || { echo "$url answered HTTP $code" >&2; exit 1; }
 echo "$url"
-[ "$code" = 200 ] || { echo "warning: $url answered HTTP $code" >&2; exit 1; }
