@@ -64,6 +64,9 @@ same version picks up the old build.
 
 ## Test
 
+`scripts/dev/check.sh` runs everything below the way CI does, with one line per step and logs in
+`.dev/logs/` (`scripts/dev/check.sh quick` for just the .NET and package tests; bash only).
+
 ### C# (TUnit)
 
 ```sh
