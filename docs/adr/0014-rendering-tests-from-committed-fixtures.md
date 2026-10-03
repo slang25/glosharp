@@ -1,0 +1,3 @@
+# Browser rendering tests run on committed GloSharp output, not a live compiler
+
+Rendering tests read committed `GloSharpResult` JSON and `render` HTML fixtures generated from `samples/`, kept in sync by a CI drift check in the job that has the .NET SDK. The Playwright loop is then pure Node and takes seconds, and C# core changes surface as reviewable fixture diffs rather than mysterious rendering failures. Assertions are geometry and behaviour checks with named tolerances, not screenshots, so they survive restyling. To pin a popup open, the gallery drives the plugins' own event handlers rather than adding a test-only mode to the shipped packages.

@@ -285,17 +285,18 @@ npx glosharp-gitbook dev   docs                                    # preview loc
 ```
 
 The trade-off is staleness: a snippet renders as plain code until CI publishes it. See
-[decision 006](design/decisions.md) and [research/07](research/07-gitbook-integration.md).
+[ADR-0013](docs/adr/0013-gitbook-ci-precomputed-artifacts.md) and [research/07](research/07-gitbook-integration.md).
 
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for building, testing (including the browser rendering
-suite) and the OpenSpec workflow.
+suite) and how planning and domain docs work.
 
 ## Project docs
 
+- [Glossary](GLOSSARY.md) · [Architecture decision records](docs/adr/)
 - Design: [architecture](design/architecture.md), [JSON output format](design/data-format.md),
-  [integration points](design/integration-points.md), [decisions](design/decisions.md)
+  [integration points](design/integration-points.md)
 - Research notes: [twoslash](research/01-twoslash-architecture.md),
   [Roslyn metadata](research/02-roslyn-metadata-extraction.md),
   [Shiki and Expressive Code](research/03-shiki-and-expressive-code.md),
@@ -305,7 +306,7 @@ suite) and the OpenSpec workflow.
   [GitBook](research/07-gitbook-integration.md)
 - [Roadmap](ROADMAP.md) · [Annotated links](references/links.md)
 
-`openspec/` (specs and change proposals) and `.claude/` are maintainer tooling.
+`AGENTS.md`, `docs/agents/` and `.claude/` are maintainer tooling.
 
 ## License
 

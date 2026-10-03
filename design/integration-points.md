@@ -245,7 +245,7 @@ Some users may want to consume the JSON and build their own rendering. The `proc
 
 ## GitBook integration
 
-The only integration where the render does *not* happen at build time next to the content, because GitBook renders on its own hosted infrastructure and cannot run Roslyn. See [decision 006](decisions.md) and [`packages/gitbook/README.md`](../packages/gitbook/README.md).
+The only integration where the render does *not* happen at build time next to the content, because GitBook renders on its own hosted infrastructure and cannot run Roslyn. See [ADR-0013](../docs/adr/0013-gitbook-ci-precomputed-artifacts.md) and [`packages/gitbook/README.md`](../packages/gitbook/README.md).
 
 ### How it works
 
