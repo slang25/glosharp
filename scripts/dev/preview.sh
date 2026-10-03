@@ -63,6 +63,7 @@ elif [ -d "$arg" ]; then
 elif [ -f "$arg" ]; then
   target="$(cd "$(dirname "$arg")" && pwd)"
   page="$(basename "$arg")"
+  [ "$page" = index.html ] && page="" # the file server redirects it to the directory
 else
   echo "not a directory, file or port: $arg" >&2; exit 2
 fi
@@ -79,6 +80,6 @@ if [ -z "$port" ]; then
 fi
 
 url="https://$(host):$port/$page"
-code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 15 "$url" || true)"
+code="$(curl -sSL -o /dev/null -w '%{http_code}' --max-time 15 "$url" || true)"
 echo "$url"
 [ "$code" = 200 ] || { echo "warning: $url answered HTTP $code" >&2; exit 1; }
