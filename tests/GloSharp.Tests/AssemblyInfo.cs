@@ -6,8 +6,8 @@ using TUnit.Core.Interfaces;
 [assembly: Timeout(180_000)]
 
 // Every processor test builds a Roslyn compilation, and some spawn `dotnet restore`. Running
-// them all at once peaks around 3 GB, enough to wedge a 7 GB macOS CI runner; four at a time
-// is just as fast on a laptop and peaks around 2 GB.
+// them all at once peaks around 3 GB; four at a time is just as fast on a laptop and peaks
+// around 2 GB, which leaves headroom on 7 GB CI runners.
 [assembly: ParallelLimiter<GloSharp.Tests.FourAtATime>]
 
 namespace GloSharp.Tests

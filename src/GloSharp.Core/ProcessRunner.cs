@@ -260,7 +260,15 @@ public static class ProcessRunner
         try
         {
             if (!process.HasExited)
-                process.Kill(entireProcessTree: true);
+            {
+                // On macOS, Process.Kill(entireProcessTree: true) can hang the whole machine: on
+                // GitHub's macOS runners it froze the VM (root processes included) within seconds,
+                // every time, while killing the same trees from a ps snapshot never did.
+                if (OperatingSystem.IsMacOS())
+                    KillTreeFromSnapshot(process);
+                else
+                    process.Kill(entireProcessTree: true);
+            }
         }
         catch (InvalidOperationException)
         {
@@ -272,5 +280,71 @@ public static class ProcessRunner
         }
 
         try { process.WaitForExit(5000); } catch (InvalidOperationException) { }
+    }
+
+    /// <summary>
+    /// Kills <paramref name="process"/> and every descendant found in one <c>ps</c> snapshot
+    /// taken before the kill (orphans get reparented, so they can't be found afterwards).
+    /// </summary>
+    private static void KillTreeFromSnapshot(Process process)
+    {
+        var descendants = Descendants(process.Id);
+        process.Kill();
+        foreach (var pid in descendants)
+        {
+            try
+            {
+                using var child = Process.GetProcessById(pid);
+                child.Kill();
+            }
+            catch (Exception e) when (e is ArgumentException or InvalidOperationException or Win32Exception)
+            {
+                // Already exited.
+            }
+        }
+    }
+
+    private static List<int> Descendants(int root)
+    {
+        var children = new Dictionary<int, List<int>>();
+        try
+        {
+            var psi = new ProcessStartInfo("ps", ["-A", "-o", "pid=,ppid="])
+            {
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+            };
+            using var ps = Process.Start(psi)!;
+            var output = ps.StandardOutput.ReadToEnd();
+            ps.WaitForExit(5000);
+            foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length == 2 && int.TryParse(parts[0], out var pid) && int.TryParse(parts[1], out var ppid))
+                {
+                    if (!children.TryGetValue(ppid, out var list))
+                        children[ppid] = list = [];
+                    list.Add(pid);
+                }
+            }
+        }
+        catch (Exception e) when (e is Win32Exception or InvalidOperationException)
+        {
+            // No ps: kill the process itself only.
+        }
+
+        var result = new List<int>();
+        var queue = new Queue<int>([root]);
+        while (queue.Count > 0)
+        {
+            if (!children.TryGetValue(queue.Dequeue(), out var kids))
+                continue;
+            foreach (var kid in kids)
+            {
+                result.Add(kid);
+                queue.Enqueue(kid);
+            }
+        }
+        return result;
     }
 }

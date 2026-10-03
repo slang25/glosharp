@@ -46,13 +46,18 @@ public class ProcessRunnerTests
     public async Task Run_Timeout_KillsProcessTree()
     {
         var stopwatch = Stopwatch.StartNew();
-        // The child spawns a grandchild that would otherwise keep the pipes open.
-        var result = await ProcessRunner.RunAsync("/bin/sh", ["-c", "sleep 60 & sleep 60; wait"], timeout: TimeSpan.FromSeconds(1));
+        // The child spawns grandchildren that would otherwise keep the pipes open, and prints their pids.
+        var result = await ProcessRunner.RunAsync("/bin/sh", ["-c", "sleep 60 & echo $!; sleep 60 & echo $!; wait"], timeout: TimeSpan.FromSeconds(1));
         stopwatch.Stop();
 
         await Assert.That(result.TimedOut).IsTrue();
         await Assert.That(result.Succeeded).IsFalse();
         await Assert.That(stopwatch.Elapsed).IsLessThan(TimeSpan.FromSeconds(30));
+
+        var grandchildren = result.StandardOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse).ToList();
+        await Assert.That(grandchildren.Count).IsEqualTo(2);
+        foreach (var pid in grandchildren)
+            await Assert.That(await IsGoneAsync(pid)).IsTrue();
     }
 
     [Test]
@@ -108,5 +113,23 @@ public class ProcessRunnerTests
         var result = await ProcessRunner.RunAsync(FrameworkResolver.GetDotnetExecutable(), ["--version"]);
         await Assert.That(result.Succeeded).IsTrue();
         await Assert.That(result.StandardOutput.Trim().Length).IsGreaterThan(0);
+    }
+
+    private static async Task<bool> IsGoneAsync(int pid)
+    {
+        for (var i = 0; i < 20; i++)
+        {
+            try
+            {
+                using var p = Process.GetProcessById(pid);
+                if (p.HasExited) return true;
+            }
+            catch (ArgumentException)
+            {
+                return true;
+            }
+            await Task.Delay(100);
+        }
+        return false;
     }
 }
