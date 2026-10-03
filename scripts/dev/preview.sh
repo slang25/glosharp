@@ -36,6 +36,9 @@ for hostport, web in sorted((cfg.get("Web") or {}).items()):
 }
 
 stop() {
+  if ! [[ "$1" =~ ^[0-9]+$ ]] || [ "$1" -lt $FIRST_PORT ] || [ "$1" -gt $LAST_PORT ]; then
+    echo "not a preview port ($FIRST_PORT-$LAST_PORT): $1" >&2; exit 2
+  fi
   ts serve --https="$1" off > /dev/null
   echo "stopped $1"
 }
