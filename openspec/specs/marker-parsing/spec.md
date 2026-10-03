@@ -1,5 +1,9 @@
-## ADDED Requirements
+# marker-parsing Specification
 
+## Purpose
+Parse query markers, error expectations and cut markers out of snippet source.
+
+## Requirements
 ### Requirement: Parse hover query markers
 The system SHALL recognize `^?` markers in comment lines to indicate persistent hover requests. The `^` character's column position in the comment SHALL determine which token on the preceding line is targeted for a persistent (always-visible) hover display.
 
@@ -12,7 +16,7 @@ The system SHALL recognize `^?` markers in comment lines to indicate persistent 
 - **THEN** the system records one persistent hover request per marker, each targeting the correct line and column
 
 ### Requirement: Parse error expectation markers
-The system SHALL recognize `// @errors: NNNN` directives to declare expected compiler errors on the following line. Multiple error codes SHALL be supported as a comma-separated list.
+The system SHALL recognize `// @errors: NNNN` directives to declare expected compiler errors on the following code line (the scope is that single line, unlike twoslash's file-wide `@errors`). Multiple error codes SHALL be supported, separated by commas and/or whitespace (`CS0029, CS1503` or `CS0029 CS1503`). An expectation whose target line is hidden still applies (to `hiddenErrors`). An expectation with no matching diagnostic on its line produces a `GS0003` error and `compileSucceeded: false`.
 
 #### Scenario: Single expected error
 - **WHEN** a line contains `// @errors: CS1002`
@@ -48,7 +52,7 @@ The system SHALL recognize `// ---cut-after---` to hide all code after the marke
 - **THEN** the output `code` contains only the display code, but compilation includes all code
 
 ### Requirement: Parse cut-start/cut-end directives
-The system SHALL recognize `// ---cut-start---` and `// ---cut-end---` to toggle visibility of code sections. Lines between `// ---cut-start---` and `// ---cut-end---` (or end of file if unclosed) SHALL be excluded from output but included in compilation. Multiple pairs SHALL be supported.
+The system SHALL recognize `// ---cut-start---` and `// ---cut-end---` to toggle visibility of code sections. Lines between `// ---cut-start---` and `// ---cut-end---` (or end of file if unclosed) SHALL be excluded from output but included in compilation. Multiple pairs SHALL be supported. Pairs nest: a depth counter matches each `---cut-end---` to its `---cut-start---`, so the outermost pair defines the hidden range; a stray `---cut-end---` is ignored.
 
 #### Scenario: Hidden middle section
 - **WHEN** source contains visible code, then `// ---cut-start---`, then hidden code, then `// ---cut-end---`, then more visible code
@@ -200,3 +204,13 @@ When custom tag marker lines are removed, the position offset map SHALL account 
 #### Scenario: Position adjustment after tag removal
 - **WHEN** a `// @log: message` line is removed between two code lines
 - **THEN** hover, error, highlight, and tag positions in the output reference the adjusted line numbers in the processed code
+
+### Requirement: Markers inside string literals are code
+A line that matches a marker pattern SHALL only be treated as a marker when its `//` starts a real comment. Lines inside multi-line string literals (raw `"""`, verbatim `@"`, interpolated) SHALL be left in the code and SHALL NOT be obeyed.
+
+#### Scenario: Directive text inside a raw string
+- **WHEN** a raw string literal contains a line `// @noErrors` and the snippet has a real error
+- **THEN** the string content is unchanged, the error is reported and `compileSucceeded` is false
+
+### Requirement: Caret validation
+A `^?` or `^|` caret targets the nearest preceding non-marker line; its column is a UTF-16 code-unit offset (a tab counts as one column). A `^?` whose column is at or past the end of the target line (including an empty target line), or that does not land on a token with a symbol, SHALL be skipped with a `meta.warnings` entry rather than binding to a token on another line.

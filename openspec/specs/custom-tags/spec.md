@@ -1,3 +1,9 @@
+# custom-tags Specification
+
+## Purpose
+Attach `@log` / `@warn` / `@error` / `@annotate` callouts to lines.
+
+## Requirements
 ### Requirement: Parse custom tag directives
 The system SHALL recognize `// @log: <message>`, `// @warn: <message>`, `// @error: <message>`, and `// @annotate: <message>` comment lines as custom tag directives. The tag name SHALL be extracted from the directive and the message SHALL be the trimmed text following the colon. A directive without a colon or without message text after the colon SHALL NOT be treated as a custom tag.
 

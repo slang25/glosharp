@@ -13,5 +13,15 @@
     "tests/e2e",
     "tests/rendering",
     "website"
-  ]
+  ],
+  "scripts": {
+    "build": "npm run build -w packages --if-present",
+    "test": "npm test -w packages --if-present",
+    "cli:build": "dotnet build src/GloSharp.Cli -c Release",
+    "verify:docs": "npm run verify:samples && npm run verify:website",
+    "verify:samples": "dotnet run --project src/GloSharp.Cli -c Release -- verify samples",
+    "verify:website": "dotnet run --project src/GloSharp.Cli -c Release -- verify website/src/examples",
+    "version:set": "node scripts/version.mjs set",
+    "version:check": "node scripts/version.mjs check"
+  }
 }

@@ -1,176 +1,388 @@
 <div class="glosharp-code" data-theme="github-light">
 <style>
-
-.glosharp-code {
+.glosharp-code[data-theme="github-light"] {
   anchor-scope: all;
+  color-scheme: light;
 }
-/* Line breaks come from the newline characters between line spans, not from the
-   spans themselves — there can only be one source of them. Chromium copies a
-   `display: block` boundary as a newline while Firefox copies it as nothing, so
-   block lines plus real newlines double-space the block and double the newlines
-   Chromium puts on the clipboard, while block lines without real newlines copy
-   as a single run-on line in Firefox. Inline lines plus real newlines is the one
-   combination both browsers lay out and copy correctly (and is what the Shiki
-   path has always done). The cost is that line-level backgrounds end at the end
-   of the text rather than spanning the block. */
-.glosharp-code .line {
+.glosharp-code[data-theme="github-light"] pre {
+  margin: 0;
+  padding: 16px;
+  overflow-x: auto;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #1f2328;
+  font-family: ui-monospace, 'Cascadia Code', 'JetBrains Mono', 'Fira Code', SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  font-variant-ligatures: none;
+  tab-size: 4;
+  text-align: left;
+}
+.glosharp-code[data-theme="github-light"] pre > code {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  white-space: inherit;
+}
+.glosharp-code[data-theme="github-light"] .line {
   display: inline;
 }
-.glosharp-hover {
-  border-bottom: 1px dotted currentColor;
-  cursor: pointer;
+.glosharp-code[data-theme="github-light"] .glosharp-hover {
+  position: static;
+  border-bottom: 1px dotted transparent;
+  border-radius: 2px;
 }
-.glosharp-popup {
+.glosharp-code[data-theme="github-light"] pre:hover .glosharp-hover,
+.glosharp-code[data-theme="github-light"] .glosharp-hover-persistent {
+  border-bottom-color: color-mix(in srgb, currentColor 45%, transparent);
+}
+.glosharp-code[data-theme="github-light"] .glosharp-hover:hover,
+.glosharp-code[data-theme="github-light"] .glosharp-hover:focus-visible {
+  border-bottom-color: currentColor;
+  background: color-mix(in srgb, #0969da 14%, transparent);
+}
+.glosharp-code[data-theme="github-light"] .glosharp-hover:focus {
+  outline: none;
+}
+.glosharp-code[data-theme="github-light"] .glosharp-hover:focus-visible {
+  outline: 2px solid #0969da;
+  outline-offset: 1px;
+}
+.glosharp-code[data-theme="github-light"] .glosharp-popup {
   display: none;
   position: fixed;
-  position-area: top;
-  margin-bottom: 4px;
+  position-area: bottom span-right;
+  position-try-fallbacks: bottom span-left, bottom span-all, top span-right, top span-left, top span-all;
+  position-visibility: anchors-visible;
   z-index: 100;
-  max-width: 500px;
-  padding: 8px 12px;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: min(560px, calc(100vw - 16px));
+  max-height: none;
+  overflow: visible;
+  margin: 6px 0;
+  padding: 0;
   border: 1px solid #d0d7de;
-  border-radius: 4px;
+  border-radius: 6px;
   background: #f6f8fa;
   color: #1f2328;
-  font-size: 0.875em;
+  box-shadow: 0 6px 20px rgba(31, 35, 40, 0.15);
+  font-size: 90%;
+  font-style: normal;
+  font-weight: normal;
   line-height: 1.5;
-  white-space: pre-wrap;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  text-align: left;
+  white-space: normal;
+  cursor: auto;
 }
-.glosharp-hover:hover > .glosharp-popup,
-.glosharp-popup:hover {
+.glosharp-code[data-theme="github-light"] .glosharp-popup::before,
+.glosharp-code[data-theme="github-light"] .glosharp-popup::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 8px;
+}
+.glosharp-code[data-theme="github-light"] .glosharp-popup::before {
+  bottom: 100%;
+}
+.glosharp-code[data-theme="github-light"] .glosharp-popup::after {
+  top: 100%;
+}
+.glosharp-code[data-theme="github-light"] .glosharp-hover:hover > .glosharp-popup,
+.glosharp-code[data-theme="github-light"] .glosharp-hover:focus-visible > .glosharp-popup {
   display: block;
 }
-.glosharp-popup-code {
-  font-family: inherit;
+.glosharp-code[data-theme="github-light"] .glosharp-popup-code {
+  display: block;
+  max-height: 12em;
+  overflow-y: auto;
+  padding: 6px 10px;
+  background: none;
+  color: inherit;
+  font-family: ui-monospace, 'Cascadia Code', 'JetBrains Mono', 'Fira Code', SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: inherit;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
 }
-.glosharp-popup-docs {
-  margin-top: 6px;
-  padding-top: 6px;
-  border-top: 1px solid #d0d7de;
-}
-.glosharp-popup-summary {
-  font-style: italic;
-}
-.glosharp-popup-params,
-.glosharp-popup-returns {
-  margin-top: 4px;
-  padding-top: 4px;
-  border-top: 1px solid #d0d7de;
-}
-.glosharp-popup-section-label {
-  font-size: 0.8em;
+.glosharp-code[data-theme="github-light"] .glosharp-popup-overloads {
   opacity: 0.7;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 2px;
 }
-.glosharp-popup-param {
-  display: flex;
-  gap: 6px;
+.glosharp-code[data-theme="github-light"] .glosharp-popup-types,
+.glosharp-code[data-theme="github-light"] .glosharp-popup-docs {
+  display: block;
+  padding: 6px 10px;
+  border-top: 1px solid #d0d7de;
+}
+.glosharp-code[data-theme="github-light"] .glosharp-popup-docs {
+  max-height: min(24em, 45vh);
+  overflow-y: auto;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+.glosharp-code[data-theme="github-light"] .glosharp-type-annotation,
+.glosharp-code[data-theme="github-light"] .glosharp-popup-summary,
+.glosharp-code[data-theme="github-light"] .glosharp-popup-params,
+.glosharp-code[data-theme="github-light"] .glosharp-popup-returns,
+.glosharp-code[data-theme="github-light"] .glosharp-popup-remarks,
+.glosharp-code[data-theme="github-light"] .glosharp-popup-example,
+.glosharp-code[data-theme="github-light"] .glosharp-popup-exceptions,
+.glosharp-code[data-theme="github-light"] .glosharp-popup-param,
+.glosharp-code[data-theme="github-light"] .glosharp-popup-exception,
+.glosharp-code[data-theme="github-light"] .glosharp-popup-section-label {
+  display: block;
+}
+.glosharp-code[data-theme="github-light"] .glosharp-popup-params,
+.glosharp-code[data-theme="github-light"] .glosharp-popup-returns,
+.glosharp-code[data-theme="github-light"] .glosharp-popup-remarks,
+.glosharp-code[data-theme="github-light"] .glosharp-popup-example,
+.glosharp-code[data-theme="github-light"] .glosharp-popup-exceptions {
+  margin-top: 6px;
+}
+.glosharp-code[data-theme="github-light"] .glosharp-popup-remarks {
+  white-space: pre-line;
+}
+.glosharp-code[data-theme="github-light"] .glosharp-popup-section-label {
+  margin-bottom: 1px;
+  font-size: 0.75em;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+.glosharp-code[data-theme="github-light"] .glosharp-popup-param,
+.glosharp-code[data-theme="github-light"] .glosharp-popup-exception {
   margin: 1px 0;
 }
-.glosharp-popup-param-name {
-  font-weight: bold;
-  white-space: nowrap;
+.glosharp-code[data-theme="github-light"] .glosharp-popup-param-name,
+.glosharp-code[data-theme="github-light"] .glosharp-popup-exception-type,
+.glosharp-code[data-theme="github-light"] .glosharp-type-annotation {
+  font-family: ui-monospace, 'Cascadia Code', 'JetBrains Mono', 'Fira Code', SFMono-Regular, Menlo, Consolas, monospace;
 }
-.glosharp-error-underline {
-  border-bottom: 2px wavy #cf222e;
+.glosharp-code[data-theme="github-light"] .glosharp-popup-param-name,
+.glosharp-code[data-theme="github-light"] .glosharp-popup-exception-type {
+  font-weight: 600;
 }
-.glosharp-error-underline.glosharp-severity-warning {
-  border-bottom-color: #9a6700;
-}
-.glosharp-error-underline.glosharp-severity-info {
-  border-bottom-color: #0969da;
-}
-.glosharp-error-message {
+.glosharp-code[data-theme="github-light"] .glosharp-popup-example-code {
   display: block;
-  padding: 2px 8px;
   margin-top: 2px;
-  background: rgba(207, 34, 46, 0.1);
-  border-left: 3px solid #cf222e;
-  color: #cf222e;
-  font-size: 0.85em;
+  padding: 4px 6px;
+  border-radius: 4px;
+  background: color-mix(in srgb, #1f2328 8%, transparent);
+  font-family: ui-monospace, 'Cascadia Code', 'JetBrains Mono', 'Fira Code', SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: pre-wrap;
 }
-.glosharp-error-message.glosharp-severity-warning {
-  background: rgba(154, 103, 0, 0.15);
-  border-left-color: #9a6700;
-  color: #9a6700;
+.glosharp-code[data-theme="github-light"] .glosharp-callout {
+  display: block;
+  margin: 2px 0 4px;
+  white-space: pre-wrap;
+  user-select: none;
+  -webkit-user-select: none;
 }
-.glosharp-error-message.glosharp-severity-info {
-  background: rgba(9, 105, 218, 0.15);
-  border-left-color: #0969da;
-  color: #0969da;
+.glosharp-code[data-theme="github-light"] .glosharp-static,
+.glosharp-code[data-theme="github-light"] .glosharp-completion {
+  padding-left: min(var(--glosharp-column, 0ch), max(0px, 100% - 34ch));
 }
-.glosharp-error-code {
-  font-weight: bold;
+.glosharp-code[data-theme="github-light"] .glosharp-static-container {
+  display: inline-block;
+  position: relative;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin-top: 4px;
+  vertical-align: top;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  background: #f6f8fa;
+  color: #1f2328;
+  font-size: 90%;
+  line-height: 1.5;
+  white-space: normal;
 }
-a.glosharp-error-code {
+.glosharp-code[data-theme="github-light"] .glosharp-static-container::before {
+  content: "";
+  position: absolute;
+  top: -5px;
+  left: 8px;
+  width: 8px;
+  height: 8px;
+  border-top: 1px solid #d0d7de;
+  border-left: 1px solid #d0d7de;
+  background: #f6f8fa;
+  transform: rotate(45deg);
+}
+.glosharp-code[data-theme="github-light"] .glosharp-error-message,
+.glosharp-code[data-theme="github-light"] .glosharp-tag {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 4px 10px;
+  border-left: 3px solid;
+  border-radius: 0 4px 4px 0;
+  font-size: 0.875em;
+  line-height: 1.5;
+}
+.glosharp-code[data-theme="github-light"] .glosharp-callout-icon {
+  flex: none;
+  margin-top: 0.2em;
+}
+.glosharp-code[data-theme="github-light"] .glosharp-callout-text {
+  min-width: 0;
+}
+.glosharp-code[data-theme="github-light"] .glosharp-error-code {
+  font-weight: 600;
+}
+.glosharp-code[data-theme="github-light"] a.glosharp-error-code {
   color: inherit;
   text-decoration: none;
 }
-a.glosharp-error-code:hover {
+.glosharp-code[data-theme="github-light"] a.glosharp-error-code:hover,
+.glosharp-code[data-theme="github-light"] a.glosharp-error-code:focus-visible {
   text-decoration: underline;
 }
-.glosharp-completion-list {
-  list-style: none;
-  margin: 4px 0 0 0;
-  padding: 4px 0;
-  border: 1px solid #d0d7de;
-  border-radius: 4px;
-  background: #f6f8fa;
-  font-size: 0.875em;
-  max-height: 200px;
+.glosharp-code[data-theme="github-light"] .glosharp-tag-title {
+  font-weight: 600;
+}
+.glosharp-code[data-theme="github-light"] .glosharp-error-underline {
+  text-decoration-line: underline;
+  text-decoration-style: wavy;
+  text-decoration-thickness: 1.5px;
+  text-decoration-skip-ink: none;
+  text-underline-offset: 3px;
+}
+.glosharp-code[data-theme="github-light"] .glosharp-error-marker::before {
+  content: "\a0\a0";
+}
+.glosharp-code[data-theme="github-light"] .glosharp-error-underline.glosharp-severity-error {
+  text-decoration-color: #cf222e;
+}
+.glosharp-code[data-theme="github-light"] .glosharp-error-message.glosharp-severity-error {
+  border-left-color: #cf222e;
+  background: rgba(207, 34, 46, 0.1);
+  color: #cf222e;
+}
+.glosharp-code[data-theme="github-light"] .glosharp-error-underline.glosharp-severity-warning {
+  text-decoration-color: #9a6700;
+}
+.glosharp-code[data-theme="github-light"] .glosharp-error-message.glosharp-severity-warning {
+  border-left-color: #9a6700;
+  background: rgba(154, 103, 0, 0.15);
+  color: #9a6700;
+}
+.glosharp-code[data-theme="github-light"] .glosharp-error-underline.glosharp-severity-info {
+  text-decoration-color: #0969da;
+}
+.glosharp-code[data-theme="github-light"] .glosharp-error-message.glosharp-severity-info {
+  border-left-color: #0969da;
+  background: rgba(9, 105, 218, 0.15);
+  color: #0969da;
+}
+.glosharp-code[data-theme="github-light"] .glosharp-tag-log {
+  border-left-color: #0969da;
+  background: rgba(9, 105, 218, 0.15);
+  color: #0969da;
+}
+.glosharp-code[data-theme="github-light"] .glosharp-tag-warn {
+  border-left-color: #9a6700;
+  background: rgba(154, 103, 0, 0.15);
+  color: #9a6700;
+}
+.glosharp-code[data-theme="github-light"] .glosharp-tag-error {
+  border-left-color: #cf222e;
+  background: rgba(207, 34, 46, 0.1);
+  color: #cf222e;
+}
+.glosharp-code[data-theme="github-light"] .glosharp-tag-annotate {
+  border-left-color: #8250df;
+  background: rgba(130, 80, 223, 0.1);
+  color: #8250df;
+}
+.glosharp-code[data-theme="github-light"] .glosharp-completion-list {
+  display: inline-block;
+  box-sizing: border-box;
+  min-width: 18ch;
+  max-width: 100%;
+  max-height: 13em;
   overflow-y: auto;
-}
-.glosharp-completion-item {
-  display: flex;
-  gap: 8px;
-  padding: 2px 8px;
-  align-items: center;
-}
-.glosharp-completion-kind {
-  font-size: 0.75em;
-  opacity: 0.7;
-  min-width: 60px;
-}
-.glosharp-completion-label {
+  margin-top: 2px;
+  padding: 3px 0;
+  vertical-align: top;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  background: #f6f8fa;
   color: #1f2328;
+  box-shadow: 0 6px 20px rgba(31, 35, 40, 0.15);
+  font-size: 90%;
+  line-height: 1.5;
+  white-space: nowrap;
 }
-.glosharp-completion-detail {
-  opacity: 0.6;
-  font-size: 0.85em;
+.glosharp-code[data-theme="github-light"] .glosharp-completion-list:focus-visible {
+  outline: 2px solid #0969da;
+}
+.glosharp-code[data-theme="github-light"] .glosharp-completion-item,
+.glosharp-code[data-theme="github-light"] .glosharp-completion-empty {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  padding: 0 10px;
+}
+.glosharp-code[data-theme="github-light"] .glosharp-completion-item:first-child {
+  background: color-mix(in srgb, #0969da 18%, transparent);
+}
+.glosharp-code[data-theme="github-light"] .glosharp-completion-empty {
+  font-style: italic;
+  opacity: 0.7;
+}
+.glosharp-code[data-theme="github-light"] .glosharp-completion-kind {
+  flex: none;
+  width: 10ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.8em;
+  opacity: 0.65;
+}
+.glosharp-code[data-theme="github-light"] .glosharp-completion-detail {
   margin-left: auto;
+  font-size: 0.85em;
+  opacity: 0.65;
 }
-.glosharp-highlight {
+.glosharp-code[data-theme="github-light"] .glosharp-highlight {
   background: rgba(139, 90, 230, 0.12);
 }
-.glosharp-focus-dim {
+.glosharp-code[data-theme="github-light"] .glosharp-focus-dim {
   opacity: 0.4;
   transition: opacity 0.2s;
 }
-.glosharp-diff-add {
-  background: rgba(46, 160, 67, 0.12);
-  border-left: 3px solid #2ea043;
+.glosharp-code[data-theme="github-light"] pre:hover .glosharp-focus-dim {
+  opacity: 1;
 }
-.glosharp-diff-remove {
+.glosharp-code[data-theme="github-light"] .glosharp-diff-add {
+  background: rgba(46, 160, 67, 0.12);
+  box-shadow: -3px 0 #2ea043;
+}
+.glosharp-code[data-theme="github-light"] .glosharp-diff-remove {
   background: rgba(248, 81, 73, 0.12);
-  border-left: 3px solid #f85149;
+  box-shadow: -3px 0 #f85149;
+}
+@media (prefers-reduced-motion: reduce) {
+  .glosharp-code[data-theme="github-light"] .glosharp-focus-dim {
+    transition: none;
+  }
 }
 @supports not (anchor-name: --x) {
-  .glosharp-hover {
+  .glosharp-code[data-theme="github-light"] .glosharp-hover {
     position: relative;
   }
-  .glosharp-popup {
+  .glosharp-code[data-theme="github-light"] .glosharp-popup {
     position: absolute;
-    bottom: 100%;
+    top: 100%;
     left: 0;
   }
 }
 </style>
-<pre style="background:#ffffff;color:#1f2328;padding:16px;border-radius:6px;overflow-x:auto;margin:0;font-family:'Cascadia Code','Fira Code',Consolas,monospace;"><code><span class="line"><span class="glosharp-hover" style="anchor-name:--gseff9498b-0"><span style="color:#cf222e">int</span><div class="glosharp-popup" style="position-anchor:--gseff9498b-0"><code class="glosharp-popup-code"><span style="color:#1f2328">(</span><span style="color:#1f2328">struct</span><span style="color:#1f2328">)</span><span style="color:#1f2328"> </span><span style="color:#cf222e">int</span></code><div class="glosharp-popup-docs"><div class="glosharp-popup-summary">Represents a 32-bit signed integer.</div></div></div></span> <span class="glosharp-hover" style="anchor-name:--gseff9498b-1"><span>total</span><div class="glosharp-popup" style="position-anchor:--gseff9498b-1"><code class="glosharp-popup-code"><span style="color:#1f2328">(</span><span style="color:#1f2328">local variable</span><span style="color:#1f2328">)</span><span style="color:#1f2328"> </span><span style="color:#cf222e">int</span><span style="color:#1f2328"> </span><span style="color:#1f2328">total</span></code></div></span> <span style="color:#cf222e">=</span> <span class="glosharp-error-underline glosharp-severity-error"><span style="color:#0a3069">&quot;hello&quot;</span></span> <span class="glosharp-hover" style="anchor-name:--gseff9498b-2"><span style="color:#cf222e">+</span><div class="glosharp-popup" style="position-anchor:--gseff9498b-2"><code class="glosharp-popup-code"><span style="color:#1f2328">(</span><span style="color:#1f2328">local variable</span><span style="color:#1f2328">)</span><span style="color:#1f2328"> </span><span style="color:#cf222e">int</span><span style="color:#1f2328"> </span><span style="color:#1f2328">total</span></code></div></span></span>
-<span class="line"><span class="glosharp-error-underline glosharp-severity-error"><span>    </span></span><span style="color:#0a3069">&quot; world&quot;</span> <span class="glosharp-hover" style="anchor-name:--gseff9498b-3"><span style="color:#cf222e">+</span><div class="glosharp-popup" style="position-anchor:--gseff9498b-3"><code class="glosharp-popup-code"><span style="color:#1f2328">(</span><span style="color:#1f2328">local variable</span><span style="color:#1f2328">)</span><span style="color:#1f2328"> </span><span style="color:#cf222e">int</span><span style="color:#1f2328"> </span><span style="color:#1f2328">total</span></code></div></span></span>
-<span class="line"><span class="glosharp-error-underline glosharp-severity-error"><span>    </span></span><span style="color:#0a3069">&quot;!&quot;</span><span>;</span></span>
-<span class="line"></span></code></pre>
-<div class="glosharp-error-message glosharp-severity-error"><a class="glosharp-error-code" href="https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/cs0029" target="_blank" rel="noopener">CS0029</a>: Cannot implicitly convert type &#39;string&#39; to &#39;int&#39;</div>
+<pre><code><span class="line"><span class="glosharp-hover" tabindex="0" aria-describedby="gsfdfc82de-0" style="anchor-name:--gsfdfc82de-0"><span style="color:#cf222e">int</span><span class="glosharp-popup" role="tooltip" id="gsfdfc82de-0" style="position-anchor:--gsfdfc82de-0"><code class="glosharp-popup-code"><span style="color:#1f2328">(</span>struct<span style="color:#1f2328">)</span> <span style="color:#cf222e">int</span></code><span class="glosharp-popup-docs"><span class="glosharp-popup-summary">Represents a 32-bit signed integer.</span></span></span></span> <span class="glosharp-hover" tabindex="0" aria-describedby="gsfdfc82de-1" style="anchor-name:--gsfdfc82de-1"><span>total</span><span class="glosharp-popup" role="tooltip" id="gsfdfc82de-1" style="position-anchor:--gsfdfc82de-1"><code class="glosharp-popup-code"><span style="color:#1f2328">(</span>local variable<span style="color:#1f2328">)</span> <span style="color:#cf222e">int</span> <span style="color:#1f2328">total</span></code></span></span> <span style="color:#cf222e">=</span> <span class="glosharp-error-underline glosharp-severity-error"><span style="color:#0a3069">&quot;hello&quot;</span> <span style="color:#cf222e">+</span></span></span>
+<span class="line">    <span class="glosharp-error-underline glosharp-severity-error"><span style="color:#0a3069">&quot; world&quot;</span> <span style="color:#cf222e">+</span></span></span>
+<span class="line">    <span class="glosharp-error-underline glosharp-severity-error"><span style="color:#0a3069">&quot;!&quot;</span></span>;</span>
+<span class="glosharp-callout glosharp-error-message glosharp-severity-error glosharp-error-expected" role="note"><svg class="glosharp-callout-icon" aria-hidden="true" focusable="false" viewBox="0 0 32 32" width="14" height="14" fill="currentColor"><path d="M16 2a14 14 0 1 0 14 14A14 14 0 0 0 16 2zm5.8 18.4L20.4 21.8 16 17.4l-4.4 4.4-1.4-1.4L14.6 16l-4.4-4.4 1.4-1.4L16 14.6l4.4-4.4 1.4 1.4L17.4 16z"/></svg><span class="glosharp-callout-text"><a class="glosharp-error-code" href="https://msdn.microsoft.com/query/roslyn.query?appId=roslyn&amp;k=k(CS0029)" target="_blank" rel="noopener">CS0029</a>: Cannot implicitly convert type &#39;string&#39; to &#39;int&#39;</span></span></code></pre>
 </div>

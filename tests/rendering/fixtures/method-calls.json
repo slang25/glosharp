@@ -1,9 +1,9 @@
 {
   "sample": "method-calls.cs",
-  "source": "// @noErrors\nvar numbers = new List<int> { 1, 2, 3, 4, 5 };\n//    ^?\nvar sum = numbers.Sum();\n//  ^?\nConsole.WriteLine(sum);\n//        ^?\n",
+  "source": "var numbers = new List<int> { 1, 2, 3, 4, 5 };\n//    ^?\nvar sum = numbers.Sum();\n//  ^?\nConsole.WriteLine(sum);\n//        ^?\n",
   "result": {
     "code": "var numbers = new List<int> { 1, 2, 3, 4, 5 };\nvar sum = numbers.Sum();\nConsole.WriteLine(sum);\n",
-    "original": "// @noErrors\nvar numbers = new List<int> { 1, 2, 3, 4, 5 };\n//    ^?\nvar sum = numbers.Sum();\n//  ^?\nConsole.WriteLine(sum);\n//        ^?\n",
+    "original": "var numbers = new List<int> { 1, 2, 3, 4, 5 };\n//    ^?\nvar sum = numbers.Sum();\n//  ^?\nConsole.WriteLine(sum);\n//        ^?\n",
     "lang": "csharp",
     "hovers": [
       {
@@ -482,11 +482,11 @@
           "exceptions": [
             {
               "type": "ArgumentNullException",
-              "text": "source is ."
+              "text": "source is null."
             },
             {
               "type": "OverflowException",
-              "text": "The sum is larger than MaxValue."
+              "text": "The sum is larger than Int32.MaxValue."
             }
           ]
         },
@@ -574,10 +574,14 @@
     "highlights": [],
     "tags": [],
     "hidden": [],
+    "hiddenErrors": [],
     "meta": {
       "targetFramework": "net8.0",
       "packages": [],
-      "compileSucceeded": true
+      "compileSucceeded": true,
+      "langVersion": "latest",
+      "nullable": "enable",
+      "warnings": []
     }
   }
 }

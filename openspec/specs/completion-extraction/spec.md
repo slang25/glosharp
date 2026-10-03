@@ -1,5 +1,9 @@
-## ADDED Requirements
+# completion-extraction Specification
 
+## Purpose
+Return completion lists at `^|` query positions.
+
+## Requirements
 ### Requirement: Extract completions at queried positions using CompletionService
 The system SHALL use an `AdhocWorkspace` with `CompletionService.GetCompletionsAsync()` to extract completion items at each `^|` marker position. The workspace SHALL reuse the same MetadataReferences already resolved for compilation.
 
@@ -13,7 +17,18 @@ The system SHALL use an `AdhocWorkspace` with `CompletionService.GetCompletionsA
 
 #### Scenario: No completions at invalid position
 - **WHEN** a `^|` marker points to a position inside a string literal
-- **THEN** the system returns an empty completion items list for that position
+- **THEN** the system returns an empty completion items list for that position and adds a `meta.warnings` entry
+
+#### Scenario: Caret past the end of its line
+- **WHEN** a `^|` caret's column is greater than the target line's length
+- **THEN** the query is skipped and a `meta.warnings` entry is added (a caret exactly at the end of the line is valid)
+
+### Requirement: Filter and deduplicate completion items
+Items SHALL be filtered by the identifier already typed before the caret (the completion span's text), case-insensitively by prefix, and SHALL be deduplicated by label (overloads and generic/non-generic variants appear once).
+
+#### Scenario: Typed prefix
+- **WHEN** source contains `sb.App` with a `^|` after `App`
+- **THEN** only items starting with `App` (`Append`, `AppendFormat`, `AppendJoin`, `AppendLine`) are returned
 
 ### Requirement: Completion items include label, kind, and detail
 Each completion item SHALL include `label` (the display text), `kind` (symbol kind string such as `"Method"`, `"Property"`, `"Local"`), and `detail` (optional type signature or description).

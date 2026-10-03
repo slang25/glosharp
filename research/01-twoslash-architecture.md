@@ -50,9 +50,11 @@ const x: string = 42;
 
 Multiple error codes: `// @errors: 2322 2345`
 
-### `// @noErrors` — Assert no errors
+### `// @noErrors` — Suppress all errors
 
-The inverse — assert the code compiles cleanly:
+Despite the name, this does not assert a clean compile: it tells twoslash to ignore every
+error, so a snippet with errors still passes. (An earlier version of this note said the
+opposite; Glo# follows twoslash here.)
 
 ```typescript
 // @noErrors

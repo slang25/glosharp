@@ -1,7 +1,9 @@
-// @suppressErrors
-var users = GetUsers();
-// @log: Returns cached result after first call
-var filtered = users.Where(u => u.IsActive);
-// @warn: This allocates — avoid in hot paths
-var count = filtered.Count();
-// @annotate: Consider using .Any() if you only need a boolean check
+var users = LoadUsers();
+// @log: Returns the cached list after the first call
+var active = users.Where(u => u.IsActive);
+// @warn: Count() walks the whole sequence
+var count = active.Count();
+// @annotate: Use .Any() if you only need a yes/no answer
+// ---cut-after---
+static User[] LoadUsers() => [new("ada", true), new("bob", false)];
+record User(string Name, bool IsActive);

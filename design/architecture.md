@@ -36,28 +36,60 @@ GloSharp is split into layers: a .NET core that does the heavy lifting with Rosl
 
 ### 1. GloSharp Core (.NET library)
 
-**Package**: `GloSharp.Core` (or similar)
+**Project**: `src/GloSharp.Core`
 
-**Responsibilities**:
-- Parse C# source code via Roslyn
-- Create `CSharpCompilation` with appropriate references
-- Walk syntax tree, extract symbol metadata at marker positions
-- Process glosharp marker syntax (`^?`, `// @errors`, etc.)
-- Produce structured metadata output
-- Report diagnostics (compile errors)
-
-**Key APIs used**:
-- `CSharpSyntaxTree.ParseText()` — parse source
-- `CSharpCompilation.Create()` — create compilation context
-- `SemanticModel.GetSymbolInfo()` — resolve symbols
-- `ISymbol.ToDisplayString()` — format type info for display
-- `Compilation.GetDiagnostics()` — get compile errors
+**Entry point**: `GloSharpProcessor.ProcessAsync(source, GloSharpProcessorOptions)` returns a
+`GloSharpResult` (the JSON contract, see [data-format.md](data-format.md)).
+`ProcessWithContextAsync` also returns the `CSharpCompilation` and syntax tree, which `render`
+needs for syntax classification (`SyntaxClassifier`) before `HtmlRenderer` produces HTML.
 
 **Inputs**:
-- C# source code (string or file path)
-- Compilation context: assembly references, either from a .csproj/project.assets.json or default framework refs
+- C# source code (string, plus its file path for file-based apps)
+- Compilation context: the framework's reference assemblies, a project's `project.assets.json`,
+  a file-based app's `#:` directives, or a complog/.glocontext
+- Settings: target framework, region, language version, nullable context, implicit usings
 
-**Output**: `GloSharpResult` object (serialized as JSON)
+#### Processing pipeline
+
+`GloSharpProcessor` is a thin orchestrator. Each stage is an internal type in
+`src/GloSharp.Core/Pipeline/`:
+
+```
+source ─► Snippet.Prepare ─► result cache? ─► RequestedSettings ─► ICompilationContextProvider
+            (directives,       (hit: return)    (langVersion,         .Resolve() → CompilationContext
+             region, markers)                    nullable; GS0001/2)          │
+                                                                              ▼
+GloSharpResult ◄─ Hover / Diagnostic / Completion / Annotation extractors ◄─ CompilationBuilder
+```
+
+| Stage | Responsibility |
+| --- | --- |
+| `Snippet` | Text-only preprocessing, no Roslyn binding: strips `#:` directives (`FileDirectiveParser`), applies the `--region` hidden-line mask (`RegionExtractor`) and parses markers (`MarkerParser`). Immutable; owns the line maps between source, input, compilation and processed (rendered) lines. |
+| `RequestedSettings` | The language version / nullable context the snippet asks for (marker beats config). Invalid values become `GS0001`/`GS0002` errors and short-circuit compilation. |
+| `ICompilationContextProvider` | Produces one `CompilationContext`: references, base `CSharpParseOptions` (with the TFM's preprocessor symbols) and `CSharpCompilationOptions` (whose language version and nullable context are the defaults), effective TFM, packages, whether ASP.NET Core is referenced, and resolution warnings. Also supplies cheap file fingerprints for the result-cache key. `CompilationContextProviders.Select` picks one, in priority order: `ComplogContextProvider` (complog/.glocontext, keeps the project's own options), `ProjectAssetsContextProvider`, `FileBasedAppContextProvider` (`#:` directives, restored by the SDK), `FrameworkContextProvider`. The last three share `FrameworkReferencesContextProvider`, which adds the shared frameworks and caches the reference list. |
+| `CompilationBuilder` | Builds the `CSharpCompilation`: snippet tree + global usings tree, the context's options with the requested settings applied. |
+| `HoverExtractor` / `HoverBuilder` | Persistent (`^?`) and automatic hovers; `HoverBuilder` turns a token into its symbol display, overload count and docs (`DocCommentFormatter`, `AnonymousTypeFormatter`). |
+| `DiagnosticExtractor` | Classifies diagnostics: visible vs hidden code (`hiddenErrors`), `@errors` expectations, `@noErrors`/`@suppressErrors`, `GS0003` for unmatched expectations, `compileSucceeded`. |
+| `CompletionExtractor` | `^|` queries through Roslyn's `CompletionService`, filtered and ordered deterministically. |
+| `AnnotationExtractor` | Highlights, custom tags and hidden ranges, straight from the markers. |
+
+**Caching.** Two layers:
+- *Result cache* (`--cache-dir`, `ResultCache`): on-disk, keyed by the glosharp version, the whole
+  `GloSharpProcessorOptions` record (minus `CacheDir`), the snippet source and the selected
+  provider's fingerprints (assets file and project outputs, or the complog file). A hit skips
+  context resolution and compilation; `render` then builds the compilation lazily.
+- *Context cache* (`CompilationContextCache`): in-memory, per `GloSharpProcessor` (or shared by
+  passing one in). Holds reference lists keyed by TFM, packages, SDK, shared frameworks and
+  project-output fingerprints, and whole complog/.glocontext contexts keyed by path, project,
+  TFM, size and mtime.
+
+**Concurrency.** A `GloSharpProcessor` may process snippets concurrently: providers, compilations
+and workspaces are per call, the context cache is a `ConcurrentDictionary` of `Lazy` values (one
+factory call per key; failures are not cached), result-cache and directive-stub writes are
+atomic (temp file + rename), and the MEF host is a static `Lazy`. A long-lived host should reuse
+one processor so references and complogs are resolved once. Project assets are re-read and
+file-based apps re-restored on every result-cache miss (so edits are picked up), and the context
+cache is unbounded: every rebuilt project output adds a new reference-list entry.
 
 ### 2. GloSharp CLI
 
@@ -74,11 +106,14 @@ glosharp process src/Example.cs --region getting-started
 # Process with a project context
 glosharp process src/Example.cs --project src/Example.csproj
 
-# Verify all snippets compile (CI mode)
-glosharp verify samples/
+# Verify snippets compile (CI mode); files and/or directories
+glosharp verify samples/ docs/intro.cs
 
-# Output JSON to stdout
-glosharp process src/Example.cs --format json
+# Render HTML instead of JSON
+glosharp render src/Example.cs --standalone --output example.html
+
+# Output JSON to stdout (the only output format)
+glosharp process src/Example.cs
 ```
 
 **Responsibilities**:
@@ -86,20 +121,21 @@ glosharp process src/Example.cs --format json
 - Resolve project context (find .csproj, resolve NuGet packages)
 - Call core library
 - Output JSON to stdout (for piping to JS integrations)
-- Exit with non-zero code on compile errors (for CI)
+- `verify` exits non-zero on unexpected errors (for CI). `process` and `render` exit 0 whenever
+  they produce a result: `meta.compileSucceeded` carries the compile status
 
 ### 3. Node.js bridge
 
-**Package**: `glosharp` (npm)
+**Package**: `@glosharp/core` (npm)
 
 **Responsibilities**:
-- Spawn `glosharp` as child process
+- Run `glosharp` as child processes: a small pool of long-lived `glosharp serve` workers (JSON lines over stdio), or one `glosharp process` per snippet for CLIs without `serve`
 - Parse JSON output
 - Provide typed TypeScript API for integrations
 - Cache results during a build
 
 ```typescript
-import { createGloSharp } from 'glosharp'
+import { createGloSharp } from '@glosharp/core'
 
 const glosharp = createGloSharp({
   // Path to dotnet tool, or auto-detect
@@ -120,21 +156,23 @@ const result = await glosharp.process({
 
 **Package**: `@glosharp/shiki` (npm)
 
-Follows the same pattern as `@shikijs/twoslash`:
+Shiki's transformer hooks are synchronous and glosharp has to run the compiler, so unlike
+`@shikijs/twoslash` it works in two steps: process the blocks first, then let the transformer
+look each result up by its code.
 
 ```typescript
-import { transformerGloSharp } from '@glosharp/shiki'
+import { processGloSharpBlocks, transformerGloSharpFromMap } from '@glosharp/shiki'
+
+const results = await processGloSharpBlocks([code], { project: 'src/Example.csproj' })
 
 const html = await codeToHtml(code, {
   lang: 'csharp',
   themes: { light: 'github-light', dark: 'github-dark' },
-  transformers: [
-    transformerGloSharp({
-      // glosharp options
-    }),
-  ],
+  transformers: [transformerGloSharpFromMap(results)],
 })
 ```
+
+Popup styling ships as `@glosharp/shiki/style.css`.
 
 ### 5. Expressive Code plugin
 

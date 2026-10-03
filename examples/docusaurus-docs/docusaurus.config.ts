@@ -15,7 +15,15 @@ const config: Config = {
         docs: {
           routeBasePath: '/',
           sidebarPath: './sidebars.ts',
-          beforeDefaultRemarkPlugins: [remarkGloSharp],
+          beforeDefaultRemarkPlugins: [
+            [
+              remarkGloSharp,
+              {
+                // Path to the glosharp CLI. Leave unset to find `glosharp` on PATH.
+                executable: process.env.GLOSHARP_EXECUTABLE,
+              },
+            ],
+          ],
         },
         blog: false,
         theme: {

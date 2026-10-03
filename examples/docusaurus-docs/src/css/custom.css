@@ -1,1 +1,14 @@
+/* Hover popups, error annotations and completion lists. */
 @import '@glosharp/shiki/style.css';
+
+/* The plugin renders both Shiki themes as CSS variables; follow Docusaurus's
+   colour mode. Only token spans carry the variables inline, which keeps the
+   popups' own colours intact. */
+[data-theme='dark'] .shiki {
+  color: var(--shiki-dark) !important;
+  background-color: var(--shiki-dark-bg) !important;
+}
+
+[data-theme='dark'] .shiki span[style*='--shiki-dark'] {
+  color: var(--shiki-dark) !important;
+}

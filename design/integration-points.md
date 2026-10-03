@@ -21,19 +21,18 @@ The `^?` and `^|` markers are placed on a comment line. The `^` aligns with the 
 ### Directive markers
 
 ```csharp
-// @errors: CS1002 CS0246     // These compiler errors are expected (don't fail)
-// @noErrors                   // Assert no compiler errors
-// @highlight: 3-5             // Highlight lines 3 through 5
-// @focus: 7                   // Focus on line 7
-// @diff: +                    // Mark as added (diff view)
-// @diff: -                    // Mark as removed (diff view)
+// @errors: CS1002, CS0246    // Expected on the next line (comma/space separated); verify fails if absent
+// @noErrors                   // Suppress all errors (twoslash semantics; disables checking)
+// @highlight: 3-5             // Highlight rendered lines 3-5 (1-based); bare @highlight = next line
+// @focus: 7                   // Focus on rendered line 7
+// @diff: +                    // Mark the next line as added
+// @diff: -                    // Mark the next line as removed
 ```
 
 ### C#-specific markers
 
 ```csharp
-// @nullable: enable                  // Nullable context
-// @using: System.Text.Json           // Add using (hidden from output)
+// @nullable: disable                 // Nullable context (default: enable)
 // ---cut-start---                    // Hide a block from output
 // ---cut-end---
 // ---cut-after---                    // Hide everything below from output
@@ -217,7 +216,7 @@ For environments without Shiki or EC (Hugo, Jekyll, plain HTML).
 The CLI itself can produce complete HTML:
 
 ```bash
-glosharp render src/Example.cs --theme github-dark --format html
+glosharp render src/Example.cs --theme github-dark
 ```
 
 This:

@@ -1,185 +1,391 @@
 <div class="glosharp-code" data-theme="github-dark">
 <style>
-
-.glosharp-code {
+.glosharp-code[data-theme="github-dark"] {
   anchor-scope: all;
+  color-scheme: dark;
 }
-/* Line breaks come from the newline characters between line spans, not from the
-   spans themselves — there can only be one source of them. Chromium copies a
-   `display: block` boundary as a newline while Firefox copies it as nothing, so
-   block lines plus real newlines double-space the block and double the newlines
-   Chromium puts on the clipboard, while block lines without real newlines copy
-   as a single run-on line in Firefox. Inline lines plus real newlines is the one
-   combination both browsers lay out and copy correctly (and is what the Shiki
-   path has always done). The cost is that line-level backgrounds end at the end
-   of the text rather than spanning the block. */
-.glosharp-code .line {
+.glosharp-code[data-theme="github-dark"] pre {
+  margin: 0;
+  padding: 16px;
+  overflow-x: auto;
+  border-radius: 6px;
+  background: #0d1117;
+  color: #e6edf3;
+  font-family: ui-monospace, 'Cascadia Code', 'JetBrains Mono', 'Fira Code', SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  font-variant-ligatures: none;
+  tab-size: 4;
+  text-align: left;
+}
+.glosharp-code[data-theme="github-dark"] pre > code {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  white-space: inherit;
+}
+.glosharp-code[data-theme="github-dark"] .line {
   display: inline;
 }
-.glosharp-hover {
-  border-bottom: 1px dotted currentColor;
-  cursor: pointer;
+.glosharp-code[data-theme="github-dark"] .glosharp-hover {
+  position: static;
+  border-bottom: 1px dotted transparent;
+  border-radius: 2px;
 }
-.glosharp-popup {
+.glosharp-code[data-theme="github-dark"] pre:hover .glosharp-hover,
+.glosharp-code[data-theme="github-dark"] .glosharp-hover-persistent {
+  border-bottom-color: color-mix(in srgb, currentColor 45%, transparent);
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-hover:hover,
+.glosharp-code[data-theme="github-dark"] .glosharp-hover:focus-visible {
+  border-bottom-color: currentColor;
+  background: color-mix(in srgb, #539bf5 14%, transparent);
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-hover:focus {
+  outline: none;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-hover:focus-visible {
+  outline: 2px solid #539bf5;
+  outline-offset: 1px;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-popup {
   display: none;
   position: fixed;
-  position-area: top;
-  margin-bottom: 4px;
+  position-area: bottom span-right;
+  position-try-fallbacks: bottom span-left, bottom span-all, top span-right, top span-left, top span-all;
+  position-visibility: anchors-visible;
   z-index: 100;
-  max-width: 500px;
-  padding: 8px 12px;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: min(560px, calc(100vw - 16px));
+  max-height: none;
+  overflow: visible;
+  margin: 6px 0;
+  padding: 0;
   border: 1px solid #30363d;
-  border-radius: 4px;
+  border-radius: 6px;
   background: #161b22;
   color: #e6edf3;
-  font-size: 0.875em;
+  box-shadow: 0 6px 20px rgba(1, 4, 9, 0.6);
+  font-size: 90%;
+  font-style: normal;
+  font-weight: normal;
   line-height: 1.5;
-  white-space: pre-wrap;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  text-align: left;
+  white-space: normal;
+  cursor: auto;
 }
-.glosharp-hover:hover > .glosharp-popup,
-.glosharp-popup:hover {
+.glosharp-code[data-theme="github-dark"] .glosharp-popup::before,
+.glosharp-code[data-theme="github-dark"] .glosharp-popup::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 8px;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-popup::before {
+  bottom: 100%;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-popup::after {
+  top: 100%;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-hover:hover > .glosharp-popup,
+.glosharp-code[data-theme="github-dark"] .glosharp-hover:focus-visible > .glosharp-popup {
   display: block;
 }
-.glosharp-popup-code {
-  font-family: inherit;
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-code {
+  display: block;
+  max-height: 12em;
+  overflow-y: auto;
+  padding: 6px 10px;
+  background: none;
+  color: inherit;
+  font-family: ui-monospace, 'Cascadia Code', 'JetBrains Mono', 'Fira Code', SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: inherit;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
 }
-.glosharp-popup-docs {
-  margin-top: 6px;
-  padding-top: 6px;
-  border-top: 1px solid #30363d;
-}
-.glosharp-popup-summary {
-  font-style: italic;
-}
-.glosharp-popup-params,
-.glosharp-popup-returns {
-  margin-top: 4px;
-  padding-top: 4px;
-  border-top: 1px solid #30363d;
-}
-.glosharp-popup-section-label {
-  font-size: 0.8em;
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-overloads {
   opacity: 0.7;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 2px;
 }
-.glosharp-popup-param {
-  display: flex;
-  gap: 6px;
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-types,
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-docs {
+  display: block;
+  padding: 6px 10px;
+  border-top: 1px solid #30363d;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-docs {
+  max-height: min(24em, 45vh);
+  overflow-y: auto;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-type-annotation,
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-summary,
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-params,
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-returns,
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-remarks,
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-example,
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-exceptions,
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-param,
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-exception,
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-section-label {
+  display: block;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-params,
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-returns,
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-remarks,
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-example,
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-exceptions {
+  margin-top: 6px;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-remarks {
+  white-space: pre-line;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-section-label {
+  margin-bottom: 1px;
+  font-size: 0.75em;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-param,
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-exception {
   margin: 1px 0;
 }
-.glosharp-popup-param-name {
-  font-weight: bold;
-  white-space: nowrap;
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-param-name,
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-exception-type,
+.glosharp-code[data-theme="github-dark"] .glosharp-type-annotation {
+  font-family: ui-monospace, 'Cascadia Code', 'JetBrains Mono', 'Fira Code', SFMono-Regular, Menlo, Consolas, monospace;
 }
-.glosharp-error-underline {
-  border-bottom: 2px wavy #f85149;
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-param-name,
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-exception-type {
+  font-weight: 600;
 }
-.glosharp-error-underline.glosharp-severity-warning {
-  border-bottom-color: #d29922;
-}
-.glosharp-error-underline.glosharp-severity-info {
-  border-bottom-color: #539bf5;
-}
-.glosharp-error-message {
+.glosharp-code[data-theme="github-dark"] .glosharp-popup-example-code {
   display: block;
-  padding: 2px 8px;
   margin-top: 2px;
-  background: rgba(248, 81, 73, 0.1);
-  border-left: 3px solid #f85149;
-  color: #f85149;
-  font-size: 0.85em;
+  padding: 4px 6px;
+  border-radius: 4px;
+  background: color-mix(in srgb, #e6edf3 8%, transparent);
+  font-family: ui-monospace, 'Cascadia Code', 'JetBrains Mono', 'Fira Code', SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: pre-wrap;
 }
-.glosharp-error-message.glosharp-severity-warning {
-  background: rgba(210, 153, 34, 0.15);
-  border-left-color: #d29922;
-  color: #d29922;
+.glosharp-code[data-theme="github-dark"] .glosharp-callout {
+  display: block;
+  margin: 2px 0 4px;
+  white-space: pre-wrap;
+  user-select: none;
+  -webkit-user-select: none;
 }
-.glosharp-error-message.glosharp-severity-info {
-  background: rgba(83, 155, 245, 0.15);
-  border-left-color: #539bf5;
-  color: #539bf5;
+.glosharp-code[data-theme="github-dark"] .glosharp-static,
+.glosharp-code[data-theme="github-dark"] .glosharp-completion {
+  padding-left: min(var(--glosharp-column, 0ch), max(0px, 100% - 34ch));
 }
-.glosharp-error-code {
-  font-weight: bold;
+.glosharp-code[data-theme="github-dark"] .glosharp-static-container {
+  display: inline-block;
+  position: relative;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin-top: 4px;
+  vertical-align: top;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  background: #161b22;
+  color: #e6edf3;
+  font-size: 90%;
+  line-height: 1.5;
+  white-space: normal;
 }
-a.glosharp-error-code {
+.glosharp-code[data-theme="github-dark"] .glosharp-static-container::before {
+  content: "";
+  position: absolute;
+  top: -5px;
+  left: 8px;
+  width: 8px;
+  height: 8px;
+  border-top: 1px solid #30363d;
+  border-left: 1px solid #30363d;
+  background: #161b22;
+  transform: rotate(45deg);
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-error-message,
+.glosharp-code[data-theme="github-dark"] .glosharp-tag {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 4px 10px;
+  border-left: 3px solid;
+  border-radius: 0 4px 4px 0;
+  font-size: 0.875em;
+  line-height: 1.5;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-callout-icon {
+  flex: none;
+  margin-top: 0.2em;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-callout-text {
+  min-width: 0;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-error-code {
+  font-weight: 600;
+}
+.glosharp-code[data-theme="github-dark"] a.glosharp-error-code {
   color: inherit;
   text-decoration: none;
 }
-a.glosharp-error-code:hover {
+.glosharp-code[data-theme="github-dark"] a.glosharp-error-code:hover,
+.glosharp-code[data-theme="github-dark"] a.glosharp-error-code:focus-visible {
   text-decoration: underline;
 }
-.glosharp-completion-list {
-  list-style: none;
-  margin: 4px 0 0 0;
-  padding: 4px 0;
-  border: 1px solid #30363d;
-  border-radius: 4px;
-  background: #161b22;
-  font-size: 0.875em;
-  max-height: 200px;
+.glosharp-code[data-theme="github-dark"] .glosharp-tag-title {
+  font-weight: 600;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-error-underline {
+  text-decoration-line: underline;
+  text-decoration-style: wavy;
+  text-decoration-thickness: 1.5px;
+  text-decoration-skip-ink: none;
+  text-underline-offset: 3px;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-error-marker::before {
+  content: "\a0\a0";
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-error-underline.glosharp-severity-error {
+  text-decoration-color: #f85149;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-error-message.glosharp-severity-error {
+  border-left-color: #f85149;
+  background: rgba(248, 81, 73, 0.1);
+  color: #f85149;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-error-underline.glosharp-severity-warning {
+  text-decoration-color: #d29922;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-error-message.glosharp-severity-warning {
+  border-left-color: #d29922;
+  background: rgba(210, 153, 34, 0.15);
+  color: #d29922;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-error-underline.glosharp-severity-info {
+  text-decoration-color: #539bf5;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-error-message.glosharp-severity-info {
+  border-left-color: #539bf5;
+  background: rgba(83, 155, 245, 0.15);
+  color: #539bf5;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-tag-log {
+  border-left-color: #539bf5;
+  background: rgba(83, 155, 245, 0.15);
+  color: #539bf5;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-tag-warn {
+  border-left-color: #d29922;
+  background: rgba(210, 153, 34, 0.15);
+  color: #d29922;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-tag-error {
+  border-left-color: #f85149;
+  background: rgba(248, 81, 73, 0.1);
+  color: #f85149;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-tag-annotate {
+  border-left-color: #bc8cff;
+  background: rgba(188, 140, 255, 0.12);
+  color: #bc8cff;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-completion-list {
+  display: inline-block;
+  box-sizing: border-box;
+  min-width: 18ch;
+  max-width: 100%;
+  max-height: 13em;
   overflow-y: auto;
-}
-.glosharp-completion-item {
-  display: flex;
-  gap: 8px;
-  padding: 2px 8px;
-  align-items: center;
-}
-.glosharp-completion-kind {
-  font-size: 0.75em;
-  opacity: 0.7;
-  min-width: 60px;
-}
-.glosharp-completion-label {
+  margin-top: 2px;
+  padding: 3px 0;
+  vertical-align: top;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  background: #161b22;
   color: #e6edf3;
+  box-shadow: 0 6px 20px rgba(1, 4, 9, 0.6);
+  font-size: 90%;
+  line-height: 1.5;
+  white-space: nowrap;
 }
-.glosharp-completion-detail {
-  opacity: 0.6;
-  font-size: 0.85em;
+.glosharp-code[data-theme="github-dark"] .glosharp-completion-list:focus-visible {
+  outline: 2px solid #539bf5;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-completion-item,
+.glosharp-code[data-theme="github-dark"] .glosharp-completion-empty {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  padding: 0 10px;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-completion-item:first-child {
+  background: color-mix(in srgb, #539bf5 18%, transparent);
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-completion-empty {
+  font-style: italic;
+  opacity: 0.7;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-completion-kind {
+  flex: none;
+  width: 10ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.8em;
+  opacity: 0.65;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-completion-detail {
   margin-left: auto;
+  font-size: 0.85em;
+  opacity: 0.65;
 }
-.glosharp-highlight {
+.glosharp-code[data-theme="github-dark"] .glosharp-highlight {
   background: rgba(173, 124, 255, 0.15);
 }
-.glosharp-focus-dim {
+.glosharp-code[data-theme="github-dark"] .glosharp-focus-dim {
   opacity: 0.4;
   transition: opacity 0.2s;
 }
-.glosharp-diff-add {
-  background: rgba(46, 160, 67, 0.15);
-  border-left: 3px solid #2ea043;
+.glosharp-code[data-theme="github-dark"] pre:hover .glosharp-focus-dim {
+  opacity: 1;
 }
-.glosharp-diff-remove {
+.glosharp-code[data-theme="github-dark"] .glosharp-diff-add {
+  background: rgba(46, 160, 67, 0.15);
+  box-shadow: -3px 0 #2ea043;
+}
+.glosharp-code[data-theme="github-dark"] .glosharp-diff-remove {
   background: rgba(248, 81, 73, 0.15);
-  border-left: 3px solid #f85149;
+  box-shadow: -3px 0 #f85149;
+}
+@media (prefers-reduced-motion: reduce) {
+  .glosharp-code[data-theme="github-dark"] .glosharp-focus-dim {
+    transition: none;
+  }
 }
 @supports not (anchor-name: --x) {
-  .glosharp-hover {
+  .glosharp-code[data-theme="github-dark"] .glosharp-hover {
     position: relative;
   }
-  .glosharp-popup {
+  .glosharp-code[data-theme="github-dark"] .glosharp-popup {
     position: absolute;
-    bottom: 100%;
+    top: 100%;
     left: 0;
   }
 }
 </style>
-<pre style="background:#0d1117;color:#e6edf3;padding:16px;border-radius:6px;overflow-x:auto;margin:0;font-family:'Cascadia Code','Fira Code',Consolas,monospace;"><code><span class="line"><span style="color:#8b949e">// Completion after dot access</span></span>
-<span class="line"><span class="glosharp-hover" style="anchor-name:--gsaf4d3068-0"><span style="color:#f0883e">Console</span><div class="glosharp-popup" style="position-anchor:--gsaf4d3068-0"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span><span style="color:#e6edf3">class</span><span style="color:#e6edf3">)</span><span style="color:#e6edf3"> </span><span style="color:#f0883e">Console</span></code><div class="glosharp-popup-docs"><div class="glosharp-popup-summary">Represents the standard input, output, and error streams for console applications. This class cannot be inherited.</div></div></div></span><span style="color:#ff7b72">.</span></span>
-
-<ul class="glosharp-completion-list"><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">BackgroundColor</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">Beep</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">BufferHeight</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">BufferWidth</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Event</span><span class="glosharp-completion-label">CancelKeyPress</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">CapsLock</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">Clear</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">CursorLeft</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">CursorSize</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">CursorTop</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">CursorVisible</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">Equals</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">Error</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">ForegroundColor</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">GetCursorPosition</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">In</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">InputEncoding</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">IsErrorRedirected</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">IsInputRedirected</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">IsOutputRedirected</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">KeyAvailable</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">LargestWindowHeight</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">LargestWindowWidth</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">MoveBufferArea</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">NumberLock</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">OpenStandardError</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">OpenStandardInput</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">OpenStandardOutput</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">Out</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">OutputEncoding</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">Read</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">ReadKey</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">ReadLine</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">ReferenceEquals</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">ResetColor</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">SetBufferSize</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">SetCursorPosition</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">SetError</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">SetIn</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">SetOut</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">SetWindowPosition</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">SetWindowSize</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">Title</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">TreatControlCAsInput</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">WindowHeight</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">WindowLeft</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">WindowTop</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">WindowWidth</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">Write</span></li><li class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">WriteLine</span></li></ul>
-<span class="line"></span>
-<span class="line"><span style="color:#8b949e">// Completion for string methods</span></span>
-<span class="line"><span class="glosharp-error-underline glosharp-severity-error"><span>var</span></span> <span>greeting</span> <span style="color:#ff7b72">=</span> <span style="color:#a5d6ff">&quot;Hello, World!&quot;</span><span>;</span></span>
-<span class="line"><span>greeting</span><span style="color:#ff7b72">.</span></span>
-
-<ul class="glosharp-completion-list"></ul>
-<span class="line"></span></code></pre>
-<div class="glosharp-error-message glosharp-severity-error"><a class="glosharp-error-code" href="https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/cs1001" target="_blank" rel="noopener">CS1001</a>: Identifier expected</div>
-<div class="glosharp-error-message glosharp-severity-error"><a class="glosharp-error-code" href="https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/cs1002" target="_blank" rel="noopener">CS1002</a>: ; expected</div>
-<div class="glosharp-error-message glosharp-severity-error"><a class="glosharp-error-code" href="https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/cs0426" target="_blank" rel="noopener">CS0426</a>: The type name &#39;var&#39; does not exist in the type &#39;Console&#39;</div>
+<pre><code><span class="line"><span style="color:#8b949e">// Completion on Console members (caret at the start of a member name)</span></span>
+<span class="line"><span class="glosharp-hover" tabindex="0" aria-describedby="gsa58d843d-0" style="anchor-name:--gsa58d843d-0"><span style="color:#f0883e">Console</span><span class="glosharp-popup" role="tooltip" id="gsa58d843d-0" style="position-anchor:--gsa58d843d-0"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span>class<span style="color:#e6edf3">)</span> <span style="color:#f0883e">Console</span></code><span class="glosharp-popup-docs"><span class="glosharp-popup-summary">Represents the standard input, output, and error streams for console applications. This class cannot be inherited.</span></span></span></span><span style="color:#ff7b72">.</span><span class="glosharp-hover" tabindex="0" aria-describedby="gsa58d843d-1" style="anchor-name:--gsa58d843d-1"><span style="color:#d2a8ff">WriteLine</span><span class="glosharp-popup" role="tooltip" id="gsa58d843d-1" style="position-anchor:--gsa58d843d-1"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span>method<span style="color:#e6edf3">)</span> <span style="color:#ff7b72">void</span> <span style="color:#f0883e">Console</span><span style="color:#e6edf3">.</span><span style="color:#d2a8ff">WriteLine</span><span style="color:#e6edf3">(</span><span style="color:#ff7b72">string</span><span style="color:#e6edf3">?</span> <span style="color:#e6edf3">value</span><span style="color:#e6edf3">)</span> <span class="glosharp-popup-overloads">(+17 overloads)</span></code><span class="glosharp-popup-docs"><span class="glosharp-popup-summary">Writes the specified string value, followed by the current line terminator, to the standard output stream.</span><span class="glosharp-popup-params"><span class="glosharp-popup-section-label">Parameters</span><span class="glosharp-popup-param"><span class="glosharp-popup-param-name">value</span> — The value to write.</span></span><span class="glosharp-popup-exceptions"><span class="glosharp-popup-section-label">Exceptions</span><span class="glosharp-popup-exception"><span class="glosharp-popup-exception-type">IOException</span> — An I/O error occurred.</span></span></span></span></span>(<span style="color:#a5d6ff">&quot;Hello&quot;</span>);</span>
+<span class="glosharp-callout glosharp-completion" style="--glosharp-column:8ch"><span class="glosharp-completion-list" tabindex="0"><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">BackgroundColor</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">Beep</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">BufferHeight</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">BufferWidth</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Event</span><span class="glosharp-completion-label">CancelKeyPress</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">CapsLock</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">Clear</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">CursorLeft</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">CursorSize</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">CursorTop</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">CursorVisible</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">Equals</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">Error</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">ForegroundColor</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">GetCursorPosition</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">In</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">InputEncoding</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">IsErrorRedirected</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">IsInputRedirected</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">IsOutputRedirected</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">KeyAvailable</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">LargestWindowHeight</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">LargestWindowWidth</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">MoveBufferArea</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">NumberLock</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">OpenStandardError</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">OpenStandardInput</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">OpenStandardOutput</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">Out</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">OutputEncoding</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">Read</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">ReadKey</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">ReadLine</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">ReferenceEquals</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">ResetColor</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">SetBufferSize</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">SetCursorPosition</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">SetError</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">SetIn</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">SetOut</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">SetWindowPosition</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">SetWindowSize</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">Title</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">TreatControlCAsInput</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">WindowHeight</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">WindowLeft</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">WindowTop</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">WindowWidth</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">Write</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">WriteLine</span></span></span></span><span class="line"></span>
+<span class="line"><span style="color:#8b949e">// Completion on string members</span></span>
+<span class="line"><span class="glosharp-hover" tabindex="0" aria-describedby="gsa58d843d-2" style="anchor-name:--gsa58d843d-2"><span style="color:#ff7b72">var</span><span class="glosharp-popup" role="tooltip" id="gsa58d843d-2" style="position-anchor:--gsa58d843d-2"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span>class<span style="color:#e6edf3">)</span> <span style="color:#ff7b72">string</span></code><span class="glosharp-popup-docs"><span class="glosharp-popup-summary">Represents text as a sequence of UTF-16 code units.</span></span></span></span> <span class="glosharp-hover" tabindex="0" aria-describedby="gsa58d843d-3" style="anchor-name:--gsa58d843d-3"><span>greeting</span><span class="glosharp-popup" role="tooltip" id="gsa58d843d-3" style="position-anchor:--gsa58d843d-3"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span>local variable<span style="color:#e6edf3">)</span> <span style="color:#ff7b72">string</span><span style="color:#e6edf3">?</span> <span style="color:#e6edf3">greeting</span></code></span></span> <span style="color:#ff7b72">=</span> <span style="color:#a5d6ff">&quot;Hello, World!&quot;</span>;</span>
+<span class="line"><span class="glosharp-hover" tabindex="0" aria-describedby="gsa58d843d-4" style="anchor-name:--gsa58d843d-4"><span style="color:#ff7b72">var</span><span class="glosharp-popup" role="tooltip" id="gsa58d843d-4" style="position-anchor:--gsa58d843d-4"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span>class<span style="color:#e6edf3">)</span> <span style="color:#ff7b72">string</span></code><span class="glosharp-popup-docs"><span class="glosharp-popup-summary">Represents text as a sequence of UTF-16 code units.</span></span></span></span> <span class="glosharp-hover" tabindex="0" aria-describedby="gsa58d843d-5" style="anchor-name:--gsa58d843d-5"><span>shout</span><span class="glosharp-popup" role="tooltip" id="gsa58d843d-5" style="position-anchor:--gsa58d843d-5"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span>local variable<span style="color:#e6edf3">)</span> <span style="color:#ff7b72">string</span><span style="color:#e6edf3">?</span> <span style="color:#e6edf3">shout</span></code></span></span> <span style="color:#ff7b72">=</span> <span class="glosharp-hover" tabindex="0" aria-describedby="gsa58d843d-6" style="anchor-name:--gsa58d843d-6"><span>greeting</span><span class="glosharp-popup" role="tooltip" id="gsa58d843d-6" style="position-anchor:--gsa58d843d-6"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span>local variable<span style="color:#e6edf3">)</span> <span style="color:#ff7b72">string</span><span style="color:#e6edf3">?</span> <span style="color:#e6edf3">greeting</span></code></span></span><span style="color:#ff7b72">.</span><span class="glosharp-hover" tabindex="0" aria-describedby="gsa58d843d-7" style="anchor-name:--gsa58d843d-7"><span style="color:#d2a8ff">ToUpper</span><span class="glosharp-popup" role="tooltip" id="gsa58d843d-7" style="position-anchor:--gsa58d843d-7"><code class="glosharp-popup-code"><span style="color:#e6edf3">(</span>method<span style="color:#e6edf3">)</span> <span style="color:#ff7b72">string</span> <span style="color:#ff7b72">string</span><span style="color:#e6edf3">.</span><span style="color:#d2a8ff">ToUpper</span><span style="color:#e6edf3">(</span><span style="color:#e6edf3">)</span> <span class="glosharp-popup-overloads">(+1 overload)</span></code><span class="glosharp-popup-docs"><span class="glosharp-popup-summary">Returns a copy of this string converted to uppercase.</span><span class="glosharp-popup-returns"><span class="glosharp-popup-section-label">Returns</span>The uppercase equivalent of the current string.</span></span></span></span>();</span>
+<span class="glosharp-callout glosharp-completion" style="--glosharp-column:21ch"><span class="glosharp-completion-list" tabindex="0"><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">Aggregate</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">All</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">Any</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">Append</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">AsEnumerable</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">AsMemory</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">AsParallel</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">AsQueryable</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">AsSpan</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">Average</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">Cast</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">Chunk</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">Clone</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">CompareTo</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">Concat</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">Contains</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">CopyTo</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">Count</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">DefaultIfEmpty</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">Distinct</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">DistinctBy</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">ElementAt</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">ElementAtOrDefault</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">EndsWith</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">EnumerateLines</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">EnumerateRunes</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">Equals</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">Except</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">ExceptBy</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">First</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">FirstOrDefault</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">GetEnumerator</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">GetHashCode</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">GetType</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">GetTypeCode</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">GroupBy</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">GroupJoin</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">IndexOf</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">IndexOfAny</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">Insert</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">Intersect</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">IntersectBy</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">IsNormalized</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">IsWhiteSpace</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">Join</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">Last</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">LastIndexOf</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">LastIndexOfAny</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">LastOrDefault</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">Length</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">LongCount</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">Max</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">MaxBy</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">Min</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">MinBy</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">Normalize</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">OfType</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">Order</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">OrderBy</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">OrderByDescending</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">OrderDescending</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">PadLeft</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">PadRight</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">Prepend</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">Remove</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">Replace</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">ReplaceLineEndings</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">Reverse</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">Select</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">SelectMany</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">SequenceEqual</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">Single</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">SingleOrDefault</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">Skip</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">SkipLast</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">SkipWhile</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">Split</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">SplitAny</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">StartsWith</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">Substring</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">Sum</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">Take</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">TakeLast</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">TakeWhile</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">ToArray</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">ToCharArray</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">ToDictionary</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">ToHashSet</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">ToList</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">ToLookup</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">ToLower</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">ToLowerInvariant</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">ToString</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">ToUpper</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">ToUpperInvariant</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">Trim</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">TrimEnd</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">TrimStart</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Method</span><span class="glosharp-completion-label">TryCopyTo</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">TryGetNonEnumeratedCount</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">Union</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">UnionBy</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">Where</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">Zip</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">Property</span><span class="glosharp-completion-label">this</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">ToFrozenDictionary</span><span class="glosharp-completion-detail">System.Collections.Frozen</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">ToFrozenSet</span><span class="glosharp-completion-detail">System.Collections.Frozen</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">ToImmutableArray</span><span class="glosharp-completion-detail">System.Collections.Immutable</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">ToImmutableDictionary</span><span class="glosharp-completion-detail">System.Collections.Immutable</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">ToImmutableHashSet</span><span class="glosharp-completion-detail">System.Collections.Immutable</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">ToImmutableList</span><span class="glosharp-completion-detail">System.Collections.Immutable</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">ToImmutableSortedDictionary</span><span class="glosharp-completion-detail">System.Collections.Immutable</span></span><span class="glosharp-completion-item"><span class="glosharp-completion-kind">ExtensionMethod</span><span class="glosharp-completion-label">ToImmutableSortedSet</span><span class="glosharp-completion-detail">System.Collections.Immutable</span></span></span></span></code></pre>
 </div>

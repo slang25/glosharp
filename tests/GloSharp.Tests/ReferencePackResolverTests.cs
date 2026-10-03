@@ -212,7 +212,7 @@ public class ReferencePackResolverTests
             await Assert.That(located).IsEqualTo(expected);
             await Assert.That(feed.RequestCount).IsEqualTo(1);
 
-            // Only ref/**/*.dll is extracted — no lib/, no docs, no nuspec.
+            // Only ref/**/*.dll (plus the XML docs beside them, for hovers) is extracted — no lib/, no nuspec.
             var extracted = Directory.EnumerateFiles(expected, "*", SearchOption.AllDirectories)
                 .Select(f => Path.GetRelativePath(expected, f).Replace('\\', '/'))
                 .OrderBy(p => p, StringComparer.Ordinal)
@@ -221,6 +221,7 @@ public class ReferencePackResolverTests
             {
                 "ref/net10.0/System.Console.dll",
                 "ref/net10.0/System.Runtime.dll",
+                "ref/net10.0/System.Runtime.xml",
             });
 
             // The cached pack is reusable without a second request.

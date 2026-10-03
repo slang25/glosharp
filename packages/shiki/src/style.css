@@ -1,9 +1,76 @@
-/* GloSharp hover token anchor */
+/*
+ * Glo# for Shiki — styles for the HTML produced by @glosharp/shiki.
+ *
+ * Theming: everything takes its colours from the code block. The transformer
+ * sets --glosharp-bg / --glosharp-fg on the <pre> from the Shiki theme, and
+ * marks it .glosharp-theme-dark or .glosharp-theme-light so popup syntax
+ * colours use a palette with enough contrast.
+ *
+ * Dual themes (`themes: { light, dark }`): every element Glo# adds is a <span>
+ * that declares its own --shiki-light / --shiki-dark, so the usual Shiki
+ * dark-mode rule (`.shiki span { color: var(--shiki-dark) !important; … }`)
+ * recolours popups, messages and badges correctly too. For sites that toggle
+ * dark mode with `html.dark` or `html[data-theme="dark"]` (Docusaurus,
+ * Starlight, VitePress, Tailwind) the switch for Glo# blocks is built in below.
+ *
+ * Override any --glosharp-* custom property to restyle.
+ */
+
+pre.glosharp {
+  /* Identical blocks on one page share anchor names; keep each block's to itself. */
+  anchor-scope: all;
+
+  --glosharp-error-light: #cf222e;
+  --glosharp-error-dark: #f85149;
+  --glosharp-warning-light: #9a6700;
+  --glosharp-warning-dark: #d29922;
+  --glosharp-info-light: #0969da;
+  --glosharp-info-dark: #58a6ff;
+  --glosharp-accent-light: #8250df;
+  --glosharp-accent-dark: #bc8cff;
+  --glosharp-add-light: #1a7f37;
+  --glosharp-add-dark: #3fb950;
+
+  --glosharp-error: var(--glosharp-error-light);
+  --glosharp-warning: var(--glosharp-warning-light);
+  --glosharp-info: var(--glosharp-info-light);
+  --glosharp-accent: var(--glosharp-accent-light);
+  --glosharp-add: var(--glosharp-add-light);
+}
+
+pre.glosharp.glosharp-theme-dark {
+  --glosharp-error: var(--glosharp-error-dark);
+  --glosharp-warning: var(--glosharp-warning-dark);
+  --glosharp-info: var(--glosharp-info-dark);
+  --glosharp-accent: var(--glosharp-accent-dark);
+  --glosharp-add: var(--glosharp-add-dark);
+}
+
+/* Built-in dark-mode switch for dual-theme blocks on html.dark / [data-theme=dark] sites. */
+:root:is(.dark, [data-theme='dark']) pre.glosharp-dual,
+:root:is(.dark, [data-theme='dark']) pre.glosharp-dual span {
+  color: var(--shiki-dark) !important;
+  background-color: var(--shiki-dark-bg) !important;
+  font-style: var(--shiki-dark-font-style) !important;
+  font-weight: var(--shiki-dark-font-weight) !important;
+  text-decoration: var(--shiki-dark-text-decoration) !important;
+}
+
+:root:is(.dark, [data-theme='dark']) pre.glosharp-dual {
+  --glosharp-error: var(--glosharp-error-dark);
+  --glosharp-warning: var(--glosharp-warning-dark);
+  --glosharp-info: var(--glosharp-info-dark);
+  --glosharp-accent: var(--glosharp-accent-dark);
+  --glosharp-add: var(--glosharp-add-dark);
+}
+
+/* ---- Hover targets ---- */
+
 .glosharp-hover {
   position: relative;
   border-bottom: 1px dotted transparent;
   transition: border-color 0.3s ease;
-  cursor: pointer;
+  cursor: help;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -20,32 +87,71 @@ pre:hover .glosharp-hover:not(:hover):not(.glosharp-hover-persistent) {
   border-bottom-color: currentColor;
 }
 
-/* Popup container - CSS anchor positioned */
+.glosharp-hover:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--glosharp-info) 80%, transparent);
+  outline-offset: 1px;
+  border-radius: 2px;
+}
+
+/* `^?` queries: the token points at the always-visible box below the line */
+.glosharp-hover-persistent {
+  cursor: default;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 55%, transparent);
+}
+
+/* ---- Popups ---- */
+
+.glosharp-popup,
+.glosharp-query-box {
+  padding: 6px 10px;
+  border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+  border-radius: 6px;
+  background-color: var(--glosharp-bg, Canvas);
+  color: var(--glosharp-fg, CanvasText);
+  font-size: 0.9em;
+  font-style: normal;
+  font-weight: normal;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  /* Keep Shiki's dark-mode rule from restyling popup text */
+  --shiki-light-font-style: normal;
+  --shiki-dark-font-style: normal;
+  --shiki-light-font-weight: normal;
+  --shiki-dark-font-weight: normal;
+  --shiki-light-text-decoration: none;
+  --shiki-dark-text-decoration: none;
+}
+
+/* Popup container - CSS anchor positioned below the token (above if there's no room) */
 .glosharp-popup {
   display: none;
   position: fixed;
-  position-area: top;
-  position-try-fallbacks: flip-block;
-  margin-bottom: 4px;
+  position-area: bottom span-right;
+  position-try-fallbacks: flip-inline, flip-block, flip-block flip-inline;
+  /* On narrow screens, open towards whichever side has more room */
+  position-try-order: most-width;
+  margin: 4px 8px 4px 0;
   z-index: 100;
-  max-width: 500px;
+  width: max-content;
+  /* border-box so padding and border count towards the cap (otherwise a capped
+     popup is ~20px wider than the viewport allows) */
+  box-sizing: border-box;
+  max-width: min(600px, calc(100vw - 16px));
   max-height: 40vh;
   overflow-y: auto;
-  padding: 8px 12px;
-  border: 1px solid #3c3c3c;
-  border-radius: 4px;
-  background: #1e1e1e;
-  color: #d4d4d4;
-  font-size: 0.875em;
-  line-height: 1.5;
-  white-space: pre-wrap;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  cursor: auto;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.18);
 }
 
-/* Show popup on hover. The popup is a child of the hover wrapper, so the
-   wrapper's :hover keeps it open while the pointer is over the popup. */
+/* Show popup on hover or keyboard focus. The popup is a child of the hover
+   wrapper, so the wrapper's :hover keeps it open while the pointer is over the
+   popup. */
 .glosharp-hover:hover > .glosharp-popup,
-.glosharp-popup:hover {
+.glosharp-hover:focus-visible > .glosharp-popup,
+.glosharp-popup:hover,
+.glosharp-popup:focus-within {
   display: block;
 }
 
@@ -59,82 +165,351 @@ pre:hover .glosharp-hover:not(:hover):not(.glosharp-hover-persistent) {
     position-area: none;
     top: calc(100% + 4px);
     left: 0;
+    margin: 0;
     /* Size to content, not to the (tiny) inline hover wrapper */
     width: max-content;
+    /* Without anchor positioning the popup starts at the token, not the
+       viewport edge, so leave room for the page and code block padding */
+    max-width: min(600px, calc(100vw - 48px));
   }
 }
 
-/* Popup code block */
 .glosharp-popup-code {
+  display: block;
   font-family: inherit;
+  white-space: pre-wrap;
+  background: none;
+  padding: 0;
+  border: 0;
 }
 
-/* Popup docs section */
-.glosharp-popup-docs {
+.glosharp-overloads { opacity: 0.7; }
+
+.glosharp-popup-types,
+.glosharp-type-annotation,
+.glosharp-popup-docs,
+.glosharp-popup-doc-tags,
+.glosharp-doc {
+  display: block;
+}
+
+.glosharp-popup-types { margin-top: 4px; }
+.glosharp-popup-types-header { opacity: 0.7; }
+.glosharp-type-annotation { padding-left: 2ch; }
+
+.glosharp-popup-docs,
+.glosharp-popup-doc-tags {
   margin-top: 6px;
   padding-top: 6px;
-  border-top: 1px solid #3c3c3c;
-  color: #9cdcfe;
+  border-top: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  white-space: normal;
+}
+
+.glosharp-popup-docs + .glosharp-popup-doc-tags {
+  margin-top: 4px;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.glosharp-doc-label { font-style: italic; opacity: 0.7; }
+.glosharp-doc-name { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+/* ---- `^?` query results (always visible) ---- */
+
+.glosharp-query,
+.glosharp-completions,
+.glosharp-error-message,
+.glosharp-tag {
+  display: block;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.glosharp-query,
+.glosharp-completions {
+  padding-left: calc(var(--glosharp-col, 0) * 1ch);
+  margin: 2px 0 6px;
+}
+
+.glosharp-query-box {
+  display: inline-block;
+  position: relative;
+  vertical-align: top;
+  max-width: min(600px, 100%);
+  margin-top: 4px;
+}
+
+/* Caret pointing up at the queried token */
+.glosharp-query-box::before {
+  content: '';
+  position: absolute;
+  top: -5px;
+  left: 6px;
+  width: 8px;
+  height: 8px;
+  background: inherit;
+  border-left: inherit;
+  border-top: inherit;
+  border-radius: 1px 0 0 0;
+  transform: rotate(45deg);
+}
+
+/* ---- Completions (`^|`) ---- */
+
+.glosharp-completion-list {
+  display: inline-block;
+  vertical-align: top;
+  min-width: 20ch;
+  max-width: min(640px, 100%);
+  padding: 3px 0;
+  border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+  border-radius: 6px;
+  background-color: var(--glosharp-bg, Canvas);
+  color: var(--glosharp-fg, CanvasText);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.14);
+  font-size: 0.9em;
+  white-space: nowrap;
+}
+
+.glosharp-completion-item {
+  display: flex;
+  align-items: baseline;
+  gap: 1ch;
+  padding: 0 8px;
+}
+
+.glosharp-completion-kind {
+  flex: none;
+  display: inline-block;
+  width: 1.7em;
+  border-radius: 3px;
+  text-align: center;
+  font-size: 0.75em;
+  font-weight: 600;
+  --shiki-light: var(--glosharp-kind-light, var(--glosharp-info-light));
+  --shiki-dark: var(--glosharp-kind-dark, var(--glosharp-info-dark));
+  color: var(--glosharp-kind, var(--glosharp-info));
+  background-image: linear-gradient(color-mix(in srgb, currentColor 16%, transparent), color-mix(in srgb, currentColor 16%, transparent));
+}
+
+.glosharp-completion-kind-Method .glosharp-completion-kind,
+.glosharp-completion-kind-ExtensionMethod .glosharp-completion-kind {
+  --glosharp-kind-light: var(--glosharp-accent-light);
+  --glosharp-kind-dark: var(--glosharp-accent-dark);
+  --glosharp-kind: var(--glosharp-accent);
+}
+
+.glosharp-completion-kind-Class .glosharp-completion-kind,
+.glosharp-completion-kind-Struct .glosharp-completion-kind,
+.glosharp-completion-kind-Interface .glosharp-completion-kind,
+.glosharp-completion-kind-Enum .glosharp-completion-kind,
+.glosharp-completion-kind-Delegate .glosharp-completion-kind {
+  --glosharp-kind-light: var(--glosharp-warning-light);
+  --glosharp-kind-dark: var(--glosharp-warning-dark);
+  --glosharp-kind: var(--glosharp-warning);
+}
+
+.glosharp-completion-kind-Field .glosharp-completion-kind,
+.glosharp-completion-kind-Local .glosharp-completion-kind,
+.glosharp-completion-kind-Parameter .glosharp-completion-kind {
+  --glosharp-kind-light: var(--glosharp-add-light);
+  --glosharp-kind-dark: var(--glosharp-add-dark);
+  --glosharp-kind: var(--glosharp-add);
+}
+
+.glosharp-completion-label { flex: none; }
+.glosharp-completion-match { font-weight: 700; }
+
+.glosharp-completion-detail {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.65;
+  font-size: 0.9em;
+}
+
+.glosharp-completion-more {
+  display: block;
+  padding: 0 8px;
+  opacity: 0.6;
   font-style: italic;
 }
 
-/* Error annotations (severity variants share the EC plugin's palette) */
+/* ---- Diagnostics (severity variants share the EC plugin's palette) ---- */
+
 .glosharp-error-underline {
-  border-bottom: 2px wavy #f44747;
+  --glosharp-squiggle-light: var(--glosharp-error-light);
+  --glosharp-squiggle-dark: var(--glosharp-error-dark);
+  --glosharp-squiggle: var(--glosharp-error);
+  text-decoration: underline wavy var(--glosharp-squiggle);
+  text-decoration-skip-ink: none;
+  text-underline-offset: 3px;
+  /* Survive Shiki's dark-mode rule, which sets text-decoration from these */
+  --shiki-light-text-decoration: underline wavy var(--glosharp-squiggle-light);
+  --shiki-dark-text-decoration: underline wavy var(--glosharp-squiggle-dark);
 }
 
 .glosharp-error-underline.glosharp-severity-warning {
-  border-bottom-color: #d29922;
+  --glosharp-squiggle-light: var(--glosharp-warning-light);
+  --glosharp-squiggle-dark: var(--glosharp-warning-dark);
+  --glosharp-squiggle: var(--glosharp-warning);
 }
 
-.glosharp-error-underline.glosharp-severity-info {
-  border-bottom-color: #539bf5;
+.glosharp-error-underline:is(.glosharp-severity-info, .glosharp-severity-hidden) {
+  --glosharp-squiggle-light: var(--glosharp-info-light);
+  --glosharp-squiggle-dark: var(--glosharp-info-dark);
+  --glosharp-squiggle: var(--glosharp-info);
 }
 
-.glosharp-error-message {
-  display: block;
+.glosharp-error-message,
+.glosharp-tag {
+  margin: 2px 0 4px;
   padding: 2px 8px;
-  margin-top: 2px;
-  background: rgba(244, 71, 71, 0.1);
-  border-left: 3px solid #f44747;
-  color: #f44747;
-  font-size: 0.85em;
+  border-left: 3px solid currentColor;
+  /* A tint that follows the text colour, so it survives dark-mode overrides of background-color */
+  background-image: linear-gradient(color-mix(in srgb, currentColor 12%, transparent), color-mix(in srgb, currentColor 12%, transparent));
+  font-size: 0.9em;
+  font-style: normal;
+  font-weight: normal;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  --shiki-light: var(--glosharp-severity-light);
+  --shiki-dark: var(--glosharp-severity-dark);
+  color: var(--glosharp-severity);
+  --shiki-light-font-style: normal;
+  --shiki-dark-font-style: normal;
 }
 
-.glosharp-error-message.glosharp-severity-warning {
-  background: rgba(210, 153, 34, 0.15);
-  border-left-color: #d29922;
-  color: #d29922;
+.glosharp-error-message.glosharp-severity-error,
+.glosharp-tag-error {
+  --glosharp-severity-light: var(--glosharp-error-light);
+  --glosharp-severity-dark: var(--glosharp-error-dark);
+  --glosharp-severity: var(--glosharp-error);
 }
 
-.glosharp-error-message.glosharp-severity-info {
-  background: rgba(83, 155, 245, 0.15);
-  border-left-color: #539bf5;
-  color: #539bf5;
+.glosharp-error-message.glosharp-severity-warning,
+.glosharp-tag-warn {
+  --glosharp-severity-light: var(--glosharp-warning-light);
+  --glosharp-severity-dark: var(--glosharp-warning-dark);
+  --glosharp-severity: var(--glosharp-warning);
+}
+
+.glosharp-error-message:is(.glosharp-severity-info, .glosharp-severity-hidden),
+.glosharp-tag-log {
+  --glosharp-severity-light: var(--glosharp-info-light);
+  --glosharp-severity-dark: var(--glosharp-info-dark);
+  --glosharp-severity: var(--glosharp-info);
+}
+
+.glosharp-tag-annotate {
+  --glosharp-severity-light: var(--glosharp-accent-light);
+  --glosharp-severity-dark: var(--glosharp-accent-dark);
+  --glosharp-severity: var(--glosharp-accent);
 }
 
 .glosharp-error-code {
   font-weight: bold;
 }
 
-/* Display part kind colors (VS Code-like) */
-.glosharp-keyword { color: #569cd6; }
+a.glosharp-error-code {
+  color: inherit;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+}
+
+.glosharp-tag-name {
+  margin-right: 1ch;
+  font-size: 0.8em;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ---- @highlight / @focus / @diff ---- */
+
+pre.glosharp .line:is(.glosharp-highlight, .glosharp-diff-add, .glosharp-diff-remove) {
+  display: inline-block;
+  position: relative;
+  min-width: 100%;
+}
+
+pre.glosharp .line.glosharp-highlight {
+  --glosharp-line: color-mix(in srgb, var(--glosharp-info) 16%, transparent);
+  background-image: linear-gradient(var(--glosharp-line), var(--glosharp-line));
+  box-shadow: inset 3px 0 0 var(--glosharp-info);
+}
+
+pre.glosharp .line.glosharp-diff-add {
+  --glosharp-line: color-mix(in srgb, var(--glosharp-add) 16%, transparent);
+  background-image: linear-gradient(var(--glosharp-line), var(--glosharp-line));
+  box-shadow: inset 3px 0 0 var(--glosharp-add);
+}
+
+pre.glosharp .line.glosharp-diff-remove {
+  --glosharp-line: color-mix(in srgb, var(--glosharp-error) 16%, transparent);
+  background-image: linear-gradient(var(--glosharp-line), var(--glosharp-line));
+  box-shadow: inset 3px 0 0 var(--glosharp-error);
+  opacity: 0.75;
+}
+
+pre.glosharp-has-focus .line.glosharp-focus-dim {
+  opacity: 0.45;
+  filter: blur(0.4px);
+  transition: opacity 0.2s ease, filter 0.2s ease;
+}
+
+pre.glosharp-has-focus:is(:hover, :focus-within) .line.glosharp-focus-dim {
+  opacity: 1;
+  filter: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  pre.glosharp-has-focus .line.glosharp-focus-dim { transition: none; }
+}
+
+/* ---- Display part colours (VS Code light+/dark+) ----
+   Each coloured part carries its light and dark colour so dual-theme rules
+   (`color: var(--shiki-dark)`) pick the right one. Uncoloured parts
+   (punctuation, text, namespaces) inherit the popup's foreground. */
+
+.glosharp-keyword { --glosharp-part-light: #0000ff; --glosharp-part-dark: #569cd6; }
 .glosharp-className,
 .glosharp-structName,
-.glosharp-recordClassName { color: #4ec9b0; }
-.glosharp-interfaceName { color: #b8d7a3; }
-.glosharp-enumName { color: #b8d7a3; }
-.glosharp-delegateName { color: #4ec9b0; }
-.glosharp-typeParameterName { color: #b8d7a3; }
-.glosharp-methodName { color: #dcdcaa; }
-.glosharp-propertyName { color: #9cdcfe; }
-.glosharp-fieldName { color: #9cdcfe; }
-.glosharp-eventName { color: #9cdcfe; }
-.glosharp-localName { color: #9cdcfe; }
-.glosharp-parameterName { color: #9cdcfe; }
-.glosharp-namespaceName { color: #d4d4d4; }
-.glosharp-punctuation { color: #d4d4d4; }
-.glosharp-operator { color: #d4d4d4; }
-.glosharp-text { color: #d4d4d4; }
-.glosharp-space { }
-.glosharp-lineBreak { }
+.glosharp-recordClassName,
+.glosharp-recordStructName,
+.glosharp-delegateName { --glosharp-part-light: #267f99; --glosharp-part-dark: #4ec9b0; }
+.glosharp-interfaceName,
+.glosharp-enumName,
+.glosharp-typeParameterName { --glosharp-part-light: #267f99; --glosharp-part-dark: #b8d7a3; }
+.glosharp-methodName,
+.glosharp-extensionMethodName { --glosharp-part-light: #795e26; --glosharp-part-dark: #dcdcaa; }
+.glosharp-propertyName,
+.glosharp-fieldName,
+.glosharp-eventName,
+.glosharp-localName,
+.glosharp-parameterName,
+.glosharp-enumMemberName { --glosharp-part-light: #001080; --glosharp-part-dark: #9cdcfe; }
+.glosharp-constantName { --glosharp-part-light: #0070c1; --glosharp-part-dark: #4fc1ff; }
+.glosharp-stringLiteral { --glosharp-part-light: #a31515; --glosharp-part-dark: #ce9178; }
+.glosharp-numericLiteral { --glosharp-part-light: #098658; --glosharp-part-dark: #b5cea8; }
+
+.glosharp-part:is(.glosharp-keyword, .glosharp-className, .glosharp-structName, .glosharp-recordClassName,
+  .glosharp-recordStructName, .glosharp-delegateName, .glosharp-interfaceName, .glosharp-enumName,
+  .glosharp-typeParameterName, .glosharp-methodName, .glosharp-extensionMethodName, .glosharp-propertyName,
+  .glosharp-fieldName, .glosharp-eventName, .glosharp-localName, .glosharp-parameterName,
+  .glosharp-enumMemberName, .glosharp-constantName, .glosharp-stringLiteral, .glosharp-numericLiteral) {
+  --shiki-light: var(--glosharp-part-light);
+  --shiki-dark: var(--glosharp-part-dark);
+  color: var(--glosharp-part-light);
+}
+
+pre.glosharp-theme-dark .glosharp-part:is(.glosharp-keyword, .glosharp-className, .glosharp-structName,
+  .glosharp-recordClassName, .glosharp-recordStructName, .glosharp-delegateName, .glosharp-interfaceName,
+  .glosharp-enumName, .glosharp-typeParameterName, .glosharp-methodName, .glosharp-extensionMethodName,
+  .glosharp-propertyName, .glosharp-fieldName, .glosharp-eventName, .glosharp-localName,
+  .glosharp-parameterName, .glosharp-enumMemberName, .glosharp-constantName, .glosharp-stringLiteral,
+  .glosharp-numericLiteral) {
+  color: var(--glosharp-part-dark);
+}

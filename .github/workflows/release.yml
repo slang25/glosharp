@@ -1,0 +1,344 @@
+name: Release
+
+# One version, one release. The version lives in src/Directory.Build.props
+# (stamped into the npm packages by `npm run version:set <v>`); pushing the tag
+# v<version> on a commit of main releases it:
+#
+#   prepare -> CI -> pack + smoke-test -> NuGet -> npm -> GitHub Release
+#
+# Every publish step skips what is already published, so re-running a failed
+# release (or dispatching this workflow on the tag with dry-run unticked) only
+# finishes the job. Dispatching it from a branch is always a dry run: everything
+# up to and including the smoke test, nothing published. See CONTRIBUTING.md.
+#
+# Repository setup (see CONTRIBUTING.md, "Releases"):
+#   - environment `release` (optionally with required reviewers)
+#   - NuGet trusted publishing policy for this workflow file + secret NUGET_USER
+#   - npm trusted publisher for this workflow file on all four packages
+#     (optional secret NPM_TOKEN: only for moving `latest` while pre-1.0)
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: >-
+          Build, test, pack and smoke-test, but publish nothing. Untick only when
+          running on a v* tag, to finish a release that failed part-way.
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  # Dependency order: everything else depends on @glosharp/core.
+  NPM_PACKAGES: >-
+    @glosharp/core
+    @glosharp/shiki
+    @glosharp/expressive-code
+    @glosharp/gitbook
+
+jobs:
+  prepare:
+    name: Resolve version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+      dist-tag: ${{ steps.version.outputs.dist-tag }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+      publish: ${{ steps.mode.outputs.publish }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # to check the tag is on main
+
+      - name: Setup Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: '24'
+
+      - name: Decide whether to publish
+        id: mode
+        env:
+          EVENT: ${{ github.event_name }}
+          REF_TYPE: ${{ github.ref_type }}
+          DRY_RUN: ${{ inputs.dry-run }}
+        run: |
+          publish=false
+          if [ "$EVENT" = push ] || [ "$DRY_RUN" = false ]; then
+            if [ "$REF_TYPE" != tag ]; then
+              echo "::error::Only a v* tag can be published. Dispatch from a branch with dry-run ticked, or push the tag."
+              exit 1
+            fi
+            publish=true
+          fi
+          echo "publish=$publish" >> "$GITHUB_OUTPUT"
+
+      # The committed version and every package.json must agree, and a tag must
+      # name exactly that version: the tag triggers a release, it never sets one.
+      - name: Check version
+        id: version
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          if [ "$REF_TYPE" = tag ]; then
+            node scripts/version.mjs info --tag "$REF_NAME" | tee -a "$GITHUB_OUTPUT"
+          else
+            node scripts/version.mjs info | tee -a "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check the tag is on main
+        if: steps.mode.outputs.publish == 'true'
+        run: |
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::$GITHUB_REF_NAME ($GITHUB_SHA) is not on main. Release from a commit on main."
+            exit 1
+          fi
+
+      - name: Summary
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          DIST_TAG: ${{ steps.version.outputs.dist-tag }}
+          PUBLISH: ${{ steps.mode.outputs.publish }}
+        run: |
+          {
+            echo "### Glo# $VERSION"
+            echo
+            echo "- npm dist-tag: \`$DIST_TAG\`"
+            if [ "$PUBLISH" = true ]; then echo "- **Publishing** to NuGet and npm"; else echo "- **Dry run**: nothing is published"; fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  ci:
+    name: CI
+    needs: prepare
+    uses: ./.github/workflows/ci.yml
+
+  pack:
+    name: Pack and smoke-test
+    needs: [prepare, ci]
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5.4.0
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Setup Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: '24'
+          cache: npm
+
+      # The version comes from src/Directory.Build.props; nothing overrides it.
+      - name: Pack NuGet packages
+        run: |
+          for project in GloSharp.Core GloSharp.Cli; do
+            dotnet pack "src/$project/$project.csproj" -c Release -o artifacts/nupkg \
+              -p:ContinuousIntegrationBuild=true
+          done
+
+      - name: Install the packed tool
+        run: |
+          dotnet tool install GloSharp.Cli --tool-path "$RUNNER_TEMP/glosharp" \
+            --add-source artifacts/nupkg --version "$VERSION"
+          echo "$RUNNER_TEMP/glosharp" >> "$GITHUB_PATH"
+
+      - name: Smoke-test the tool
+        run: |
+          reported=$(glosharp --version)
+          echo "glosharp --version: $reported"
+          case "$reported" in
+            "$VERSION" | "$VERSION+"*) ;;
+            *) echo "::error::glosharp reports $reported, expected $VERSION"; exit 1 ;;
+          esac
+          echo 'var answer = 42;' | glosharp process --stdin > "$RUNNER_TEMP/smoke.json"
+          grep -q '"compileSucceeded": *true' "$RUNNER_TEMP/smoke.json"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build packages
+        run: npm run build
+
+      - name: Check package contents
+        run: node .github/scripts/check-pack.mjs
+
+      - name: Pack npm packages
+        run: |
+          workspaces=()
+          for pkg in $NPM_PACKAGES; do workspaces+=(-w "$pkg"); done
+          mkdir -p artifacts/npm
+          npm pack "${workspaces[@]}" --pack-destination artifacts/npm
+
+      # Versions and internal pins inside the tarballs, then a clean install of
+      # all four from the tarballs driving the packed tool end to end.
+      - name: Check and smoke-test the release artifacts
+        run: node .github/scripts/check-release.mjs artifacts --version "$VERSION" --smoke
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-packages
+          path: |
+            artifacts/nupkg/*.nupkg
+            artifacts/npm/*.tgz
+          if-no-files-found: error
+          retention-days: 30
+
+  publish-nuget:
+    name: Publish to NuGet
+    needs: [prepare, pack]
+    if: needs.prepare.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: read
+      id-token: write # NuGet trusted publishing
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+    steps:
+      - name: Download release artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-packages
+          path: artifacts
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5.4.0
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: NuGet login
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
+        id: login
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      # Core first (a library others may reference), then the tool.
+      # --skip-duplicate makes a re-run after a partial failure safe.
+      - name: Push packages
+        env:
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+        run: |
+          for id in GloSharp.Core GloSharp.Cli; do
+            dotnet nuget push "artifacts/nupkg/$id.$VERSION.nupkg" \
+              --source https://api.nuget.org/v3/index.json --api-key "$NUGET_API_KEY" --skip-duplicate
+          done
+
+  # After NuGet, so a published npm version always has its CLI available.
+  publish-npm:
+    name: Publish to npm
+    needs: [prepare, pack, publish-nuget]
+    if: needs.prepare.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: read
+      id-token: write # npm trusted publishing and provenance
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+      DIST_TAG: ${{ needs.prepare.outputs.dist-tag }}
+    steps:
+      - name: Download release artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-packages
+          path: artifacts
+
+      - name: Setup Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+
+      # Trusted publishing (OIDC) needs npm 11.5.1 or later.
+      - name: Check npm version
+        run: |
+          if ! node -e 'const [a,b,c]=process.argv[1].split(".").map(Number);process.exit(a>11||(a===11&&(b>5||(b===5&&c>=1)))?0:1)' "$(npm --version)"; then
+            npm install --global npm@11
+          fi
+          npm --version
+
+      # Publishes the exact tarballs that were smoke-tested; already-published
+      # versions are skipped so a re-run only publishes what is missing.
+      - name: Publish packages
+        env:
+          # Only used if trusted publishing isn't configured for a package.
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          for pkg in $NPM_PACKAGES; do
+            file="artifacts/npm/$(echo "${pkg#@}" | tr / -)-$VERSION.tgz"
+            if [ -n "$(npm view "$pkg@$VERSION" version 2>/dev/null || true)" ]; then
+              echo "::notice::$pkg@$VERSION is already published; skipping"
+            else
+              npm publish "$file" --access public --provenance --tag "$DIST_TAG"
+            fi
+          done
+
+      # Until a stable release exists, `latest` should follow the newest
+      # prerelease too; otherwise `npm install @glosharp/shiki` keeps resolving
+      # whatever was published first. dist-tag changes can't use trusted
+      # publishing, so this needs NPM_TOKEN; without it the release still
+      # succeeds and the summary says what to run.
+      - name: Move latest while there is no stable release
+        if: needs.prepare.outputs.prerelease == 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          has_stable=$(npm view @glosharp/core versions --json 2>/dev/null \
+            | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{let v=[];try{v=[].concat(JSON.parse(s||"[]"))}catch{};console.log(v.some(x=>typeof x==="string"&&!x.includes("-")))})')
+          if [ "$has_stable" = true ]; then
+            echo "A stable release exists; leaving latest alone."
+            exit 0
+          fi
+          for pkg in $NPM_PACKAGES; do
+            if ! npm dist-tag add "$pkg@$VERSION" latest; then
+              echo "::warning::Could not point $pkg's latest at $VERSION (needs the NPM_TOKEN secret). Run: npm dist-tag add $pkg@$VERSION latest"
+            fi
+          done
+
+  github-release:
+    name: GitHub Release
+    needs: [prepare, publish-nuget, publish-npm]
+    if: needs.prepare.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the release and upload assets
+    steps:
+      - name: Download release artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-packages
+          path: artifacts
+
+      - name: Create or update the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+          PRERELEASE: ${{ needs.prepare.outputs.prerelease }}
+        run: |
+          assets=(artifacts/nupkg/*.nupkg artifacts/npm/*.tgz)
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" "${assets[@]}" --clobber
+          else
+            flags=(--verify-tag --generate-notes --title "Glo# ${TAG#v}")
+            if [ "$PRERELEASE" = true ]; then flags+=(--prerelease); fi
+            gh release create "$TAG" "${flags[@]}" "${assets[@]}"
+          fi

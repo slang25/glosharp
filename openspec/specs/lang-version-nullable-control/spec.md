@@ -1,7 +1,11 @@
-## ADDED Requirements
+# lang-version-nullable-control Specification
 
+## Purpose
+Per-snippet language version and nullable context via `@langVersion` / `@nullable`.
+
+## Requirements
 ### Requirement: Parse langVersion marker
-The system SHALL recognize `// @langVersion: <value>` comment lines as configuration markers. The value SHALL be case-insensitive and support numeric versions (`7`, `7.1`, `8`, `9`, `10`, `11`, `12`, `13`) and named versions (`latest`, `preview`, `default`). The marker line SHALL be stripped from processed output and excluded from compilation code.
+The system SHALL recognize `// @langVersion: <value>` comment lines as configuration markers. The value SHALL be case-insensitive and support numeric versions (`7`, `7.1`, `8`, `9`, `10`, `11`, `12`, `13`, `14`, and the `N.0` spellings) and named versions (`latest`, `latestmajor`, `preview`, `default`) — anything the compiler's `-langversion` accepts. The marker line SHALL be stripped from processed output and excluded from compilation code.
 
 #### Scenario: Numeric language version
 - **WHEN** source contains `// @langVersion: 12`
@@ -73,7 +77,7 @@ The system SHALL map the parsed `@nullable` value to a Roslyn `NullableContextOp
 - **THEN** compilation uses `NullableContextOptions.Enable`
 
 ### Requirement: Invalid values produce diagnostic
-The system SHALL produce an error entry when a `@langVersion` or `@nullable` marker has an unrecognized value. The error message SHALL list the valid values.
+The system SHALL produce an error entry when a `@langVersion` or `@nullable` marker (or the corresponding config value) has an unrecognized value. The error message SHALL list the valid values. The code SHALL be `GS0001` for language version and `GS0002` for nullable (formerly `TH0001`/`TH0002`); `sourceLine` points at the marker line (0 for config values).
 
 #### Scenario: Invalid language version
 - **WHEN** source contains `// @langVersion: 99`
@@ -89,3 +93,20 @@ The system SHALL apply the parsed language version and nullable context when cre
 #### Scenario: Completions with language version
 - **WHEN** source contains `// @langVersion: 12` and a `^|` completion marker
 - **THEN** completion extraction uses `LanguageVersion.CSharp12` for its compilation
+
+### Requirement: Meta reports effective values
+`meta.langVersion` and `meta.nullable` SHALL always report the effective setting after precedence (marker > config > complog > default), using the marker spelling (`"12"`, `"latest"`, `"enable"`, ...). With no marker or config they report the defaults `"latest"` and `"enable"` (or the complog project's values).
+
+### Requirement: Target framework preprocessor symbols
+Outside complog mode the parse options SHALL define the preprocessor symbols the .NET SDK defines for the effective target framework (`NET`, `NETn_m`, `NETn_m_OR_GREATER`, `NETCOREAPP`, `NETCOREAPPx_y_OR_GREATER`, `NETSTANDARD...`, `NETFRAMEWORK...`, platform symbols) plus `TRACE`.
+
+#### Scenario: Version-conditional code
+- **WHEN** a `net8.0` snippet contains `#if NET8_0_OR_GREATER ... #else <invalid code> #endif`
+- **THEN** the `#if` branch is compiled and the snippet succeeds
+
+### Requirement: Complog options are inherited
+In complog/.glocontext mode the compilation SHALL start from the project's recorded `CSharpCompilationOptions`/`CSharpParseOptions` (AllowUnsafe, defines, NoWarn/specific diagnostic options, warning level, features, ...) and override only: output kind (console application, no main type), nullable and language version (when set by marker or config), parse kind (regular), documentation mode (at least `Parse`) and strong-name signing (cleared). When the references include ASP.NET Core and no `implicitUsings` config is set, the Web SDK implicit usings are added.
+
+#### Scenario: Unsafe code in an AllowUnsafeBlocks project
+- **WHEN** a snippet with an `unsafe` block is processed with a complog of a project that sets `AllowUnsafeBlocks`
+- **THEN** no CS0227 is reported

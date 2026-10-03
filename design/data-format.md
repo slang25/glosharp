@@ -25,8 +25,12 @@ The JSON output from glosharp. This is the contract between the C# core and all 
   // Hover information at queried positions
   "hovers": [ /* ... */ ],
 
-  // Compiler diagnostics
+  // Compiler diagnostics in the visible code (plus Glo# GS000x diagnostics)
   "errors": [ /* ... */ ],
+
+  // Error-severity diagnostics located in hidden (cut/region) code — same shape as errors,
+  // with "line": -1. Always present.
+  "hiddenErrors": [ /* ... */ ],
 
   // Completion results (if any ^| markers)
   "completions": [ /* ... */ ],
@@ -34,8 +38,12 @@ The JSON output from glosharp. This is the contract between the C# core and all 
   // Highlighted spans (user-marked regions)
   "highlights": [ /* ... */ ],
 
-  // Lines/regions that were hidden from output
-  "hidden": [ /* ... */ ],
+  // Runs of input lines hidden from output (cut markers, --region)
+  "hidden": [
+    // "line": the processed line the hidden block sits before (= line count when at the end)
+    // "sourceStartLine"/"sourceEndLine": inclusive, 0-based lines in the original input
+    { "line": 0, "sourceStartLine": 0, "sourceEndLine": 3 }
+  ],
 
   // Metadata about the compilation
   "meta": {
@@ -43,14 +51,46 @@ The JSON output from glosharp. This is the contract between the C# core and all 
     "packages": [
       { "name": "Newtonsoft.Json", "version": "13.0.3" }
     ],
-    "compileSucceeded": true
+    // false if any unexpected error occurred — in visible code, in hidden code
+    // (hiddenErrors) or as GS0003 (an @errors expectation that did not fire)
+    "compileSucceeded": true,
+    "sdk": null,               // from #:sdk
+    "langVersion": "latest",   // effective value: marker > config > complog > default
+    "nullable": "enable",      // effective value: marker > config > complog > default
+    "complog": null,           // the --complog path, when used
+    // Non-fatal problems the author should know about. Always present.
+    "warnings": [
+      "Line 4: the ^? marker points at column 28, past the end of line 3; the hover was skipped."
+    ]
   }
 }
 ```
 
+### Positions
+
+All `line` values are 0-based lines of `code` (the processed output). All `character`
+values are 0-based **UTF-16 code-unit offsets** within the line: a tab counts as one column,
+and a character outside the BMP (e.g. most emoji) counts as two. Carets (`^?`, `^|`) are
+interpreted the same way, so align them using the same characters as the target line
+(e.g. tabs under tabs).
+
+Lines are split on `\n` only; a trailing `\r` (CRLF input) stays part of its line.
+
+`errors[].sourceLine` / `errors[].sourceCharacter` (also on `hiddenErrors`) give the position in
+the **original input text**, before `#:` directives, marker lines, cut sections and `--region`
+filtering were removed. Use them for `file(line,col)` reporting.
+
 ## Hover information
 
-Each hover corresponds to a `^?` marker in the source.
+Every identifier-like token in the visible code gets a hover (`persistent: false`); each `^?`
+marker additionally produces a `persistent: true` hover. Only tokens that carry their own symbol
+are hovered — identifiers (including `var`), predefined type keywords, `this`/`base` and
+`new()`/anonymous `new`; operators and punctuation never are. A `^?` that points past the end of
+its target line, at an empty line, or at a token without a symbol is skipped with a
+`meta.warnings` entry. LINQ range variables display as `(range variable) T name`.
+
+Doc comment text resolves `<see langword>`, `<see cref>` (types as `List<T>`, members as
+`Type.Member`), nested elements inside `<para>`/`<list>`, and `<inheritdoc/>`.
 
 ```jsonc
 {
@@ -76,7 +116,7 @@ Each hover corresponds to a `^?` marker in the source.
       ],
 
       // XML doc comment (if available)
-      "docs": "Gets or sets the value.",
+      "docs": { "summary": "Gets or sets the value.", "params": [], "returns": null },
 
       // Symbol kind for icon rendering
       "symbolKind": "Local",
@@ -119,15 +159,49 @@ These map to Roslyn's `SymbolDisplayPartKind`.
       "severity": "error",    // "error" | "warning" | "info" | "hidden"
 
       // Whether this error was expected (via // @errors marker)
-      "expected": true
+      "expected": true,
+
+      // 0-based position in the original input text (see Positions)
+      "sourceLine": 5,
+      "sourceCharacter": 8
     }
   ]
 }
 ```
 
+### Expected errors, suppression and verification
+
+- `// @errors: CS0029, CS1503` (commas and/or whitespace: `// @errors: CS0029 CS1503`) declares
+  the errors expected on the **next code line only**. Matching diagnostics get `expected: true`.
+- An expected code that is not reported on that line produces a `GS0003` error at the target
+  line and makes `compileSucceeded` false — the snippet no longer shows the error it documents.
+- `// @noErrors` / `// @suppressErrors` hide **all** diagnostics (errors, warnings and info),
+  including hidden-code errors and GS0003, as in twoslash. `// @suppressErrors: CS0168, CS0219`
+  hides only the listed codes.
+- Errors in hidden code are reported in `hiddenErrors` (not `errors`, since renderers cannot place
+  them) and fail the snippet unless suppressed or expected. Warnings in hidden code are dropped.
+
+### Glo# diagnostic codes
+
+Diagnostics produced by Glo# itself (not the compiler):
+
+| Code | Meaning |
+|---|---|
+| `GS0001` | Invalid `@langVersion` marker or `langVersion` config value. |
+| `GS0002` | Invalid `@nullable` marker or `nullable` config value. |
+| `GS0003` | An `// @errors:` expectation whose diagnostic was not reported on its target line. |
+| `GS1001` | (`verify` output only) A file could not be processed at all. |
+| `GS1002` | (`verify` output only) A snippet failed with no reportable error location. |
+| `GS1003` | (`verify` output only, warning) An entry from `meta.warnings`. |
+
+(`GS0001`/`GS0002` were called `TH0001`/`TH0002` before the rename.)
+
 ## Completions
 
-For `^|` markers — show what IntelliSense would offer at a position.
+For `^|` markers — show what IntelliSense would offer at a position. Items are filtered by the
+identifier already typed before the caret (case-insensitive prefix match, like an editor) and
+deduplicated by label (overloads appear once). A caret past the end of its line is skipped, and
+an empty result adds a `meta.warnings` entry.
 
 ```jsonc
 {
@@ -226,13 +300,18 @@ Console.WriteLine(greeting);
     }
   ],
   "errors": [],
+  "hiddenErrors": [],
   "completions": [],
   "highlights": [],
+  "tags": [],
   "hidden": [],
   "meta": {
     "targetFramework": "net9.0",
     "packages": [],
-    "compileSucceeded": true
+    "compileSucceeded": true,
+    "langVersion": "latest",
+    "nullable": "enable",
+    "warnings": []
   }
 }
 ```

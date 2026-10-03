@@ -1,7 +1,17 @@
 {
   "name": "@glosharp/core",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "description": "Node.js bridge for the glosharp C# type extraction CLI",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/slang25/glosharp.git",
+    "directory": "packages/glosharp"
+  },
+  "homepage": "https://github.com/slang25/glosharp/tree/main/packages/glosharp#readme",
+  "bugs": {
+    "url": "https://github.com/slang25/glosharp/issues"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -10,14 +20,26 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./snippet": {
+      "types": "./dist/snippet.d.ts",
+      "import": "./dist/snippet.js",
+      "default": "./dist/snippet.js"
     }
   },
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "test": "vitest run",
+    "prepack": "npm run build"
   },
   "files": [
-    "dist"
+    "dist",
+    "src",
+    "README.md"
   ],
+  "engines": {
+    "node": ">=18.17"
+  },
   "devDependencies": {
     "@types/node": "^25.3.5",
     "typescript": "^6.0.0",

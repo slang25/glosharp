@@ -1,7 +1,17 @@
 {
   "name": "@glosharp/expressive-code",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "description": "Expressive Code plugin for glosharp C# type information",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/slang25/glosharp.git",
+    "directory": "packages/expressive-code"
+  },
+  "homepage": "https://github.com/slang25/glosharp/tree/main/packages/expressive-code#readme",
+  "bugs": {
+    "url": "https://github.com/slang25/glosharp/issues"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -12,10 +22,12 @@
     }
   },
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.test.json"
   },
   "dependencies": {
-    "@glosharp/core": "0.1.0-alpha.1"
+    "@glosharp/core": "0.1.0-alpha.2"
   },
   "peerDependencies": {
     "@expressive-code/core": "^0.38.0 || ^0.41.0 || ^0.43.0 || ^0.44.0"
@@ -24,7 +36,11 @@
     "dist"
   ],
   "devDependencies": {
+    "@expressive-code/plugin-collapsible-sections": "^0.44.2",
+    "@expressive-code/plugin-line-numbers": "^0.44.2",
     "@types/node": "^25.3.5",
+    "expressive-code": "^0.44.2",
+    "happy-dom": "^20.14.5",
     "typescript": "^6.0.0",
     "vitest": "^4.0.18"
   }

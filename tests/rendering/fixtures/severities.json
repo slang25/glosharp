@@ -1,9 +1,9 @@
 {
   "sample": "severities.cs",
-  "source": "int unused = 42;\nConsole.WriteLine(missingVar);\n",
+  "source": "int unused = 42;\n// @errors: CS0103\nConsole.WriteLine(missingVar);\n",
   "result": {
     "code": "int unused = 42;\nConsole.WriteLine(missingVar);\n",
-    "original": "int unused = 42;\nConsole.WriteLine(missingVar);\n",
+    "original": "int unused = 42;\n// @errors: CS0103\nConsole.WriteLine(missingVar);\n",
     "lang": "csharp",
     "hovers": [
       {
@@ -185,32 +185,40 @@
     ],
     "errors": [
       {
-        "line": 1,
-        "character": 18,
-        "length": 10,
-        "code": "CS0103",
-        "message": "The name 'missingVar' does not exist in the current context",
-        "severity": "error",
-        "expected": false
-      },
-      {
         "line": 0,
         "character": 4,
         "length": 6,
         "code": "CS0219",
         "message": "The variable 'unused' is assigned but its value is never used",
         "severity": "warning",
-        "expected": false
+        "expected": false,
+        "sourceLine": 0,
+        "sourceCharacter": 4
+      },
+      {
+        "line": 1,
+        "character": 18,
+        "length": 10,
+        "code": "CS0103",
+        "message": "The name 'missingVar' does not exist in the current context",
+        "severity": "error",
+        "expected": true,
+        "sourceLine": 2,
+        "sourceCharacter": 18
       }
     ],
     "completions": [],
     "highlights": [],
     "tags": [],
     "hidden": [],
+    "hiddenErrors": [],
     "meta": {
       "targetFramework": "net8.0",
       "packages": [],
-      "compileSucceeded": false
+      "compileSucceeded": true,
+      "langVersion": "latest",
+      "nullable": "enable",
+      "warnings": []
     }
   }
 }

@@ -7,7 +7,7 @@ var sensors = new[]
 var warmest = sensors
     .Select(s => (s.Name, Avg: s.Readings.Average()))
     .MaxBy(x => x.Avg);
-//  ^?
+//   ^?
 
 // @annotate: Compiled and type-checked — stale docs break the build
 // @highlight

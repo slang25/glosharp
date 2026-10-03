@@ -117,17 +117,23 @@
         "code": "CS0103",
         "message": "The name 'undeclared' does not exist in the current context",
         "severity": "error",
-        "expected": true
+        "expected": true,
+        "sourceLine": 1,
+        "sourceCharacter": 18
       }
     ],
     "completions": [],
     "highlights": [],
     "tags": [],
     "hidden": [],
+    "hiddenErrors": [],
     "meta": {
       "targetFramework": "net8.0",
       "packages": [],
-      "compileSucceeded": true
+      "compileSucceeded": true,
+      "langVersion": "latest",
+      "nullable": "enable",
+      "warnings": []
     }
   }
 }

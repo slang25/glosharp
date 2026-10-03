@@ -13,6 +13,11 @@ const CASE = 'ec/long-lines/dark'
 // scrolls, close enough to scroll out of view for the hide assertion.
 const TOKEN = 6
 
+/** The plugin repositions on scroll in a rAF callback; let it run before measuring. */
+async function settle(page: Parameters<typeof galleryCase>[0]) {
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(null)))))
+}
+
 function pre(page: Parameters<typeof galleryCase>[0]) {
   return galleryCase(page, CASE).locator('.expressive-code pre').first()
 }
@@ -22,9 +27,11 @@ test('EC popup tracks its token during horizontal container scroll', async ({ pa
   const popup = ecVisiblePopup(page)
   await expect(popup).toBeVisible()
   const token = ecHover(page, CASE).nth(TOKEN)
+  await settle(page)
   expectEcAdjacent(await box(token), await box(popup))
 
   await pre(page).evaluate((el) => { el.scrollLeft += 40 })
+  await settle(page)
   await expect(popup).toBeVisible()
   expectEcAdjacent(await box(token), await box(popup))
 })
@@ -44,6 +51,7 @@ test('EC popup tracks its token during vertical page scroll', async ({ page }) =
   await expect(popup).toBeVisible()
 
   await page.evaluate(() => window.scrollBy(0, 80))
+  await settle(page)
   await expect(popup).toBeVisible()
   const token = ecHover(page, CASE).nth(TOKEN)
   expectEcAdjacent(await box(token), await box(popup))

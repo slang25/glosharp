@@ -1,9 +1,9 @@
 {
   "sample": "completions.cs",
-  "source": "// Completion after dot access\nConsole.\n//      ^|\n\n// Completion for string methods\nvar greeting = \"Hello, World!\";\ngreeting.\n//       ^|\n",
+  "source": "// Completion on Console members (caret at the start of a member name)\nConsole.WriteLine(\"Hello\");\n//      ^|\n\n// Completion on string members\nvar greeting = \"Hello, World!\";\nvar shout = greeting.ToUpper();\n//                   ^|\n",
   "result": {
-    "code": "// Completion after dot access\nConsole.\n\n// Completion for string methods\nvar greeting = \"Hello, World!\";\ngreeting.\n",
-    "original": "// Completion after dot access\nConsole.\n//      ^|\n\n// Completion for string methods\nvar greeting = \"Hello, World!\";\ngreeting.\n//       ^|\n",
+    "code": "// Completion on Console members (caret at the start of a member name)\nConsole.WriteLine(\"Hello\");\n\n// Completion on string members\nvar greeting = \"Hello, World!\";\nvar shout = greeting.ToUpper();\n",
+    "original": "// Completion on Console members (caret at the start of a member name)\nConsole.WriteLine(\"Hello\");\n//      ^|\n\n// Completion on string members\nvar greeting = \"Hello, World!\";\nvar shout = greeting.ToUpper();\n//                   ^|\n",
     "lang": "csharp",
     "hovers": [
       {
@@ -41,37 +41,356 @@
         },
         "symbolKind": "Class",
         "targetText": "Console"
-      }
-    ],
-    "errors": [
-      {
-        "line": 5,
-        "character": 9,
-        "length": 1,
-        "code": "CS1001",
-        "message": "Identifier expected",
-        "severity": "error",
-        "expected": false
       },
       {
-        "line": 5,
-        "character": 9,
-        "length": 1,
-        "code": "CS1002",
-        "message": "; expected",
-        "severity": "error",
-        "expected": false
+        "line": 1,
+        "character": 8,
+        "length": 9,
+        "text": "(method) void Console.WriteLine(string? value) (+ 17 overloads)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "method"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "void"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "Console"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "methodName",
+            "text": "WriteLine"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "?"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "value"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Writes the specified string value, followed by the current line terminator, to the standard output stream.",
+          "params": [
+            {
+              "name": "value",
+              "text": "The value to write."
+            }
+          ],
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "IOException",
+              "text": "An I/O error occurred."
+            }
+          ]
+        },
+        "symbolKind": "Method",
+        "targetText": "WriteLine",
+        "overloadCount": 18
       },
       {
         "line": 4,
         "character": 0,
         "length": 3,
-        "code": "CS0426",
-        "message": "The type name 'var' does not exist in the type 'Console'",
-        "severity": "error",
-        "expected": false
+        "text": "(class) string",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "class"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          }
+        ],
+        "docs": {
+          "summary": "Represents text as a sequence of UTF-16 code units.",
+          "params": [],
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Class",
+        "targetText": "var"
+      },
+      {
+        "line": 4,
+        "character": 4,
+        "length": 8,
+        "text": "(local variable) string? greeting",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "local variable"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "?"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "localName",
+            "text": "greeting"
+          }
+        ],
+        "symbolKind": "Local",
+        "targetText": "greeting"
+      },
+      {
+        "line": 5,
+        "character": 0,
+        "length": 3,
+        "text": "(class) string",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "class"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          }
+        ],
+        "docs": {
+          "summary": "Represents text as a sequence of UTF-16 code units.",
+          "params": [],
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Class",
+        "targetText": "var"
+      },
+      {
+        "line": 5,
+        "character": 4,
+        "length": 5,
+        "text": "(local variable) string? shout",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "local variable"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "?"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "localName",
+            "text": "shout"
+          }
+        ],
+        "symbolKind": "Local",
+        "targetText": "shout"
+      },
+      {
+        "line": 5,
+        "character": 12,
+        "length": 8,
+        "text": "(local variable) string? greeting",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "local variable"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "?"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "localName",
+            "text": "greeting"
+          }
+        ],
+        "symbolKind": "Local",
+        "targetText": "greeting"
+      },
+      {
+        "line": 5,
+        "character": 21,
+        "length": 7,
+        "text": "(method) string string.ToUpper() (+ 1 overload)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "method"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "methodName",
+            "text": "ToUpper"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Returns a copy of this string converted to uppercase.",
+          "params": [],
+          "returns": "The uppercase equivalent of the current string.",
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Method",
+        "targetText": "ToUpper",
+        "overloadCount": 2
       }
     ],
+    "errors": [],
     "completions": [
       {
         "line": 1,
@@ -281,17 +600,482 @@
       },
       {
         "line": 5,
-        "character": 9,
-        "items": []
+        "character": 21,
+        "items": [
+          {
+            "label": "Aggregate",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "All",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "Any",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "Append",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "AsEnumerable",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "AsMemory",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "AsParallel",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "AsQueryable",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "AsSpan",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "Average",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "Cast",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "Chunk",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "Clone",
+            "kind": "Method"
+          },
+          {
+            "label": "CompareTo",
+            "kind": "Method"
+          },
+          {
+            "label": "Concat",
+            "kind": "Method"
+          },
+          {
+            "label": "Contains",
+            "kind": "Method"
+          },
+          {
+            "label": "CopyTo",
+            "kind": "Method"
+          },
+          {
+            "label": "Count",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "DefaultIfEmpty",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "Distinct",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "DistinctBy",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "ElementAt",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "ElementAtOrDefault",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "EndsWith",
+            "kind": "Method"
+          },
+          {
+            "label": "EnumerateLines",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "EnumerateRunes",
+            "kind": "Method"
+          },
+          {
+            "label": "Equals",
+            "kind": "Method"
+          },
+          {
+            "label": "Except",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "ExceptBy",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "First",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "FirstOrDefault",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "GetEnumerator",
+            "kind": "Method"
+          },
+          {
+            "label": "GetHashCode",
+            "kind": "Method"
+          },
+          {
+            "label": "GetType",
+            "kind": "Method"
+          },
+          {
+            "label": "GetTypeCode",
+            "kind": "Method"
+          },
+          {
+            "label": "GroupBy",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "GroupJoin",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "IndexOf",
+            "kind": "Method"
+          },
+          {
+            "label": "IndexOfAny",
+            "kind": "Method"
+          },
+          {
+            "label": "Insert",
+            "kind": "Method"
+          },
+          {
+            "label": "Intersect",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "IntersectBy",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "IsNormalized",
+            "kind": "Method"
+          },
+          {
+            "label": "IsWhiteSpace",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "Join",
+            "kind": "Method"
+          },
+          {
+            "label": "Last",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "LastIndexOf",
+            "kind": "Method"
+          },
+          {
+            "label": "LastIndexOfAny",
+            "kind": "Method"
+          },
+          {
+            "label": "LastOrDefault",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "Length",
+            "kind": "Property"
+          },
+          {
+            "label": "LongCount",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "Max",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "MaxBy",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "Min",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "MinBy",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "Normalize",
+            "kind": "Method"
+          },
+          {
+            "label": "OfType",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "Order",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "OrderBy",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "OrderByDescending",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "OrderDescending",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "PadLeft",
+            "kind": "Method"
+          },
+          {
+            "label": "PadRight",
+            "kind": "Method"
+          },
+          {
+            "label": "Prepend",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "Remove",
+            "kind": "Method"
+          },
+          {
+            "label": "Replace",
+            "kind": "Method"
+          },
+          {
+            "label": "ReplaceLineEndings",
+            "kind": "Method"
+          },
+          {
+            "label": "Reverse",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "Select",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "SelectMany",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "SequenceEqual",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "Single",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "SingleOrDefault",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "Skip",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "SkipLast",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "SkipWhile",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "Split",
+            "kind": "Method"
+          },
+          {
+            "label": "SplitAny",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "StartsWith",
+            "kind": "Method"
+          },
+          {
+            "label": "Substring",
+            "kind": "Method"
+          },
+          {
+            "label": "Sum",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "Take",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "TakeLast",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "TakeWhile",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "ToArray",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "ToCharArray",
+            "kind": "Method"
+          },
+          {
+            "label": "ToDictionary",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "ToHashSet",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "ToList",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "ToLookup",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "ToLower",
+            "kind": "Method"
+          },
+          {
+            "label": "ToLowerInvariant",
+            "kind": "Method"
+          },
+          {
+            "label": "ToString",
+            "kind": "Method"
+          },
+          {
+            "label": "ToUpper",
+            "kind": "Method"
+          },
+          {
+            "label": "ToUpperInvariant",
+            "kind": "Method"
+          },
+          {
+            "label": "Trim",
+            "kind": "Method"
+          },
+          {
+            "label": "TrimEnd",
+            "kind": "Method"
+          },
+          {
+            "label": "TrimStart",
+            "kind": "Method"
+          },
+          {
+            "label": "TryCopyTo",
+            "kind": "Method"
+          },
+          {
+            "label": "TryGetNonEnumeratedCount",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "Union",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "UnionBy",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "Where",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "Zip",
+            "kind": "ExtensionMethod"
+          },
+          {
+            "label": "this",
+            "kind": "Property"
+          },
+          {
+            "label": "ToFrozenDictionary",
+            "kind": "ExtensionMethod",
+            "detail": "System.Collections.Frozen"
+          },
+          {
+            "label": "ToFrozenSet",
+            "kind": "ExtensionMethod",
+            "detail": "System.Collections.Frozen"
+          },
+          {
+            "label": "ToImmutableArray",
+            "kind": "ExtensionMethod",
+            "detail": "System.Collections.Immutable"
+          },
+          {
+            "label": "ToImmutableDictionary",
+            "kind": "ExtensionMethod",
+            "detail": "System.Collections.Immutable"
+          },
+          {
+            "label": "ToImmutableHashSet",
+            "kind": "ExtensionMethod",
+            "detail": "System.Collections.Immutable"
+          },
+          {
+            "label": "ToImmutableList",
+            "kind": "ExtensionMethod",
+            "detail": "System.Collections.Immutable"
+          },
+          {
+            "label": "ToImmutableSortedDictionary",
+            "kind": "ExtensionMethod",
+            "detail": "System.Collections.Immutable"
+          },
+          {
+            "label": "ToImmutableSortedSet",
+            "kind": "ExtensionMethod",
+            "detail": "System.Collections.Immutable"
+          }
+        ]
       }
     ],
     "highlights": [],
     "tags": [],
     "hidden": [],
+    "hiddenErrors": [],
     "meta": {
       "targetFramework": "net8.0",
       "packages": [],
-      "compileSucceeded": false
+      "compileSucceeded": true,
+      "langVersion": "latest",
+      "nullable": "enable",
+      "warnings": []
     }
   }
 }

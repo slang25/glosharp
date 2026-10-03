@@ -97,8 +97,8 @@ public class ResultCacheTests
     [Test]
     public async Task ComputeKey_SameInputs_ProducesSameKey()
     {
-        var key1 = ResultCache.ComputeKey("source", "net8.0", null, null);
-        var key2 = ResultCache.ComputeKey("source", "net8.0", null, null);
+        var key1 = ResultCache.ComputeKey("source", new GloSharpProcessorOptions { TargetFramework = "net8.0" });
+        var key2 = ResultCache.ComputeKey("source", new GloSharpProcessorOptions { TargetFramework = "net8.0" });
 
         await Assert.That(key1).IsEqualTo(key2);
     }
@@ -106,8 +106,8 @@ public class ResultCacheTests
     [Test]
     public async Task ComputeKey_DifferentSource_ProducesDifferentKey()
     {
-        var key1 = ResultCache.ComputeKey("var x = 1;", "net8.0", null, null);
-        var key2 = ResultCache.ComputeKey("var x = 2;", "net8.0", null, null);
+        var key1 = ResultCache.ComputeKey("var x = 1;", new GloSharpProcessorOptions());
+        var key2 = ResultCache.ComputeKey("var x = 2;", new GloSharpProcessorOptions());
 
         await Assert.That(key1).IsNotEqualTo(key2);
     }
@@ -115,37 +115,26 @@ public class ResultCacheTests
     [Test]
     public async Task ComputeKey_DifferentFramework_ProducesDifferentKey()
     {
-        var key1 = ResultCache.ComputeKey("source", "net8.0", null, null);
-        var key2 = ResultCache.ComputeKey("source", "net9.0", null, null);
+        var key1 = ResultCache.ComputeKey("source", new GloSharpProcessorOptions { TargetFramework = "net8.0" });
+        var key2 = ResultCache.ComputeKey("source", new GloSharpProcessorOptions { TargetFramework = "net9.0" });
 
         await Assert.That(key1).IsNotEqualTo(key2);
     }
 
     [Test]
-    public async Task ComputeKey_DifferentPackageOrder_ProducesSameKey()
+    public async Task ComputeKey_DifferentFingerprints_ProducesDifferentKey()
     {
-        var packages1 = new List<PackageReference>
-        {
-            new() { Name = "Foo", Version = "1.0" },
-            new() { Name = "Bar", Version = "2.0" },
-        };
-        var packages2 = new List<PackageReference>
-        {
-            new() { Name = "Bar", Version = "2.0" },
-            new() { Name = "Foo", Version = "1.0" },
-        };
+        var key1 = ResultCache.ComputeKey("source", new GloSharpProcessorOptions(), ["assets:a|1|1"]);
+        var key2 = ResultCache.ComputeKey("source", new GloSharpProcessorOptions(), ["assets:a|1|2"]);
 
-        var key1 = ResultCache.ComputeKey("source", "net8.0", packages1, null);
-        var key2 = ResultCache.ComputeKey("source", "net8.0", packages2, null);
-
-        await Assert.That(key1).IsEqualTo(key2);
+        await Assert.That(key1).IsNotEqualTo(key2);
     }
 
     [Test]
     public async Task ComputeKey_DifferentProjectPath_ProducesDifferentKey()
     {
-        var key1 = ResultCache.ComputeKey("source", "net8.0", null, "/path/a.csproj");
-        var key2 = ResultCache.ComputeKey("source", "net8.0", null, "/path/b.csproj");
+        var key1 = ResultCache.ComputeKey("source", new GloSharpProcessorOptions { ProjectPath = "/path/a.csproj" });
+        var key2 = ResultCache.ComputeKey("source", new GloSharpProcessorOptions { ProjectPath = "/path/b.csproj" });
 
         await Assert.That(key1).IsNotEqualTo(key2);
     }

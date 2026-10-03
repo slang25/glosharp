@@ -1,0 +1,26 @@
+name: Install the glosharp CLI from source
+description: >-
+  Packs src/GloSharp.Cli as a dotnet tool, installs it from that package into a
+  tool path, puts `glosharp` on PATH, and smoke-tests the installed tool. This is
+  the same install path users take, so it also catches packaging and runtime
+  roll-forward problems. Expects the .NET SDKs to be set up already.
+
+runs:
+  using: composite
+  steps:
+    - name: Pack and install glosharp
+      shell: bash
+      run: |
+        version="0.0.0-ci.${GITHUB_RUN_ID}.${GITHUB_RUN_ATTEMPT}"
+        feed="${RUNNER_TEMP}/glosharp-nupkg"
+        tools="${RUNNER_TEMP}/glosharp-cli"
+        dotnet pack src/GloSharp.Cli/GloSharp.Cli.csproj -c Release -o "$feed" -p:Version="$version"
+        dotnet tool install GloSharp.Cli --tool-path "$tools" --add-source "$feed" --version "$version"
+        echo "$tools" >> "$GITHUB_PATH"
+
+    - name: Smoke-test glosharp
+      shell: bash
+      run: |
+        glosharp --version
+        echo 'var answer = 42;' | glosharp process --stdin > "${RUNNER_TEMP}/glosharp-smoke.json"
+        grep -q '"compileSucceeded": *true' "${RUNNER_TEMP}/glosharp-smoke.json"

@@ -8,11 +8,33 @@ namespace GloSharp.Core;
 /// Extended result that includes compilation context for downstream use (e.g., syntax classification).
 /// Not serialized to JSON — use <see cref="GloSharpResult"/> for the JSON contract.
 /// </summary>
+/// <remarks>
+/// On a result-cache hit the compilation is not built up front: <see cref="Compilation"/> and
+/// <see cref="SyntaxTree"/> resolve references and compile lazily, on first access.
+/// </remarks>
 public class GloSharpProcessResult
 {
-    public required GloSharpResult Result { get; init; }
-    public required CSharpCompilation Compilation { get; init; }
-    public required SyntaxTree SyntaxTree { get; init; }
+    private readonly Lazy<(CSharpCompilation Compilation, SyntaxTree SyntaxTree)> _context;
+
+    public GloSharpProcessResult(GloSharpResult result, CSharpCompilation compilation, SyntaxTree syntaxTree)
+    {
+        Result = result;
+        _context = new Lazy<(CSharpCompilation, SyntaxTree)>((compilation, syntaxTree));
+    }
+
+    public GloSharpProcessResult(GloSharpResult result, Func<(CSharpCompilation Compilation, SyntaxTree SyntaxTree)> contextFactory)
+    {
+        Result = result;
+        _context = new Lazy<(CSharpCompilation, SyntaxTree)>(contextFactory, LazyThreadSafetyMode.ExecutionAndPublication);
+    }
+
+    public GloSharpResult Result { get; }
+
+    /// <summary>True when <see cref="Result"/> came from the on-disk result cache.</summary>
+    public bool FromCache { get; init; }
+
+    public CSharpCompilation Compilation => _context.Value.Compilation;
+    public SyntaxTree SyntaxTree => _context.Value.SyntaxTree;
 }
 
 public class GloSharpResult
@@ -25,7 +47,13 @@ public class GloSharpResult
     public List<GloSharpCompletion> Completions { get; init; } = [];
     public List<GloSharpHighlight> Highlights { get; init; } = [];
     public List<GloSharpTag> Tags { get; init; } = [];
-    public List<object> Hidden { get; init; } = [];
+    public List<GloSharpHiddenRange> Hidden { get; init; } = [];
+
+    /// <summary>
+    /// Error-severity diagnostics located in hidden (cut/region) code. They cannot be placed in
+    /// <see cref="Code"/>, so <c>line</c> is -1; use <c>sourceLine</c>/<c>sourceCharacter</c>.
+    /// </summary>
+    public List<GloSharpError> HiddenErrors { get; init; } = [];
     public required GloSharpMeta Meta { get; init; }
 }
 
@@ -62,6 +90,27 @@ public class GloSharpError
     public required string Message { get; init; }
     public required string Severity { get; init; }
     public required bool Expected { get; init; }
+
+    /// <summary>0-based line in the original input text (before directive/marker/cut/region stripping).</summary>
+    public int? SourceLine { get; init; }
+
+    /// <summary>0-based UTF-16 column in the original input line.</summary>
+    public int? SourceCharacter { get; init; }
+}
+
+/// <summary>
+/// A run of input lines hidden from <see cref="GloSharpResult.Code"/> (cut markers, regions).
+/// </summary>
+public class GloSharpHiddenRange
+{
+    /// <summary>The processed line the hidden block sits before (equal to the line count when it is at the end).</summary>
+    public required int Line { get; init; }
+
+    /// <summary>First hidden line, 0-based, in the original input text.</summary>
+    public required int SourceStartLine { get; init; }
+
+    /// <summary>Last hidden line (inclusive), 0-based, in the original input text.</summary>
+    public required int SourceEndLine { get; init; }
 }
 
 public class GloSharpMeta
@@ -73,6 +122,12 @@ public class GloSharpMeta
     public string? LangVersion { get; init; }
     public string? Nullable { get; init; }
     public string? Complog { get; init; }
+
+    /// <summary>
+    /// Non-fatal problems the author should know about (failed package restore, a caret that
+    /// points past the end of its line, an empty completion list, ...). Always present.
+    /// </summary>
+    public List<string> Warnings { get; init; } = [];
 }
 
 public class GloSharpCompletion

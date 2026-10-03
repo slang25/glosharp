@@ -31,9 +31,9 @@ public class ResultCache
             var json = File.ReadAllText(path);
             return JsonSerializer.Deserialize<GloSharpResult>(json, JsonOptions);
         }
-        catch (JsonException)
+        catch (Exception ex) when (ex is JsonException or IOException)
         {
-            // Corrupt cache file — treat as miss
+            // Corrupt or concurrently-replaced cache file — treat as miss
             return null;
         }
     }
@@ -59,35 +59,56 @@ public class ResultCache
         }
     }
 
+    private static readonly JsonSerializerOptions KeyJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = false,
+    };
+
+    /// <summary>
+    /// Computes the cache key for a snippet.
+    /// </summary>
+    /// <remarks>
+    /// Key completeness is structural: the whole effective options record is serialised, so any
+    /// option added to <see cref="GloSharpProcessorOptions"/> automatically becomes part of the
+    /// key. <see cref="GloSharpProcessorOptions.CacheDir"/> is excluded (it only says where the
+    /// cache lives). <paramref name="contextFingerprints"/> carries fingerprints of on-disk inputs
+    /// that are referenced by path (project assets file, complog/.glocontext), so rebuilding or
+    /// re-restoring them invalidates the entry.
+    /// </remarks>
     public static string ComputeKey(
         string source,
-        string targetFramework,
-        List<PackageReference>? packages,
-        string? projectPath)
+        GloSharpProcessorOptions options,
+        IEnumerable<string>? contextFingerprints = null)
     {
-        using var sha256 = SHA256.Create();
         var sb = new StringBuilder();
 
         sb.Append(VersionInfo.GetVersion());
         sb.Append('\0');
-        sb.Append(targetFramework);
+        sb.Append(JsonSerializer.Serialize(options with { CacheDir = null }, KeyJsonOptions));
         sb.Append('\0');
 
-        if (packages is { Count: > 0 })
+        foreach (var fingerprint in contextFingerprints ?? [])
         {
-            var sorted = packages
-                .OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase)
-                .Select(p => $"{p.Name}@{p.Version}");
-            sb.Append(string.Join(",", sorted));
+            sb.Append(fingerprint);
+            sb.Append('\n');
         }
-        sb.Append('\0');
-
-        sb.Append(projectPath ?? "");
         sb.Append('\0');
         sb.Append(source);
 
-        var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(sb.ToString()));
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(sb.ToString()));
         return Convert.ToHexString(bytes).ToLowerInvariant();
+    }
+
+    /// <summary>
+    /// A cheap change-detection fingerprint for a file: full path, size and last-write time.
+    /// </summary>
+    public static string FileFingerprint(string path)
+    {
+        var info = new FileInfo(path);
+        return info.Exists
+            ? $"{info.FullName}|{info.Length}|{info.LastWriteTimeUtc.Ticks}"
+            : $"{info.FullName}|missing";
     }
 
     private string GetCachePath(string key) => Path.Combine(_cacheDir, $"{key}.json");

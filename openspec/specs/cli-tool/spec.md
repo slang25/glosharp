@@ -1,5 +1,8 @@
-## ADDED Requirements
+# cli-tool Specification
 
+## Purpose
+The `glosharp` command-line tool: its commands, options and exit codes.
+## Requirements
 ### Requirement: Process command accepts file path
 The CLI SHALL accept a `process` command with a file path argument to process a C# source file and output JSON to stdout. Before processing, the CLI SHALL load config file defaults (via auto-discovery or `--config`) and merge them with CLI arguments, with CLI arguments taking precedence.
 
@@ -288,3 +291,180 @@ The CLI SHALL accept an `init` subcommand that delegates to the init command log
 #### Scenario: Init recognized as command
 - **WHEN** `glosharp init` is run
 - **THEN** the CLI executes the init command (not treated as a file path or unknown command)
+
+### Requirement: Complog option on process command
+The CLI SHALL accept a `--complog <path>` option on the `process` command specifying a `.complog` file for compilation resolution. Before processing, the CLI SHALL load config file defaults and merge them with CLI arguments, with CLI arguments taking precedence.
+
+#### Scenario: Process with complog
+- **WHEN** `glosharp process snippet.cs --complog build.complog` is run
+- **THEN** the CLI uses the complog file for reference resolution, bypassing project and framework resolution
+
+#### Scenario: Process with complog from config
+- **WHEN** `glosharp process snippet.cs` is run and `glosharp.config.json` contains `{"complog": "./build.complog"}`
+- **THEN** the CLI uses the complog path from config
+
+#### Scenario: Complog file not found
+- **WHEN** `glosharp process snippet.cs --complog nonexistent.complog` is run
+- **THEN** the CLI exits with non-zero code and writes an error to stderr
+
+### Requirement: Complog option on verify command
+The CLI SHALL accept a `--complog <path>` option on the `verify` command, applying the same complog context to all files being verified.
+
+#### Scenario: Verify with complog
+- **WHEN** `glosharp verify samples/ --complog build.complog` is run
+- **THEN** all `.cs` files are compiled using references from the complog
+
+### Requirement: Complog option on render command
+The CLI SHALL accept a `--complog <path>` option on the `render` command with the same behavior as on `process`.
+
+#### Scenario: Render with complog
+- **WHEN** `glosharp render snippet.cs --complog build.complog` is run
+- **THEN** the CLI uses the complog for reference resolution and produces HTML output
+
+### Requirement: Complog-project option on all commands
+The CLI SHALL accept a `--complog-project <name>` option on `process`, `verify`, and `render` commands to select a specific project from a multi-project complog.
+
+#### Scenario: Process with complog project selection
+- **WHEN** `glosharp process snippet.cs --complog build.complog --complog-project MyLib` is run
+- **THEN** the CLI uses the `MyLib` compilation from the complog
+
+#### Scenario: Complog-project without complog
+- **WHEN** `glosharp process snippet.cs --complog-project MyLib` is run without `--complog`
+- **THEN** the CLI exits with non-zero code and writes an error indicating `--complog-project` requires `--complog`
+
+### Requirement: Complog mutually exclusive with project
+The CLI SHALL reject the combination of `--complog` and `--project` options with a clear error message.
+
+#### Scenario: Both complog and project specified
+- **WHEN** `glosharp process snippet.cs --complog build.complog --project MyProject.csproj` is run
+- **THEN** the CLI exits with non-zero code and writes an error indicating the options are mutually exclusive
+
+### Requirement: Compact-complog command
+The CLI SHALL accept a `compact-complog` command that reads a `.complog` file and writes a `.glocontext` file to the path given by `-o` / `--output`.
+
+#### Scenario: Compact with defaults
+- **WHEN** `glosharp compact-complog build.complog -o build.glocontext` is run against an existing complog
+- **THEN** the command writes a `.glocontext` file at `build.glocontext` and exits with code 0
+
+#### Scenario: Input complog missing
+- **WHEN** `glosharp compact-complog missing.complog -o out.glocontext` is run and the input does not exist
+- **THEN** the command writes an error to stderr identifying the missing input and exits with a non-zero code
+
+#### Scenario: Output path not writable
+- **WHEN** the output path cannot be written
+- **THEN** the command writes an error to stderr and exits with a non-zero code, and no partial output file remains on disk
+
+### Requirement: Keep-analyzers flag (debug)
+The `compact-complog` command SHALL accept a `--keep-analyzers` flag that preserves analyzer and source-generator DLL entries in the output archive under `analyzers/`. This flag SHALL be documented in help text as a debug option; the default (drop) is the recommended configuration.
+
+#### Scenario: Keep analyzers
+- **WHEN** `glosharp compact-complog build.complog -o out.glocontext --keep-analyzers` is run against a complog containing analyzer DLLs
+- **THEN** the output contains those analyzer entries under `analyzers/` in the payload tar
+
+### Requirement: Keep-sources and keep-generated flags (debug)
+The `compact-complog` command SHALL accept `--keep-sources` (preserves original project source entries) and `--keep-generated` (preserves generator-produced source entries). Both SHALL be documented as debug options.
+
+#### Scenario: Keep original sources
+- **WHEN** `--keep-sources` is passed
+- **THEN** original source entries are stored under `sources/` in the payload tar
+
+#### Scenario: Keep generated sources
+- **WHEN** `--keep-generated` is passed
+- **THEN** generator output entries are stored under `generated/` in the payload tar
+
+### Requirement: No-refasm flag (debug)
+The `compact-complog` command SHALL accept a `--no-refasm` flag that disables Refasmer rewriting of referenced assemblies. This flag SHALL be documented as a debug option; the default (rewrite) is the recommended configuration.
+
+#### Scenario: Disable refasm
+- **WHEN** `--no-refasm` is passed
+- **THEN** referenced assemblies in the output are the input bytes unchanged (after dedupe)
+
+### Requirement: Zstd level flag
+The `compact-complog` command SHALL accept a `--zstd-level <n>` option to override the default compression level (19). Valid values are 1 through 22.
+
+#### Scenario: Custom level
+- **WHEN** `--zstd-level 3` is passed
+- **THEN** the payload is compressed at level 3
+
+#### Scenario: Invalid level
+- **WHEN** `--zstd-level 0` or `--zstd-level 23` is passed
+- **THEN** the command writes an error to stderr and exits non-zero
+
+### Requirement: Compaction summary on stderr
+The `compact-complog` command SHALL write a human-readable summary to stderr after a successful compaction, showing input size, output size, reduction percentage, reference counts before and after dedupe, refasmer rewrite count, pointer count with the distinct packs referenced (id and version), and the counts and sizes of analyzers, original sources, and generated sources affected. When canonical packs were unavailable and references fell back to embedding, the summary SHALL include a warning line naming each unavailable pack. Stdout SHALL be empty on success.
+
+#### Scenario: Summary present by default
+- **WHEN** `glosharp compact-complog build.complog -o out.glocontext` completes successfully
+- **THEN** stderr contains the summary lines described above and stdout is empty
+
+#### Scenario: Summary reports pointers and packs
+- **WHEN** compaction canonicalizes framework references
+- **THEN** the summary reports the pointer count and lists each referenced pack as `<id>/<version>`
+
+#### Scenario: Quiet suppresses summary
+- **WHEN** `--quiet` is passed and compaction completes successfully
+- **THEN** neither stdout nor stderr contains the summary
+
+### Requirement: Exit code reflects compaction success
+The `compact-complog` command SHALL exit with code 0 when the output file is written successfully and with a non-zero code when input cannot be read, output cannot be written, Refasmer fails on a reference, or the input is not a recognizable complog.
+
+#### Scenario: Exit 0 on success
+- **WHEN** compaction completes and the output file is written
+- **THEN** the command exits with code 0
+
+#### Scenario: Non-zero exit on Refasmer failure
+- **WHEN** Refasmer throws while rewriting a reference and `--no-refasm` was not passed
+- **THEN** the command exits non-zero and writes the offending assembly name to stderr
+
+### Requirement: --complog option accepts .glocontext
+The existing `--complog` option on `process`, `verify`, and `render` SHALL accept both `.complog` and `.glocontext` files, auto-detecting by the file's leading bytes. Users SHALL NOT need to pass a different flag for `.glocontext` files.
+
+#### Scenario: Process against a .glocontext
+- **WHEN** `glosharp process snippet.cs --complog build.glocontext` is run against a valid `.glocontext`
+- **THEN** references and options are resolved via `GloContextResolver` and processing proceeds
+
+#### Scenario: Process against a .complog
+- **WHEN** `glosharp process snippet.cs --complog build.complog` is run
+- **THEN** references and options are resolved via `ComplogResolver` and processing proceeds
+
+#### Scenario: Unrecognized file
+- **WHEN** `--complog` points at a file whose leading bytes match neither `GLOCTX` nor the zip magic
+- **THEN** the CLI exits non-zero with an error that names both expected formats
+
+### Requirement: Self-contained flag on compact-complog
+The `compact-complog` command SHALL accept a `--self-contained` flag that disables pointer canonicalization and embeds every reference as a blob, producing a format v1 file. Help text SHALL describe it as the option for artifacts that must resolve offline with no pack downloads.
+
+#### Scenario: Self-contained output
+- **WHEN** `glosharp compact-complog build.complog -o out.glocontext --self-contained` is run
+- **THEN** the output contains no pointer references and its header format version is `0x01`
+
+
+### Requirement: Serve command for build tools
+`glosharp serve` SHALL run as a long-lived worker speaking JSON lines (UTF-8, one object per line) over stdin/stdout, so build tools pay process startup, compiler composition and reference loading once rather than per snippet. One processor and its compilation context cache SHALL serve every request.
+
+- The first line written SHALL be a handshake `{"type":"ready","protocol":<n>,"version":"<tool version>",...}`; `protocol` is 1 and changes only on incompatible protocol changes.
+- A request is `{"id":<number|string>,"command":"process"|"render"|"ping","code":<string>,"options":{...}}`. `options` are the one-shot command-line options in camelCase (`file`, `framework`, `project`, `complog`, `complogProject`, `region`, `noRestore`, `cacheDir`, `config`, and for `render` `theme`, `standalone`) plus `cwd`, the directory relative paths resolve against and config discovery starts from for `code` input. A request SHALL be processed by the same code, option parsing and config discovery as the equivalent one-shot command.
+- A response is `{"id":…,"ok":true,"result":…}` (the `process` JSON, or the `render` HTML string) or `{"id":…,"ok":false,"error":{"kind":"usage"|"failure"|"protocol","message":…,"exitCode":2|1,"stderr":…}}`, where `exitCode` and `stderr` are what the one-shot command would have produced. Responses are written in completion order.
+- Requests SHALL run concurrently up to `--concurrency` (default: the number of CPUs). A malformed line SHALL produce a `protocol` error response (with `"id":null` when no id could be read) and never stop the server.
+- Nothing but protocol lines SHALL be written to stdout; logs, including the stderr output a one-shot command would have printed, go to stderr.
+- At end of input the server SHALL answer every outstanding request and exit with code 0.
+
+#### Scenario: Same result as the one-shot command
+- **WHEN** a `process` request carries the code `glosharp process --stdin` would read
+- **THEN** its `result` is the same JSON `glosharp process --stdin` prints, on one line
+
+#### Scenario: Config discovery
+- **WHEN** a request has `code` and `"cwd": "/repo/docs"`, and `/repo/docs/glosharp.config.json` exists
+- **THEN** that config applies, as it would for `glosharp process --stdin` run in `/repo/docs`
+
+#### Scenario: Failure
+- **WHEN** a request names a `file` that does not exist
+- **THEN** the response is `ok: false` with `kind: "failure"`, `exitCode: 1` and the one-shot command's stderr, and the server keeps serving
+
+#### Scenario: Malformed line
+- **WHEN** a line is not a JSON object with an `id` and a known `command`
+- **THEN** the response is a `protocol` error and the next request is answered normally
+
+#### Scenario: End of input
+- **WHEN** stdin closes while requests are running
+- **THEN** the server writes their responses and exits with code 0

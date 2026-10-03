@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createGloSharp } from '../src/glosharp.js'
+import { configureGloSharp } from '../src/limiter.js'
 import type { GloSharpResult } from '../src/types.js'
 import { spawn } from 'node:child_process'
 import { EventEmitter, Readable, Writable } from 'node:stream'
@@ -15,6 +16,9 @@ vi.mock('../src/which.js', () => ({
 }))
 
 const mockSpawn = vi.mocked(spawn)
+
+// These tests check the one-shot command lines; `serve` workers are covered in serve.test.ts.
+configureGloSharp({ workers: 0 })
 
 function createMockProcess(stdout: string, stderr: string, exitCode: number) {
   const proc = new EventEmitter() as any

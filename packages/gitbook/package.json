@@ -1,7 +1,17 @@
 {
   "name": "@glosharp/gitbook",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "description": "GitBook integration for glosharp C# type information, plus the CI tool that publishes its artifacts",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/slang25/glosharp.git",
+    "directory": "packages/gitbook"
+  },
+  "homepage": "https://github.com/slang25/glosharp/tree/main/packages/gitbook#readme",
+  "bugs": {
+    "url": "https://github.com/slang25/glosharp/issues"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -25,7 +35,7 @@
     "dev:frame": "node dist/bin.js dev sample --framework net8.0 --executable ../../src/GloSharp.Cli/bin/Release/net8.0/GloSharp.Cli"
   },
   "dependencies": {
-    "@glosharp/core": "0.1.0-alpha.1"
+    "@glosharp/core": "0.1.0-alpha.2"
   },
   "files": [
     "dist"

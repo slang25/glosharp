@@ -6,10 +6,10 @@ Roslyn.
 
 Two halves, one package:
 
-| Half | What it is | Who runs it |
-| --- | --- | --- |
-| **The integration** (`gitbook-manifest.yaml` + `src/integration/`) | A GitBook ContentKit integration: a custom block bound to the `glosharp` code fence, rendered through a sandboxed webframe. | GitBook, on every page view |
-| **The artifact builder** (`glosharp-gitbook` CLI) | Scans your Markdown for `glosharp` fences and publishes one pre-rendered HTML fragment per snippet, keyed by a hash of the snippet. | Your CI |
+| Half | What it is | Who runs it | Where it lives |
+| --- | --- | --- | --- |
+| **The integration** (`gitbook-manifest.yaml` + `src/integration/`) | A GitBook ContentKit integration: a custom block bound to the `glosharp` code fence, rendered through a sandboxed webframe. | GitBook, on every page view | The Glo# repository (publish it from a clone, see [Installing the integration](#installing-the-integration)); not in the npm package |
+| **The artifact builder** (`glosharp-gitbook` CLI) | Scans your Markdown for `glosharp` fences and publishes one pre-rendered HTML fragment per snippet, keyed by a hash of the snippet. | Your CI | This npm package |
 
 ## Why it is split this way
 
@@ -38,7 +38,14 @@ published it.** That includes while you are editing it in GitBook.
 `<sha256>` is the SHA-256 of the fence body after a deliberately minimal
 canonicalisation: CRLF → LF, and leading/trailing blank space dropped. Nothing
 inside the snippet is touched, because trailing whitespace on an interior line
-can matter inside a raw string literal.
+can matter inside a raw string literal. It is the same key every Glo#
+integration uses (`snippetKey` / `canonicalizeSnippet` from `@glosharp/core`).
+
+Point `--out` at a dedicated directory. The builder refuses to write next to an
+`index.json` that is not a Glo# index, and `--prune` only ever deletes files
+named `<sha256>.html` inside theme directories it knows about (this build's
+themes, themes pinned by fences, and those listed in the previous
+`index.json`) — anything else in the directory is left alone.
 
 ## Preview it locally
 
@@ -46,8 +53,11 @@ You do not need a GitBook account to see what the block will show:
 
 ```sh
 npx glosharp-gitbook dev docs --framework net10.0
-# Glo# preview: http://localhost:4180/
+# Glo# preview: http://127.0.0.1:4180/
 ```
+
+Frames appear in document order, and a fence that pins `theme="…"` is shown
+in that theme, as the real block does.
 
 That serves the real webframe shell, renders your fences into a temp directory,
 and drives the frames the way GitBook does. Edit your Markdown and reload —
@@ -74,7 +84,7 @@ With the composite action:
 
 ```yaml
 - uses: actions/checkout@v7
-- uses: twohash/glosharp/packages/gitbook@main
+- uses: slang25/glosharp/packages/gitbook@main   # the Glo# repository, at the ref you trust
   with:
     paths: docs
     out: glosharp-artifacts
@@ -84,15 +94,30 @@ With the composite action:
     path: glosharp-artifacts
 ```
 
-Or directly:
+The action resolves `package-version` (default `latest`) to an exact
+`@glosharp/gitbook` version and installs the `GloSharp.Cli` release with the same
+version, since the two are released together. Set `glosharp-version` to choose a
+different CLI. Then it runs `glosharp-gitbook build`. Inputs mirror the CLI options below (`allow-errors`, `complog-project`,
+`check`, `prune`, …).
+
+Or directly (while Glo# is pre-1.0, install the prerelease tags):
 
 ```sh
-npm install --save-dev @glosharp/gitbook
+dotnet tool install --global GloSharp.Cli --prerelease
+npm install --save-dev @glosharp/gitbook@alpha
 npx glosharp-gitbook build docs --out glosharp-artifacts --prune
 ```
 
+`build` exits non-zero when a snippet has **unexpected compile errors** (errors
+not declared with `// @errors:`), listing each as `file:line:col CODE: message`
+— the same promise as twoslash: docs that don't compile don't ship. Declare
+errors you mean to show with `// @errors: CS0029`, or pass `--allow-errors` to
+publish anyway. It also exits non-zero when any render fails, and then writes no
+`index.json` and prunes nothing.
+
 On pull requests, `--check` renders everything and fails if any artifact would
-change, so a snippet edit cannot merge without its artifact.
+change, so a snippet edit cannot merge without its artifact. `--check --prune`
+also fails, listing them, when artifacts would be pruned.
 
 A committed [`.glocontext`](../../README.md#portable-compilation-context-glocontext)
 is the cheapest way to give CI compilation context: no restore, no SDK-resolved
@@ -115,20 +140,27 @@ glosharp-gitbook scan  <paths...> [--fence <lang>] [--json]
 | `--fence <lang>` | Fence language to claim (default `glosharp`) |
 | `--theme <name>` | Repeatable; default is `github-dark` + `github-light` |
 | `--concurrency <n>` | Concurrent renders (default 4) |
-| `--check` | Report drift, write nothing, exit 1 if anything changed |
+| `--check` | Report drift, write nothing, exit 1 if anything changed (with `--prune`: or would be pruned) |
 | `--skip-existing` | Reuse artifacts already on disk (pairs with a cached out dir) |
-| `--prune` | Delete artifacts no snippet claims |
-| `--framework`, `--project`, `--complog`, `--config`, `--cache-dir`, `--executable` | Forwarded to the `glosharp` CLI |
+| `--prune` | Delete `<theme>/<sha256>.html` artifacts no snippet claims (nothing else) |
+| `--allow-errors` | Publish snippets with unexpected compile errors instead of exiting 1 |
+| `--framework`, `--project`, `--complog`, `--complog-project`, `--config`, `--cache-dir` | Forwarded to the `glosharp` CLI |
+| `--executable <path>` | The `glosharp` executable or `GloSharp.Cli.dll` (default: `$GLOSHARP_EXECUTABLE`, then `glosharp` on PATH, `~/.dotnet/tools`, a local tool) |
 
 Rendering-relevant compilation settings normally live in
 `glosharp.config.json`, which the `glosharp` CLI discovers on its own.
 
 ## Installing the integration
 
-The integration is not on the GitBook marketplace; publish it privately to your
-own organization:
+The integration is not on the GitBook marketplace, and its source is not part
+of the npm package (GitBook's CLI bundles it from source, with dev-only
+dependencies). Publish it privately to your own organization from a clone of
+the Glo# repository:
 
 ```sh
+git clone https://github.com/slang25/glosharp && cd glosharp
+npm install
+npm run build -w @glosharp/core
 cd packages/gitbook
 export GLOSHARP_GITBOOK_ORG=<your-gitbook-organization-id>
 npx gitbook auth
@@ -161,8 +193,11 @@ Supported fence attributes:
 
 | Attribute | Effect |
 | --- | --- |
-| `theme="github-light"` | Pin one theme instead of following the reader's colour scheme |
+| `theme="github-light"` | Pin one theme instead of following the reader's colour scheme (the builder renders that theme for the snippet even if it is not in `--theme`) |
 | `framework="net10.0"` | Target framework for this snippet, used by the builder |
+
+Fences inside list items and blockquotes are found too; the body is taken
+with the item's indentation (or the `>` markers) removed.
 
 `framework` is **not** part of the artifact key, so two byte-identical snippets
 asking for different frameworks is an error the builder reports rather than a
@@ -191,7 +226,16 @@ but two things cannot be done from inside the fragment:
   state. A single announcement is a race lost to any host that attaches its
   listener late, and losing it leaves the frame blank forever.
 
-Both are exercised in the browser by `tests/rendering`
+- **Trust.** The shell only accepts state from the page that embeds it
+  (`event.source === window.parent`), only accepts plain theme names, parses
+  each fetched fragment with `DOMParser` and drops scripts, frames, event
+  handlers and non-https URLs before inserting it, and carries a
+  Content-Security-Policy that lets only its own script run (by hash) and only
+  fetch from https hosts. A lookup that misses names the artifact it looked
+  for (theme and key prefix) in the frame and in the console, so key drift
+  between CI and GitBook can be debugged.
+
+These are exercised in the browser by `tests/rendering`
 (`specs/gitbook-frame.spec.ts`), which drives the real shell through GitBook's
 message contract over real `glosharp render` artifacts.
 
@@ -201,5 +245,10 @@ message contract over real `glosharp render` artifacts.
   need Roslyn in the browser (see decision 006).
 - One iframe per snippet. Each shell is tiny and cacheable, but N snippets is N
   documents.
+- Each theme is a separate `glosharp render` (a full compile), plus one
+  `glosharp process` per snippet for the compile-error check (skip it with
+  `--allow-errors`). The CLI's `render` takes one theme and reports no compile
+  status, so the work can't be shared yet; `--skip-existing` and `--cache-dir`
+  keep repeat builds cheap.
 - GitBook's search and AI index the fence body (it lives in the content model as
   a block prop); the rendered hover text is not indexed.

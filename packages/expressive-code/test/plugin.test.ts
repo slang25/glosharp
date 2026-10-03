@@ -1,95 +1,58 @@
-import { describe, it, expect } from 'vitest'
-import { pluginGloSharp, type PluginGloSharpOptions } from '../src/plugin.js'
+import { describe, expect, it } from 'vitest'
+import { ExpressiveCodeBlock, type ExpressiveCodePlugin } from '@expressive-code/core'
+import type { ExpressiveCodeConfig } from 'expressive-code'
+import { pluginGloSharp, shouldProcessBlock, type PluginGloSharpOptions } from '../src/index.js'
 
 describe('pluginGloSharp', () => {
-  it('returns a plugin with correct name', () => {
-    const plugin = pluginGloSharp()
+  it('is a typed Expressive Code plugin usable in a type-checked EC config', () => {
+    // Compile-time check (tsc -p tsconfig.test.json): `astro check` on a typed
+    // ec.config.mjs used to reject the hand-typed hooks (U-astro F21)
+    const plugin: ExpressiveCodePlugin = pluginGloSharp()
+    const config: ExpressiveCodeConfig = { plugins: [pluginGloSharp({ cacheDir: '.cache/glosharp' })] }
     expect(plugin.name).toBe('glosharp')
+    expect(config.plugins).toHaveLength(1)
+    expect(plugin.hooks?.preprocessCode).toBeTypeOf('function')
+    expect(plugin.hooks?.annotateCode).toBeTypeOf('function')
   })
 
-  it('has all required hooks', () => {
-    const plugin = pluginGloSharp()
-    expect(plugin.hooks).toBeDefined()
-    expect(plugin.hooks.preprocessCode).toBeDefined()
-    expect(plugin.hooks.annotateCode).toBeDefined()
-    expect(plugin.hooks.postprocessRenderedBlock).toBeDefined()
-  })
-
-  it('has baseStyles with CSS', () => {
-    const plugin = pluginGloSharp()
-    expect(plugin.baseStyles).toContain('.glosharp-hover')
-    expect(plugin.baseStyles).toContain('.glosharp-popup-container')
-    // EC popups are absolutely positioned within the EC root and moved by the
-    // popup JS module (unlike the Shiki path's CSS anchor positioning)
-    expect(plugin.baseStyles).toContain('position: absolute')
-    expect(plugin.baseStyles).toContain('.expressive-code {\n  position: relative;\n}')
-  })
-
-  it('does not expose styleSettings (styles are in baseStyles)', () => {
-    const plugin = pluginGloSharp()
-    expect((plugin as any).styleSettings).toBeUndefined()
-  })
-
-  it('baseStyles includes part kind color classes', () => {
-    const plugin = pluginGloSharp()
-    expect(plugin.baseStyles).toContain('.glosharp-keyword')
-    expect(plugin.baseStyles).toContain('.glosharp-className')
-    expect(plugin.baseStyles).toContain('.glosharp-localName')
-    expect(plugin.baseStyles).toContain('.glosharp-methodName')
-  })
-
-  it('preprocessCode skips non-csharp blocks', async () => {
-    const plugin = pluginGloSharp()
-    const codeBlock = { code: 'const x = 42;\n//  ^?', language: 'javascript', meta: '' } as any
-    // Should not throw or modify
-    await plugin.hooks.preprocessCode({ codeBlock })
-    expect(codeBlock.code).toBe('const x = 42;\n//  ^?')
-  })
-
-  it('preprocessCode processes csharp blocks without markers', async () => {
-    const plugin = pluginGloSharp()
-    const lines = ['var x = 42;']
-    const codeBlock = {
-      get code() { return lines.join('\n') },
-      language: 'csharp',
-      meta: '',
-      getLines: () => lines.map(text => ({ text })),
-      deleteLines: (indices: number[]) => {
-        const sorted = [...indices].sort((a, b) => b - a)
-        for (const i of sorted) lines.splice(i, 1)
-      },
-      insertLines: (index: number, newLines: string[]) => {
-        lines.splice(index, 0, ...newLines)
-      },
-    } as any
-    await plugin.hooks.preprocessCode({ codeBlock })
-    // Code without markers should remain the same
-    expect(codeBlock.code).toBe('var x = 42;')
-  })
-
-  it('accepts project option', () => {
-    const options: PluginGloSharpOptions = {
-      project: './MyProject.csproj',
+  it('accepts every documented option', () => {
+    const options: Required<PluginGloSharpOptions> = {
+      executable: 'glosharp',
+      framework: 'net8.0',
+      cacheDir: '.cache/glosharp',
+      configFile: 'glosharp.json',
+      complog: 'build.complog',
+      complogProject: 'App',
+      project: './Demo.csproj',
+      region: 'demo',
+      explicitTrigger: true,
+      onCliError: 'warn',
+      failOnErrors: true,
     }
-    const plugin = pluginGloSharp(options)
-    expect(plugin.name).toBe('glosharp')
+    expect(pluginGloSharp(options).name).toBe('glosharp')
+  })
+})
+
+describe('shouldProcessBlock', () => {
+  const block = (language: string, meta = '') => new ExpressiveCodeBlock({ code: 'x', language, meta })
+
+  it('processes C# blocks by default (spec: all C# blocks, with or without markers)', () => {
+    expect(shouldProcessBlock(block('csharp'))).toBe(true)
+    expect(shouldProcessBlock(block('cs'))).toBe(true)
+    expect(shouldProcessBlock(block('c#'))).toBe(true)
+    expect(shouldProcessBlock(block('js'))).toBe(false)
+    expect(shouldProcessBlock(block('fsharp', 'glosharp'))).toBe(false)
   })
 
-  it('accepts region option', () => {
-    const options: PluginGloSharpOptions = {
-      project: './MyProject.csproj',
-      region: 'getting-started',
-    }
-    const plugin = pluginGloSharp(options)
-    expect(plugin.name).toBe('glosharp')
+  it('honours the no-glosharp / glosharp=false opt-outs', () => {
+    expect(shouldProcessBlock(block('cs', 'no-glosharp'))).toBe(false)
+    expect(shouldProcessBlock(block('cs', 'title="a.cs" glosharp=false'))).toBe(false)
+    expect(shouldProcessBlock(block('cs', 'glosharp no-glosharp'), true)).toBe(false)
   })
 
-  it('baseStyles includes completion list styles', () => {
-    const plugin = pluginGloSharp()
-    expect(plugin.baseStyles).toContain('.glosharp-completion-list')
-    expect(plugin.baseStyles).toContain('.glosharp-completion-item')
-    expect(plugin.baseStyles).toContain('.glosharp-completion-kind')
-    expect(plugin.baseStyles).toContain('.glosharp-completion-label')
-    expect(plugin.baseStyles).toContain('.glosharp-completion-detail')
+  it('requires the glosharp flag when explicitTrigger is enabled', () => {
+    expect(shouldProcessBlock(block('cs'), true)).toBe(false)
+    expect(shouldProcessBlock(block('cs', 'glosharp'), true)).toBe(true)
+    expect(shouldProcessBlock(block('cs', '{1-3} glosharp title="x"'), true)).toBe(true)
   })
 })

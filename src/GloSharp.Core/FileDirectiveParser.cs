@@ -19,6 +19,16 @@ public class FileDirectiveResult
     public required List<FileDirective> Directives { get; init; }
     public required int DirectiveLinesRemoved { get; init; }
 
+    /// <summary>
+    /// Maps each line of <see cref="CleanedSource"/> to its 0-based line index in
+    /// <see cref="OriginalSource"/>, so positions can be reported against the text the
+    /// user actually wrote.
+    /// </summary>
+    public int[] LineMap { get; init; } = [];
+
+    /// <summary>The directive lines exactly as written (without trailing CR), in source order.</summary>
+    public List<string> DirectiveLines { get; init; } = [];
+
     public bool HasDirectives => Directives.Count > 0;
 
     public List<PackageReference> GetPackageReferences() =>
@@ -46,10 +56,13 @@ public static partial class FileDirectiveParser
         var lines = source.Split('\n');
         var cleanedLines = new List<string>();
         var directives = new List<FileDirective>();
+        var directiveLines = new List<string>();
+        var lineMap = new List<int>(lines.Length);
         var directiveLinesRemoved = 0;
 
-        foreach (var line in lines)
+        for (var i = 0; i < lines.Length; i++)
         {
+            var line = lines[i];
             var trimmed = line.TrimEnd('\r');
             var match = DirectiveLineRegex.Match(trimmed);
             if (match.Success)
@@ -60,12 +73,14 @@ public static partial class FileDirectiveParser
                 if (directive != null)
                 {
                     directives.Add(directive);
+                    directiveLines.Add(trimmed);
                     directiveLinesRemoved++;
                     continue;
                 }
             }
 
             cleanedLines.Add(line);
+            lineMap.Add(i);
         }
 
         return new FileDirectiveResult
@@ -74,6 +89,8 @@ public static partial class FileDirectiveParser
             OriginalSource = source,
             Directives = directives,
             DirectiveLinesRemoved = directiveLinesRemoved,
+            LineMap = lineMap.ToArray(),
+            DirectiveLines = directiveLines,
         };
     }
 

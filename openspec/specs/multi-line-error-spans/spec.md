@@ -1,5 +1,9 @@
-## ADDED Requirements
+# multi-line-error-spans Specification
 
+## Purpose
+Report and render diagnostics that span several lines.
+
+## Requirements
 ### Requirement: Multi-line diagnostic span rendering
 When a diagnostic has `endLine` greater than `line`, renderers SHALL apply underline styling across all affected lines. The first line SHALL be underlined from `character` to end of line content. Middle lines SHALL be underlined across the full line content. The last line SHALL be underlined from column 0 to `endCharacter`.
 

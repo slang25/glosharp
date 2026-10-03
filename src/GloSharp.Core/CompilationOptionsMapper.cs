@@ -17,6 +17,7 @@ public static class CompilationOptionsMapper
         ["11"] = LanguageVersion.CSharp11,
         ["12"] = LanguageVersion.CSharp12,
         ["13"] = LanguageVersion.CSharp13,
+        ["14"] = LanguageVersion.CSharp14,
         ["latest"] = LanguageVersion.Latest,
         ["preview"] = LanguageVersion.Preview,
         ["default"] = LanguageVersion.Default,
@@ -32,13 +33,41 @@ public static class CompilationOptionsMapper
 
     public static LanguageVersion? MapLangVersion(string value)
     {
-        return LangVersionMap.TryGetValue(value, out var result) ? result : null;
+        if (LangVersionMap.TryGetValue(value, out var result))
+            return result;
+
+        // Accept anything the compiler accepts for -langversion (e.g. "12.0", "latestmajor")
+        return LanguageVersionFacts.TryParse(value, out var parsed) ? parsed : null;
     }
 
     public static NullableContextOptions? MapNullable(string value)
     {
         return NullableMap.TryGetValue(value, out var result) ? result : null;
     }
+
+    /// <summary>
+    /// The user-facing spelling of a language version, as accepted by <see cref="MapLangVersion"/>
+    /// (e.g. "12", "latest", "preview").
+    /// </summary>
+    public static string ToDisplayString(LanguageVersion version)
+    {
+        foreach (var (key, value) in LangVersionMap)
+        {
+            if (value == version)
+                return key;
+        }
+        return version.ToDisplayString();
+    }
+
+    /// <summary>The user-facing spelling of a nullable context ("enable", "disable", ...).</summary>
+    public static string ToDisplayString(NullableContextOptions nullable) => nullable switch
+    {
+        NullableContextOptions.Enable => "enable",
+        NullableContextOptions.Disable => "disable",
+        NullableContextOptions.Warnings => "warnings",
+        NullableContextOptions.Annotations => "annotations",
+        _ => nullable.ToString().ToLowerInvariant(),
+    };
 
     public static string ValidLangVersions => string.Join(", ", LangVersionMap.Keys);
     public static string ValidNullableValues => string.Join(", ", NullableMap.Keys);

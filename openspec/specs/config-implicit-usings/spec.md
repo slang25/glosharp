@@ -1,3 +1,9 @@
+# config-implicit-usings Specification
+
+## Purpose
+Configure the implicit global usings snippets compile with.
+
+## Requirements
 ### Requirement: Implicit usings from config replace built-in defaults
 The system SHALL read the `implicitUsings` string array from `glosharp.config.json`. When present, these SHALL **replace** the built-in default global usings entirely. Each entry SHALL be prepended as a `global using <namespace>;` directive before compilation. These usings SHALL NOT appear in the output code.
 

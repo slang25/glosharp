@@ -1,5 +1,5 @@
-using System.Diagnostics;
 using Basic.CompilerLog.Util;
+using GloSharp.Core;
 
 namespace GloSharp.Tests;
 
@@ -29,7 +29,12 @@ internal static class ComplogFixture
                 if (Directory.Exists(p)) Directory.Delete(p, recursive: true);
             }
 
-            RunProcess("dotnet", $"build \"{Path.Combine(srcRoot, "Both.slnx")}\" -bl:\"{binlogPath}\" -v:q", srcRoot);
+            ProcessRunner.Run(
+                    FrameworkResolver.GetDotnetExecutable(),
+                    ["build", Path.Combine(srcRoot, "Both.slnx"), $"-bl:{binlogPath}", "-v:q"],
+                    srcRoot,
+                    TimeSpan.FromMinutes(10))
+                .EnsureSuccess("Building the MultiProject complog fixture");
 
             var conversion = CompilerLogUtil.TryConvertBinaryLog(binlogPath, complogPath);
             if (!conversion.Succeeded)
@@ -51,26 +56,5 @@ internal static class ComplogFixture
         }
         throw new DirectoryNotFoundException(
             $"Could not locate test fixture source 'fixtures/complogs/{name}' relative to {AppContext.BaseDirectory}");
-    }
-
-    private static void RunProcess(string fileName, string arguments, string workingDir)
-    {
-        var psi = new ProcessStartInfo(fileName, arguments)
-        {
-            WorkingDirectory = workingDir,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-        };
-        using var proc = Process.Start(psi)
-            ?? throw new InvalidOperationException($"Could not start {fileName}");
-
-        var stdout = proc.StandardOutput.ReadToEnd();
-        var stderr = proc.StandardError.ReadToEnd();
-        proc.WaitForExit();
-
-        if (proc.ExitCode != 0)
-            throw new InvalidOperationException(
-                $"{fileName} {arguments} exited with code {proc.ExitCode}.\nstdout:\n{stdout}\nstderr:\n{stderr}");
     }
 }

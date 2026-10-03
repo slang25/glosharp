@@ -27,12 +27,14 @@ public static class SymbolDisplayPartKindMapping
         SymbolDisplayPartKind.TypeParameterName => "typeParameterName",
         SymbolDisplayPartKind.RecordClassName => "className",
         SymbolDisplayPartKind.RecordStructName => "structName",
+        SymbolDisplayPartKind.RangeVariableName => "localName",
         _ => "text",
     };
 
     public static string ToSymbolKindString(ISymbol symbol) => symbol.Kind switch
     {
         Microsoft.CodeAnalysis.SymbolKind.Local => "Local",
+        Microsoft.CodeAnalysis.SymbolKind.RangeVariable => "Local",
         Microsoft.CodeAnalysis.SymbolKind.Parameter => "Parameter",
         Microsoft.CodeAnalysis.SymbolKind.Field => "Field",
         Microsoft.CodeAnalysis.SymbolKind.Property => "Property",

@@ -1,9 +1,9 @@
 {
   "sample": "nullable.cs",
-  "source": "// @noErrors\nstring? name = null;\n//      ^?\nstring definite = \"hello\";\n//       ^?\n",
+  "source": "string? name = null;\n//      ^?\nstring definite = \"hello\";\n//       ^?\nConsole.WriteLine(name ?? definite);\n",
   "result": {
-    "code": "string? name = null;\nstring definite = \"hello\";\n",
-    "original": "// @noErrors\nstring? name = null;\n//      ^?\nstring definite = \"hello\";\n//       ^?\n",
+    "code": "string? name = null;\nstring definite = \"hello\";\nConsole.WriteLine(name ?? definite);\n",
+    "original": "string? name = null;\n//      ^?\nstring definite = \"hello\";\n//       ^?\nConsole.WriteLine(name ?? definite);\n",
     "lang": "csharp",
     "hovers": [
       {
@@ -159,6 +159,209 @@
         },
         "symbolKind": "Class",
         "targetText": "string"
+      },
+      {
+        "line": 2,
+        "character": 0,
+        "length": 7,
+        "text": "(class) Console",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "class"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "Console"
+          }
+        ],
+        "docs": {
+          "summary": "Represents the standard input, output, and error streams for console applications. This class cannot be inherited.",
+          "params": [],
+          "examples": [],
+          "exceptions": []
+        },
+        "symbolKind": "Class",
+        "targetText": "Console"
+      },
+      {
+        "line": 2,
+        "character": 8,
+        "length": 9,
+        "text": "(method) void Console.WriteLine(string? value) (+ 17 overloads)",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "method"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "void"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "className",
+            "text": "Console"
+          },
+          {
+            "kind": "punctuation",
+            "text": "."
+          },
+          {
+            "kind": "methodName",
+            "text": "WriteLine"
+          },
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "?"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "parameterName",
+            "text": "value"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          }
+        ],
+        "docs": {
+          "summary": "Writes the specified string value, followed by the current line terminator, to the standard output stream.",
+          "params": [
+            {
+              "name": "value",
+              "text": "The value to write."
+            }
+          ],
+          "examples": [],
+          "exceptions": [
+            {
+              "type": "IOException",
+              "text": "An I/O error occurred."
+            }
+          ]
+        },
+        "symbolKind": "Method",
+        "targetText": "WriteLine",
+        "overloadCount": 18
+      },
+      {
+        "line": 2,
+        "character": 18,
+        "length": 4,
+        "text": "(local variable) string? name",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "local variable"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "punctuation",
+            "text": "?"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "localName",
+            "text": "name"
+          }
+        ],
+        "symbolKind": "Local",
+        "targetText": "name"
+      },
+      {
+        "line": 2,
+        "character": 26,
+        "length": 8,
+        "text": "(local variable) string definite",
+        "parts": [
+          {
+            "kind": "punctuation",
+            "text": "("
+          },
+          {
+            "kind": "text",
+            "text": "local variable"
+          },
+          {
+            "kind": "punctuation",
+            "text": ")"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "keyword",
+            "text": "string"
+          },
+          {
+            "kind": "space",
+            "text": " "
+          },
+          {
+            "kind": "localName",
+            "text": "definite"
+          }
+        ],
+        "symbolKind": "Local",
+        "targetText": "definite"
       }
     ],
     "errors": [],
@@ -166,10 +369,14 @@
     "highlights": [],
     "tags": [],
     "hidden": [],
+    "hiddenErrors": [],
     "meta": {
       "targetFramework": "net8.0",
       "packages": [],
-      "compileSucceeded": true
+      "compileSucceeded": true,
+      "langVersion": "latest",
+      "nullable": "enable",
+      "warnings": []
     }
   }
 }

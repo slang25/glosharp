@@ -1,9 +1,9 @@
 {
   "sample": "overloads.cs",
-  "source": "// @noErrors\nConsole.WriteLine(\"text\");\n//        ^?\nConsole.WriteLine(42);\n//        ^?\n",
+  "source": "Console.WriteLine(\"text\");\n//        ^?\nConsole.WriteLine(42);\n//        ^?\n",
   "result": {
     "code": "Console.WriteLine(\"text\");\nConsole.WriteLine(42);\n",
-    "original": "// @noErrors\nConsole.WriteLine(\"text\");\n//        ^?\nConsole.WriteLine(42);\n//        ^?\n",
+    "original": "Console.WriteLine(\"text\");\n//        ^?\nConsole.WriteLine(42);\n//        ^?\n",
     "lang": "csharp",
     "hovers": [
       {
@@ -256,10 +256,14 @@
     "highlights": [],
     "tags": [],
     "hidden": [],
+    "hiddenErrors": [],
     "meta": {
       "targetFramework": "net8.0",
       "packages": [],
-      "compileSucceeded": true
+      "compileSucceeded": true,
+      "langVersion": "latest",
+      "nullable": "enable",
+      "warnings": []
     }
   }
 }

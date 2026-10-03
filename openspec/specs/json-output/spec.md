@@ -1,7 +1,10 @@
-## ADDED Requirements
+# json-output Specification
 
+## Purpose
+The JSON result format the CLI emits and integrations consume.
+## Requirements
 ### Requirement: Top-level JSON structure
-The system SHALL output JSON with the following top-level fields: `code` (processed source), `original` (source with markers), `lang` (always `"csharp"`), `hovers`, `errors`, `completions`, `highlights`, `tags`, `hidden`, and `meta`. The `completions` array SHALL contain structured completion objects when `^|` markers are present.
+The system SHALL output JSON with the following top-level fields: `code` (processed source), `original` (source with markers), `lang` (always `"csharp"`), `hovers`, `errors`, `hiddenErrors`, `completions`, `highlights`, `tags`, `hidden`, and `meta`. The `completions` array SHALL contain structured completion objects when `^|` markers are present.
 
 #### Scenario: Complete output structure
 - **WHEN** a C# snippet with hover markers is processed
@@ -39,7 +42,10 @@ Each hover entry SHALL contain: `line` (number), `character` (number), `length` 
 - **THEN** the hover object has `line`, `character`, `length` as numbers, `text` as `"(local variable) int x"`, `parts` as an array of kind/text objects, `symbolKind` as `"Local"`, and `targetText` as `"x"`
 
 ### Requirement: Error objects in JSON
-Each error entry SHALL contain: `line` (number), `character` (number), `length` (number), `code` (string), `message` (string), `severity` (one of `"error"`, `"warning"`, `"info"`, `"hidden"`), and `expected` (boolean). When a diagnostic spans multiple lines, the error entry SHALL also contain `endLine` (number) and `endCharacter` (number). These fields SHALL be omitted when the diagnostic is single-line.
+Each error entry SHALL contain: `line` (number), `character` (number), `length` (number), `code` (string), `message` (string), `severity` (one of `"error"`, `"warning"`, `"info"`, `"hidden"`), and `expected` (boolean). When a diagnostic spans multiple lines, the error entry SHALL also contain `endLine` (number) and `endCharacter` (number). These fields SHALL be omitted when the diagnostic is single-line. Each error SHALL also carry `sourceLine`/`sourceCharacter`: the 0-based position in the original input text (before `#:` directive, marker, cut and region stripping), for `file:line` reporting.
+
+### Requirement: Errors in hidden code
+Error-severity diagnostics located in hidden (cut/region) code SHALL NOT appear in `errors` (renderers cannot place them). They SHALL appear in `hiddenErrors` (always present, same shape as `errors`, with `line: -1`) and SHALL make `compileSucceeded` false unless suppressed (`@noErrors`/`@suppressErrors`) or expected (`@errors`). Warnings and info in hidden code are not reported.
 
 #### Scenario: Error JSON shape
 - **WHEN** compilation produces error CS1002 at line 3, character 8
@@ -54,7 +60,7 @@ Each error entry SHALL contain: `line` (number), `character` (number), `length` 
 - **THEN** the error object does not contain `endLine` or `endCharacter` fields
 
 ### Requirement: Meta object in JSON
-The `meta` object SHALL contain: `targetFramework` (string), `packages` (array of `{name, version}` objects), `compileSucceeded` (boolean), `sdk` (string or null), `langVersion` (string or null), and `nullable` (string or null). The `packages` array SHALL be populated from `#:package` directives when present, or from `project.assets.json` when using project-based resolution. The `sdk` field SHALL contain the SDK identifier from `#:sdk` directive, or null when not specified. The `langVersion` field SHALL contain the authored language version string when a `// @langVersion` marker is present, or null when using the default. The `nullable` field SHALL contain the authored nullable context string when a `// @nullable` marker is present, or null when using the default.
+The `meta` object SHALL contain: `targetFramework` (string), `packages` (array of `{name, version}` objects), `compileSucceeded` (boolean), `sdk` (string or null), `langVersion` (string), `nullable` (string), `complog` (string or null) and `warnings` (array of strings, always present). The `packages` array SHALL be populated from `#:package` directives when present, from `project.assets.json` when using project-based resolution, or inferred from the NuGet package paths of the complog's references in complog mode. The `sdk` field SHALL contain the SDK identifier from `#:sdk` directive, or null when not specified. The `langVersion` and `nullable` fields SHALL contain the effective values (marker > config > complog > default), e.g. `"latest"`/`"enable"` by default. `warnings` lists non-fatal problems (failed `#:` resolution, skipped carets, empty completion lists). The `complog` field SHALL contain the complog file path when complog resolution was used, or null otherwise.
 
 #### Scenario: Successful compilation meta
 - **WHEN** compilation succeeds with no unexpected errors
@@ -85,11 +91,23 @@ The `meta` object SHALL contain: `targetFramework` (string), `packages` (array o
 - **THEN** `meta.nullable` is `"disable"`
 
 #### Scenario: Meta without language version or nullable
-- **WHEN** source contains no `// @langVersion` or `// @nullable` markers
-- **THEN** `meta.langVersion` is null and `meta.nullable` is null (or omitted)
+- **WHEN** source contains no `// @langVersion` or `// @nullable` markers and no config values
+- **THEN** `meta.langVersion` is `"latest"` and `meta.nullable` is `"enable"`
+
+#### Scenario: Meta with complog
+- **WHEN** `--complog build.complog` is used for resolution
+- **THEN** `meta.complog` is `"build.complog"` and `meta.targetFramework` reflects the complog's target framework
+
+#### Scenario: Meta with complog packages
+- **WHEN** complog compilation references NuGet packages `Newtonsoft.Json@13.0.3` and `Serilog@3.1.1`
+- **THEN** `meta.packages` includes both packages extracted from complog metadata
+
+#### Scenario: Meta without complog
+- **WHEN** no `--complog` option is used
+- **THEN** `meta.complog` is null or omitted from the JSON output
 
 ### Requirement: Empty arrays for unused fields
-Fields without data (`completions`, `highlights`, `tags`, `hidden`) SHALL be present as empty arrays, not omitted. When directive markers are present, the `highlights` array SHALL contain `GloSharpHighlight` objects instead of being empty. When custom tag directives are present, the `tags` array SHALL contain `GloSharpTag` objects instead of being empty.
+Fields without data (`completions`, `highlights`, `tags`, `hidden`, `hiddenErrors`, `meta.warnings`) SHALL be present as empty arrays, not omitted. `hidden` SHALL contain one `{line, sourceStartLine, sourceEndLine}` object per run of hidden input lines: `line` is the processed line the hidden block sits before, `sourceStartLine`/`sourceEndLine` are inclusive 0-based lines in the original input. When directive markers are present, the `highlights` array SHALL contain `GloSharpHighlight` objects instead of being empty. When custom tag directives are present, the `tags` array SHALL contain `GloSharpTag` objects instead of being empty.
 
 #### Scenario: No completions in output
 - **WHEN** source has no `^|` markers
@@ -154,3 +172,4 @@ Each tag entry SHALL contain: `name` (string, one of `"log"`, `"warn"`, `"error"
 #### Scenario: Multiple tags in output
 - **WHEN** source contains `// @warn: deprecated` and `// @annotate: use v2 instead` on different lines
 - **THEN** the `tags` array contains two entries with correct name, text, and line values
+

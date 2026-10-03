@@ -1,3 +1,9 @@
+# config-lang-nullable Specification
+
+## Purpose
+Configure default language version and nullable context in the config file.
+
+## Requirements
 ### Requirement: Config-level langVersion default
 The system SHALL read the `langVersion` string property from `glosharp.config.json` and use it as the default language version for all code blocks. Per-block `@langVersion` markers SHALL override the config value.
 

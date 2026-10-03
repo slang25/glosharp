@@ -5,107 +5,222 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  # The publish workflows call this so nothing ships without a green run.
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  # github.workflow is the caller's name under workflow_call, so publish runs
+  # never share (and cancel) a group with push/PR runs.
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  # .NET 8: the CLI and test runtime. .NET 10: the SDK global.json asks for
+  # (.slnx, the Microsoft.Testing.Platform `dotnet test` runner) and the one
+  # file-based-app (#:package / #:sdk) tests need.
+  DOTNET_VERSIONS: |
+    8.0.x
+    10.0.x
 
 jobs:
-  dotnet-build-and-test:
-    name: .NET Build & Test
-    runs-on: ubuntu-latest
+  dotnet:
+    name: .NET build & test (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    # Fail a hung run quickly instead of holding a runner for the 6 h default
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5.4.0
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: ${{ env.DOTNET_VERSIONS }}
+          # No NuGet package cache: on macOS, runs that restored it kept wedging the
+          # runner during the tests (no log, step timeout never fired), while runs with
+          # a fresh package folder passed. Restore only takes seconds without it.
 
-      - name: Restore dependencies
+      - name: Restore
         run: dotnet restore
 
       - name: Restore test fixtures
         run: dotnet restore tests/GloSharp.Tests/fixtures/sample-project/SampleProject.csproj
 
       - name: Build
-        run: dotnet build --no-restore
+        run: dotnet build --no-restore -c Release
 
+      # global.json opts `dotnet test` into Microsoft.Testing.Platform (TUnit).
+      # --hangdump: if the run stops making progress, list the tests in flight and write a
+      # dump instead of being cancelled by the job timeout (which discards the log).
       - name: Test
-        run: dotnet run --project tests/GloSharp.Tests/
+        timeout-minutes: 20
+        run: >-
+          dotnet test --no-build -c Release --report-trx --results-directory TestResults
+          --hangdump --hangdump-timeout 8m --hangdump-type Mini
 
-  node-build-and-test:
-    name: Node Build & Test
-    runs-on: ubuntu-latest
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dotnet-test-results-${{ matrix.os }}
+          path: TestResults/
+          retention-days: 14
+
+  node:
+    name: Node packages (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    # Fail a hung run quickly instead of holding a runner for the 6 h default
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5.4.0
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: ${{ env.DOTNET_VERSIONS }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version: '24'
+          cache: npm
+
+      # src/Directory.Build.props is the one version; the npm packages, their
+      # @glosharp/* pins, package-lock.json and @glosharp/core's expected CLI
+      # version must match it (`npm run version:set <v>` keeps them in step).
+      - name: Check versions are in step
+        run: node scripts/version.mjs check
+
+      - name: Install glosharp CLI from source
+        uses: ./.github/actions/glosharp-cli-from-source
 
       - name: Install dependencies
         run: npm ci
 
       - name: Build packages
-        run: |
-          npm run build -w @glosharp/core
-          npm run build -w @glosharp/shiki
-          npm run build -w @glosharp/expressive-code
-          npm run build -w @glosharp/gitbook
+        run: npm run build
 
-      - name: GitBook package tests
-        run: npm test -w @glosharp/gitbook
+      - name: Package tests
+        run: npm test
+
+      - name: Check package tarballs
+        run: node .github/scripts/check-pack.mjs
 
       - name: GitBook integration typecheck
+        if: runner.os == 'Linux'
         run: npm run typecheck:integration -w @glosharp/gitbook
 
       - name: GitBook integration manifest check
+        if: runner.os == 'Linux'
         run: npm run gitbook:check -w @glosharp/gitbook
         env:
           GLOSHARP_GITBOOK_ORG: ci
 
       - name: E2E tests
-        run: npm test --workspace=tests/e2e
+        if: runner.os == 'Linux'
+        run: npm test -w tests/e2e
 
       - name: Rendering fixture drift check
-        run: npm run fixtures:check --workspace=tests/rendering
+        if: runner.os == 'Linux'
+        run: npm run fixtures:check -w tests/rendering
 
-  web-rendering:
-    name: Web Rendering
+  docs:
+    name: Docs, website & examples
     runs-on: ubuntu-latest
+    # Fail a hung run quickly instead of holding a runner for the 6 h default
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      # Intentionally no .NET setup: the rendering gallery and its Playwright
-      # suite run entirely from committed fixtures.
+      - name: Setup .NET
+        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5.4.0
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSIONS }}
+
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version: '24'
+          cache: npm
+
+      - name: Install glosharp CLI from source
+        uses: ./.github/actions/glosharp-cli-from-source
 
       - name: Install dependencies
         run: npm ci
 
       - name: Build packages
+        run: npm run build
+
+      # Every snippet we publish has to compile (or declare its errors).
+      - name: Verify documentation snippets
+        run: npm run verify:docs
+
+      - name: Build website
+        run: npm run build -w website
+
+      - name: Build examples
         run: |
-          npm run build -w @glosharp/core
-          npm run build -w @glosharp/shiki
-          npm run build -w @glosharp/expressive-code
-          npm run build -w @glosharp/gitbook
+          npm run build -w examples/astro-blog
+          npm run build -w examples/expressive-code
+          npm run build -w examples/docusaurus-docs
+          npm run render -w examples/standalone
+
+      # Integrations fall back to plain code when the CLI fails, so a green
+      # build alone proves nothing.
+      - name: Assert rendered output contains hovers
+        run: >-
+          node .github/scripts/assert-rendered.mjs
+          website/dist
+          examples/astro-blog/dist
+          examples/expressive-code/dist
+          examples/docusaurus-docs/build
+          examples/standalone/output.html
+
+  web-rendering:
+    name: Web rendering
+    runs-on: ubuntu-latest
+    # Fail a hung run quickly instead of holding a runner for the 6 h default
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Intentionally no .NET setup: the rendering gallery and its Playwright
+      # suite run entirely from committed fixtures.
+      - name: Setup Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build packages
+        run: npm run build
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium firefox
         working-directory: tests/rendering
 
       - name: Rendering invariants
-        run: npm test --workspace=tests/rendering
+        run: npm test -w tests/rendering
 
       - name: Upload Playwright report
         if: failure()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: playwright-report
           path: |

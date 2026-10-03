@@ -1,6 +1,29 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended"
+    "config:recommended",
+    "helpers:pinGitHubActionDigests"
+  ],
+  "packageRules": [
+    {
+      "description": "Roslyn packages must move together",
+      "matchPackageNames": ["Microsoft.CodeAnalysis*"],
+      "groupName": "Roslyn"
+    },
+    {
+      "description": "Astro and Expressive Code release in step across the website and examples",
+      "matchPackageNames": ["astro", "@astrojs/**", "astro-expressive-code", "expressive-code", "@expressive-code/**"],
+      "groupName": "Astro and Expressive Code"
+    },
+    {
+      "description": "Keep TypeScript on one version across packages, tests and examples",
+      "matchPackageNames": ["typescript"],
+      "groupName": "TypeScript"
+    },
+    {
+      "description": "Our own packages are workspace links, versioned by scripts/version.mjs",
+      "matchPackageNames": ["@glosharp/**", "GloSharp.Cli", "GloSharp.Core"],
+      "enabled": false
+    }
   ]
 }

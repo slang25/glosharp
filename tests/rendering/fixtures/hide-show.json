@@ -1,9 +1,9 @@
 {
   "sample": "hide-show.cs",
-  "source": "// @noErrors\nvar x = 10;\n// ---cut-start---\nvar helper = x * 2;\n// ---cut-end---\nConsole.WriteLine(x);\n//                ^?\n",
+  "source": "var x = 10;\n// ---cut-start---\nvar helper = x * 2;\n// ---cut-end---\nConsole.WriteLine(x);\n//                ^?\n",
   "result": {
     "code": "var x = 10;\nConsole.WriteLine(x);\n",
-    "original": "// @noErrors\nvar x = 10;\n// ---cut-start---\nvar helper = x * 2;\n// ---cut-end---\nConsole.WriteLine(x);\n//                ^?\n",
+    "original": "var x = 10;\n// ---cut-start---\nvar helper = x * 2;\n// ---cut-end---\nConsole.WriteLine(x);\n//                ^?\n",
     "lang": "csharp",
     "hovers": [
       {
@@ -243,11 +243,21 @@
     "completions": [],
     "highlights": [],
     "tags": [],
-    "hidden": [],
+    "hidden": [
+      {
+        "line": 1,
+        "sourceStartLine": 1,
+        "sourceEndLine": 3
+      }
+    ],
+    "hiddenErrors": [],
     "meta": {
       "targetFramework": "net8.0",
       "packages": [],
-      "compileSucceeded": true
+      "compileSucceeded": true,
+      "langVersion": "latest",
+      "nullable": "enable",
+      "warnings": []
     }
   }
 }

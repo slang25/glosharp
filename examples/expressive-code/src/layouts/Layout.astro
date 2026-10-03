@@ -1,9 +1,11 @@
 ---
 interface Props {
-  title: string
+  title?: string
+  frontmatter?: { title?: string }
 }
 
-const { title } = Astro.props
+// Pages pass `title`; Markdown posts using `layout:` pass their frontmatter.
+const { title = Astro.props.frontmatter?.title ?? 'C# Blog' } = Astro.props
 ---
 
 <!doctype html>

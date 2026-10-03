@@ -1,65 +1,41 @@
-import { createHash } from 'node:crypto'
-import { processGloSharpBlocks, transformerGloSharpWithResult } from '@glosharp/shiki'
+import { processGloSharpBlocks, transformerGloSharpFromMap } from '@glosharp/shiki'
 import { visit } from 'unist-util-visit'
 
 /**
- * Shared state: remark plugin stores results here, Shiki transformer reads them.
- * Keyed by the original code string.
+ * Results shared between the two halves of the integration. The remark plugin
+ * fills it; the Shiki transformer reads it. Keys are hashes of the code block
+ * text, so identical blocks (on one page or across pages) share one result.
  */
-export const glosharpResults = new Map()
+const results = new Map()
+
+const CSHARP = new Set(['csharp', 'cs', 'c#'])
 
 /**
- * Remark plugin that pre-processes C# code blocks containing glosharp markers.
- * Must run before Shiki so the results are available in the synchronous transformer.
+ * Shiki transforms synchronously, but glosharp has to run the C# compiler, so
+ * the work happens one step earlier: this remark plugin collects the C# code
+ * blocks of each Markdown file and processes them in one batch before Shiki
+ * runs.
+ *
+ * @param {import('@glosharp/shiki').TransformerGloSharpOptions} [options]
  */
-export function remarkGloSharp() {
+export function remarkGloSharp(options = {}) {
   return async (tree) => {
-    const codeNodes = []
+    const blocks = []
     visit(tree, 'code', (node) => {
-      if ((node.lang === 'csharp' || node.lang === 'cs') && node.value) {
-        codeNodes.push(node)
-      }
+      if (CSHARP.has(node.lang) && node.value) blocks.push(node.value)
     })
+    if (blocks.length === 0) return
 
-    if (codeNodes.length === 0) return
-
-    // One batch call shares a single glosharp instance -- and its result cache --
-    // across every block and processes them concurrently, rather than spawning a
-    // fresh instance per block and awaiting each in turn.
-    const resultMap = await processGloSharpBlocks(codeNodes.map(node => node.value))
-
-    for (const node of codeNodes) {
-      // Hash the original source: processGloSharpBlocks keys results by the code
-      // it was handed, so this has to happen before node.value is overwritten.
-      const hash = createHash('sha256').update(node.value).digest('hex')
-      const result = resultMap.get(hash)
-      if (result) {
-        node.value = result.code
-        glosharpResults.set(result.code, result)
-      }
-    }
+    const batch = await processGloSharpBlocks(blocks, options)
+    for (const [hash, result] of batch) results.set(hash, result)
   }
 }
 
 /**
- * Shiki transformer that applies glosharp hover/error annotations.
- * Looks up pre-computed results from the remark plugin.
+ * The Shiki transformer: looks each code block up in the shared results, swaps
+ * in the processed code (markers removed) and adds hovers, errors and
+ * completions. Blocks that weren't processed pass through untouched.
  */
 export function glosharpTransformer() {
-  return {
-    name: 'glosharp',
-    preprocess(code) {
-      const result = glosharpResults.get(code)
-      if (result) {
-        this.__glosharpResult = result
-        glosharpResults.delete(code)
-      }
-    },
-    root(hast) {
-      if (!this.__glosharpResult) return
-      const inner = transformerGloSharpWithResult(this.__glosharpResult)
-      inner.root.call(this, hast)
-      this.__glosharpResult = undefined
-    },
-  }
+  return transformerGloSharpFromMap(results)
 }

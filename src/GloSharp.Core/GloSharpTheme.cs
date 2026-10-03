@@ -4,6 +4,9 @@ public record GloSharpTheme
 {
     public required string Name { get; init; }
 
+    /// <summary>CSS <c>color-scheme</c> of the theme: <c>dark</c> or <c>light</c>.</summary>
+    public string ColorScheme { get; init; } = "dark";
+
     // Base colors
     public required string Background { get; init; }
     public required string Foreground { get; init; }
@@ -27,6 +30,10 @@ public record GloSharpTheme
     // Info colors
     public required string InfoColor { get; init; }
     public required string InfoBackground { get; init; }
+
+    // Custom tag (@annotate) colors; @log, @warn and @error reuse the severity colors
+    public string AnnotateColor { get; init; } = "#b180d7";
+    public string AnnotateBackground { get; init; } = "rgba(177, 128, 215, 0.12)";
 
     // Highlight colors
     public required string HighlightBackground { get; init; }
@@ -60,6 +67,7 @@ public record GloSharpTheme
     public static readonly GloSharpTheme GithubDark = new()
     {
         Name = "github-dark",
+        ColorScheme = "dark",
         Background = "#0d1117",
         Foreground = "#e6edf3",
         TokenColors = new Dictionary<string, string>
@@ -94,6 +102,8 @@ public record GloSharpTheme
         WarningBackground = "rgba(210, 153, 34, 0.15)",
         InfoColor = "#539bf5",
         InfoBackground = "rgba(83, 155, 245, 0.15)",
+        AnnotateColor = "#bc8cff",
+        AnnotateBackground = "rgba(188, 140, 255, 0.12)",
         HighlightBackground = "rgba(173, 124, 255, 0.15)",
         FocusDimOpacity = "0.4",
         DiffAddBackground = "rgba(46, 160, 67, 0.15)",
@@ -105,6 +115,7 @@ public record GloSharpTheme
     public static readonly GloSharpTheme GithubLight = new()
     {
         Name = "github-light",
+        ColorScheme = "light",
         Background = "#ffffff",
         Foreground = "#1f2328",
         TokenColors = new Dictionary<string, string>
@@ -139,6 +150,8 @@ public record GloSharpTheme
         WarningBackground = "rgba(154, 103, 0, 0.15)",
         InfoColor = "#0969da",
         InfoBackground = "rgba(9, 105, 218, 0.15)",
+        AnnotateColor = "#8250df",
+        AnnotateBackground = "rgba(130, 80, 223, 0.1)",
         HighlightBackground = "rgba(139, 90, 230, 0.12)",
         FocusDimOpacity = "0.4",
         DiffAddBackground = "rgba(46, 160, 67, 0.12)",

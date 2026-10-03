@@ -1,5 +1,15 @@
 import { describe, it, expect } from 'vitest'
-import { DEFAULT_THEMES, renderFrameShell } from '../src/frame.js'
+import { createHash } from 'node:crypto'
+import { DEFAULT_THEMES, renderFrameShell, sha256Base64 } from '../src/frame.js'
+
+describe('sha256Base64', () => {
+  it.each(['', 'abc', 'é漢🎉', 'x'.repeat(55), 'x'.repeat(56), 'x'.repeat(64), 'y'.repeat(1000)])(
+    'matches node:crypto for %#',
+    (input) => {
+      expect(sha256Base64(input)).toBe(createHash('sha256').update(input, 'utf8').digest('base64'))
+    },
+  )
+})
 import { AUTO_THEME, normalizeArtifactsUrl } from '../src/config.js'
 
 describe('renderFrameShell', () => {
@@ -68,6 +78,42 @@ describe('renderFrameShell', () => {
 
     expect(custom).toContain('calc(100vw - 40px)')
     expect(custom).toContain('var EDGE = 20')
+  })
+
+  it('allows only its own script to run, by hash (CSP)', () => {
+    const script = /<script>([\s\S]*)<\/script>/.exec(shell)![1]
+    const hash = createHash('sha256').update(script, 'utf8').digest('base64')
+    const csp = /http-equiv="Content-Security-Policy" content="([^"]+)"/.exec(shell)![1]
+
+    expect(csp).toContain(`script-src 'sha256-${hash}'`)
+    expect(csp).toContain("default-src 'none'")
+    expect(csp).toContain("connect-src 'self' https:")
+    expect(csp).not.toContain('unsafe-eval')
+  })
+
+  it('ignores messages that do not come from the embedding page', () => {
+    expect(shell).toContain('if (event.source !== window.parent || window.parent === window) return;')
+  })
+
+  it('inserts fetched fragments through DOMParser, dropping active content, never via innerHTML', () => {
+    expect(shell).toContain("new DOMParser().parseFromString(html, 'text/html')")
+    expect(shell).toContain('if (html) insertFragment(html);')
+    expect(shell).not.toMatch(/innerHTML\s*=\s*html/)
+  })
+
+  it('accepts only plain theme names from the host', () => {
+    const safeTheme = new Function(
+      `${/function safeTheme\(theme\) \{[\s\S]*?\n  \}/.exec(shell)![0]}; return safeTheme`,
+    )() as (t: unknown) => string
+    expect(safeTheme('github-light')).toBe('github-light')
+    expect(safeTheme('../../x')).toBe('auto')
+    expect(safeTheme('a/b')).toBe('auto')
+    expect(safeTheme(42)).toBe('auto')
+  })
+
+  it('names the artifact it looked for when a lookup misses', () => {
+    expect(shell).toContain("console.warn('Glo#: no artifact at '")
+    expect(shell).toContain('(looked for ')
   })
 
   it('does not break out of its own script element', () => {

@@ -1,7 +1,13 @@
-## ADDED Requirements
+# auto-hover-extraction Specification
 
+## Purpose
+Produce hover information for every meaningful token, with `^?` queries marked persistent.
+
+## Requirements
 ### Requirement: Extract hovers for all semantically meaningful tokens
-The system SHALL walk all descendant tokens in the syntax tree and extract hover data for every token that resolves to a symbol via `GetSymbolInfo()` or `GetDeclaredSymbol()`. Tokens that do not resolve to any symbol SHALL be skipped. When a symbol is resolved only via the parent-walk fallback (walking up parent nodes to find a declared symbol), the system SHALL discard it if the token is a C# keyword, since keyword tokens have no meaningful symbol of their own and the parent-walk produces misleading hover info (e.g., the containing method).
+The system SHALL walk all descendant tokens in the syntax tree and extract hover data for tokens on an allow-list that carry their own symbol: identifier tokens (including contextual keywords such as `var`), predefined type keywords (`int`, `string`, ...), `this`/`base`, and the `new` of target-typed (`new()`) and anonymous object creation. Every other token — operators, punctuation, literals and statement keywords — SHALL be skipped; such tokens SHALL NOT borrow the hover of an enclosing call, declaration or member access.
+
+A token's symbol SHALL be resolved from its own syntax node via `GetSymbolInfo()` (falling back to the first candidate symbol) or `GetDeclaredSymbol()`. The only parent walk allowed is from a name inside `NameEquals`/`NameColon` to the node it labels (anonymous type members, named tuple elements). `this`/`base` show the type they refer to.
 
 #### Scenario: Auto-hover on local variable
 - **WHEN** source contains `var x = 42;` with no `^?` marker
@@ -75,3 +81,18 @@ When a token has both an auto-extracted hover and a `^?`-triggered persistent ho
 #### Scenario: Persistent hover takes precedence
 - **WHEN** source contains `var x = 42;` followed by `//  ^?` targeting `x`
 - **THEN** the output contains exactly one hover for `x` with `persistent: true`
+
+#### Scenario: No hover for operators inside a call
+- **WHEN** source contains `Console.WriteLine(1 + 2);` and `var c = a * b;`
+- **THEN** there are no hovers for `+` or `*` (previously they showed the enclosing `WriteLine` and `c`)
+
+#### Scenario: Unresolved identifier does not borrow its declarator
+- **WHEN** source contains `int total = missing;` (with `@noErrors`)
+- **THEN** there is no hover for `missing` (previously it showed `total`)
+
+### Requirement: LINQ range variables
+Range variables SHALL be displayed as `(range variable) <type> <name>` with `symbolKind` `"Local"`, both at their declaration (`from p in people`) and at every usage. The type comes from the usage's type info, or for an unused declaration from the clause (`from`/`join` element type, `let` expression type).
+
+#### Scenario: Range variable declaration
+- **WHEN** source contains `from p in people` where `people` is `(string, int)[]` and a `^?` marker targets `p`
+- **THEN** the hover text is `(range variable) (string, int) p` (previously the enclosing variable, or `? p`)

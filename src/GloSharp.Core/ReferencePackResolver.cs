@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.IO.Compression;
 
 namespace GloSharp.Core;
@@ -60,15 +61,21 @@ public interface IPackSource
 }
 
 /// <summary>
-/// Locates targeting packs through an ordered chain of sources. The installed SDK's
-/// packs directory is deliberately not part of the default chain: its bytes are not
-/// canonical (they differ from the NuGet-channel bytes in signing, and some assemblies
-/// are different builds entirely), so pointer hashes could never verify against them.
+/// Locates targeting packs through an ordered chain of sources.
+/// <para>
+/// The installed SDK's <c>packs/</c> directory is only consulted when <em>reading</em> a
+/// .glocontext (<see cref="CreateForReading"/>), never for compaction: its bytes are not
+/// guaranteed to be canonical (source-built or re-signed SDKs differ from the NuGet-channel
+/// packs), so a compactor must never record its hash. A reader can use it safely because
+/// every located pack is verified against the manifest's content hash, and a candidate that
+/// does not match is skipped in favour of the next source
+/// (see <see cref="Locate(PackIdentity, Func{string, bool})"/>).
+/// </para>
 /// </summary>
 public sealed class ReferencePackResolver
 {
     private readonly IReadOnlyList<IPackSource> _sources;
-    private readonly Dictionary<PackIdentity, string?> _located = new();
+    private readonly ConcurrentDictionary<PackIdentity, string?> _located = new();
 
     public ReferencePackResolver(IReadOnlyList<IPackSource> sources)
     {
@@ -77,6 +84,10 @@ public sealed class ReferencePackResolver
         _sources = sources;
     }
 
+    /// <summary>
+    /// The canonical chain used by the compactor: NuGet global packages folder, glosharp
+    /// pack cache, then (optionally) a nuget.org download.
+    /// </summary>
     public static ReferencePackResolver CreateDefault(bool allowDownload = true)
     {
         var cacheRoot = GloSharpCacheRoot();
@@ -85,6 +96,26 @@ public sealed class ReferencePackResolver
             new DirectoryPackSource(GlobalPackagesFolder(), "NuGet global packages folder"),
             new DirectoryPackSource(cacheRoot, "glosharp pack cache"),
         };
+        if (allowDownload)
+            sources.Add(new NuGetDownloadSource(cacheRoot));
+        return new ReferencePackResolver(sources);
+    }
+
+    /// <summary>
+    /// The chain used when reading a .glocontext: <see cref="CreateDefault"/> plus the
+    /// installed SDK's <c>packs/</c> directory, consulted before any download. A machine whose
+    /// SDK ships the exact pack therefore needs no network, provided its bytes hash-verify.
+    /// </summary>
+    public static ReferencePackResolver CreateForReading(bool allowDownload = true)
+    {
+        var cacheRoot = GloSharpCacheRoot();
+        var sources = new List<IPackSource>
+        {
+            new DirectoryPackSource(GlobalPackagesFolder(), "NuGet global packages folder"),
+            new DirectoryPackSource(cacheRoot, "glosharp pack cache"),
+        };
+        if (FrameworkResolver.FindDotnetRoot() is { } dotnetRoot)
+            sources.Add(new InstalledSdkPackSource(dotnetRoot));
         if (allowDownload)
             sources.Add(new NuGetDownloadSource(cacheRoot));
         return new ReferencePackResolver(sources);
@@ -111,33 +142,110 @@ public sealed class ReferencePackResolver
     /// <summary>Returns the pack root directory, or null when no source can supply it.</summary>
     public string? TryLocate(PackIdentity pack)
     {
-        if (_located.TryGetValue(pack, out var cached))
-            return cached;
-
-        string? root = null;
-        foreach (var source in _sources)
+        return _located.GetOrAdd(pack, p =>
         {
-            root = source.TryLocate(pack);
-            if (root != null)
-                break;
-        }
-        _located[pack] = root;
-        return root;
+            foreach (var source in _sources)
+            {
+                var root = source.TryLocate(p);
+                if (root != null)
+                    return root;
+            }
+            return null;
+        });
     }
 
     /// <summary>Returns the pack root directory or throws, enumerating every location consulted.</summary>
     public string Locate(PackIdentity pack)
     {
-        var root = TryLocate(pack);
-        if (root != null)
-            return root;
+        return TryLocate(pack) ?? throw NotFound(pack);
+    }
 
+    /// <summary>
+    /// Returns the first pack root, trying sources in order, that <paramref name="accept"/>
+    /// approves (e.g. whose contents hash to the expected value). Throws
+    /// <see cref="InvalidDataException"/> when the pack was found but no copy was accepted,
+    /// and <see cref="InvalidOperationException"/> when no source could supply it.
+    /// </summary>
+    public string Locate(PackIdentity pack, Func<string, bool> accept)
+    {
+        var rejected = new List<string>();
+        foreach (var source in _sources)
+        {
+            var root = source.TryLocate(pack);
+            if (root == null)
+                continue;
+            if (accept(root))
+                return root;
+            rejected.Add(root);
+        }
+
+        if (rejected.Count > 0)
+            throw new InvalidDataException(
+                $"Content hash mismatch for targeting pack '{pack}': found at {string.Join(", ", rejected.Select(r => $"'{r}'"))}, " +
+                "but the pack contents do not match what this .glocontext was created against.");
+
+        throw NotFound(pack);
+    }
+
+    private InvalidOperationException NotFound(PackIdentity pack)
+    {
         var searched = string.Join("\n", _sources.Select(s => $"  - {s.Describe(pack)}"));
-        throw new InvalidOperationException(
+        return new InvalidOperationException(
             $"Targeting pack '{pack}' could not be acquired. Locations searched:\n{searched}\n" +
             "Remedies: restore any project targeting this framework (populates the NuGet cache), " +
-            "re-run with network access, or ask the producer to re-create the .glocontext with --self-contained.");
+            "re-run with network access (the pack is then cached under GLOSHARP_CACHE_DIR, which CI can cache), " +
+            "or ask the producer to re-create the .glocontext with --self-contained.");
     }
+
+    /// <summary>
+    /// Finds the XML documentation file for a pack-relative assembly path
+    /// (<c>ref/net10.0/System.Runtime.dll</c> → <c>ref/net10.0/System.Runtime.xml</c>), first in
+    /// <paramref name="preferredRoot"/>, then in every source that has the pack locally. Docs
+    /// are cosmetic and not covered by the pack hash, so any local copy will do. Never downloads.
+    /// </summary>
+    public string? FindDocumentation(PackIdentity pack, string relativeDllPath, string? preferredRoot = null)
+    {
+        var relativeXml = Path.ChangeExtension(relativeDllPath, ".xml").Replace('/', Path.DirectorySeparatorChar);
+        if (preferredRoot != null && File.Exists(Path.Combine(preferredRoot, relativeXml)))
+            return Path.Combine(preferredRoot, relativeXml);
+
+        foreach (var source in _sources)
+        {
+            if (source is NuGetDownloadSource)
+                continue;
+            var root = source.TryLocate(pack);
+            if (root != null && File.Exists(Path.Combine(root, relativeXml)))
+                return Path.Combine(root, relativeXml);
+        }
+        return null;
+    }
+}
+
+/// <summary>
+/// The installed SDK's targeting packs, <c>&lt;dotnet root&gt;/packs/&lt;Id&gt;/&lt;version&gt;</c>,
+/// matched case-insensitively (the SDK uses display casing such as
+/// <c>Microsoft.NETCore.App.Ref</c>; <see cref="PackIdentity"/> is lowercase).
+/// </summary>
+public sealed class InstalledSdkPackSource : IPackSource
+{
+    private readonly string _dotnetRoot;
+
+    public InstalledSdkPackSource(string dotnetRoot)
+    {
+        _dotnetRoot = dotnetRoot;
+    }
+
+    public string? TryLocate(PackIdentity pack)
+    {
+        var packDir = FrameworkResolver.FindChildDirectoryIgnoreCase(Path.Combine(_dotnetRoot, "packs"), pack.Id);
+        if (packDir == null)
+            return null;
+        var versionDir = FrameworkResolver.FindChildDirectoryIgnoreCase(packDir, pack.Version);
+        return versionDir != null && Directory.Exists(Path.Combine(versionDir, "ref")) ? versionDir : null;
+    }
+
+    public string Describe(PackIdentity pack) =>
+        $"installed .NET SDK packs: {Path.Combine(_dotnetRoot, "packs", pack.Id, pack.Version)}";
 }
 
 /// <summary>
@@ -166,7 +274,8 @@ public sealed class DirectoryPackSource : IPackSource
 }
 
 /// <summary>
-/// Downloads the pack's nupkg from nuget.org and extracts only <c>ref/**/*.dll</c>
+/// Downloads the pack's nupkg from nuget.org and extracts only <c>ref/**/*.dll</c> (plus
+/// the XML documentation files beside them)
 /// into the glosharp cache. Extraction goes to a temp directory first and is renamed
 /// into place, so an interrupted download never leaves a partial cache entry.
 /// </summary>
@@ -211,8 +320,10 @@ public sealed class NuGetDownloadSource : IPackSource
                 foreach (var entry in zip.Entries)
                 {
                     var name = entry.FullName.Replace('\\', '/');
+                    // ref DLLs (hash-verified on use) plus the XML docs beside them (for hovers).
                     if (!name.StartsWith("ref/", StringComparison.OrdinalIgnoreCase) ||
-                        !name.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+                        !(name.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) ||
+                          name.EndsWith(".xml", StringComparison.OrdinalIgnoreCase)))
                         continue;
                     if (name.Contains(".."))
                         continue;

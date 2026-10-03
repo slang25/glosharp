@@ -1,43 +1,43 @@
-# Astro Starter Kit: Minimal
+# Glo# website
+
+The project's landing page: an Astro site whose C# examples are rendered by Glo# itself through
+`@glosharp/expressive-code`.
+
+## Layout
+
+| Path | What |
+| --- | --- |
+| `src/pages/index.astro` | The whole page: features, integrations, setup tabs, marker reference |
+| `src/examples/*.cs` | The C# examples. Each feature card renders one of these files, and its "Source" tab shows the same file. |
+| `ec.config.mjs` | Expressive Code config with `pluginGloSharp()` |
+| `astro.config.mjs` | Astro config; reloads the page when an example `.cs` file changes |
+
+## Develop
+
+From the repository root:
 
 ```sh
-npm create astro@latest -- --template minimal
+npm ci
+npm run cli:build
+export GLOSHARP_EXECUTABLE="$PWD/src/GloSharp.Cli/bin/Release/net8.0/GloSharp.Cli"
+
+npm run dev -w website       # http://localhost:4321
+npm run build -w website     # writes website/dist
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+`predev`/`prebuild` build `@glosharp/core` and `@glosharp/expressive-code` first. Without
+`GLOSHARP_EXECUTABLE`, the plugin looks for `glosharp` on `PATH`.
 
-## 🚀 Project Structure
+## Rules for examples
 
-Inside of your Astro project, you'll see the following folders and files:
+- Every file in `src/examples/` must pass `glosharp verify` (`npm run verify:website` from the
+  root; CI runs it). Declare intended errors with `// @errors:`; don't hide them with
+  `@noErrors` or `@suppressErrors`.
+- Code shown on the page (setup snippets, the marker reference) must match the current packages
+  and CLI. When an API changes, update it here too.
 
-```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
-```
+## Deploy
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
-
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
-
-Any static assets, like images, can be placed in the `public/` directory.
-
-## 🧞 Commands
-
-All commands are run from the root of the project, from a terminal:
-
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+`.github/workflows/deploy-website.yml` builds the site and deploys `website/dist` to Cloudflare
+Pages after CI passes on `main`. It installs the CLI from source, so the site always reflects the
+current code.

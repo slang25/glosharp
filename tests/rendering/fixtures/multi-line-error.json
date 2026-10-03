@@ -1,9 +1,9 @@
 {
   "sample": "multi-line-error.cs",
-  "source": "int total = \"hello\" +\n    \" world\" +\n    \"!\";\n",
+  "source": "// @errors: CS0029\nint total = \"hello\" +\n    \" world\" +\n    \"!\";\n",
   "result": {
     "code": "int total = \"hello\" +\n    \" world\" +\n    \"!\";\n",
-    "original": "int total = \"hello\" +\n    \" world\" +\n    \"!\";\n",
+    "original": "// @errors: CS0029\nint total = \"hello\" +\n    \" world\" +\n    \"!\";\n",
     "lang": "csharp",
     "hovers": [
       {
@@ -79,82 +79,6 @@
         ],
         "symbolKind": "Local",
         "targetText": "total"
-      },
-      {
-        "line": 0,
-        "character": 20,
-        "length": 1,
-        "text": "(local variable) int total",
-        "parts": [
-          {
-            "kind": "punctuation",
-            "text": "("
-          },
-          {
-            "kind": "text",
-            "text": "local variable"
-          },
-          {
-            "kind": "punctuation",
-            "text": ")"
-          },
-          {
-            "kind": "space",
-            "text": " "
-          },
-          {
-            "kind": "keyword",
-            "text": "int"
-          },
-          {
-            "kind": "space",
-            "text": " "
-          },
-          {
-            "kind": "localName",
-            "text": "total"
-          }
-        ],
-        "symbolKind": "Local",
-        "targetText": "+"
-      },
-      {
-        "line": 1,
-        "character": 13,
-        "length": 1,
-        "text": "(local variable) int total",
-        "parts": [
-          {
-            "kind": "punctuation",
-            "text": "("
-          },
-          {
-            "kind": "text",
-            "text": "local variable"
-          },
-          {
-            "kind": "punctuation",
-            "text": ")"
-          },
-          {
-            "kind": "space",
-            "text": " "
-          },
-          {
-            "kind": "keyword",
-            "text": "int"
-          },
-          {
-            "kind": "space",
-            "text": " "
-          },
-          {
-            "kind": "localName",
-            "text": "total"
-          }
-        ],
-        "symbolKind": "Local",
-        "targetText": "+"
       }
     ],
     "errors": [
@@ -167,17 +91,23 @@
         "code": "CS0029",
         "message": "Cannot implicitly convert type 'string' to 'int'",
         "severity": "error",
-        "expected": false
+        "expected": true,
+        "sourceLine": 1,
+        "sourceCharacter": 12
       }
     ],
     "completions": [],
     "highlights": [],
     "tags": [],
     "hidden": [],
+    "hiddenErrors": [],
     "meta": {
       "targetFramework": "net8.0",
       "packages": [],
-      "compileSucceeded": false
+      "compileSucceeded": true,
+      "langVersion": "latest",
+      "nullable": "enable",
+      "warnings": []
     }
   }
 }

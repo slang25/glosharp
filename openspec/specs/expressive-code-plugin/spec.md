@@ -1,32 +1,60 @@
-## ADDED Requirements
+# expressive-code-plugin Specification
 
+## Purpose
+The `@glosharp/expressive-code` plugin that renders glosharp results in Expressive Code.
+
+## Requirements
 ### Requirement: Export plugin factory function
-The package SHALL export a `pluginGloSharp()` function that returns an Expressive Code plugin object with `preprocessCode`, `annotateCode`, and `postprocessRenderedBlock` hooks.
+The package SHALL export a `pluginGloSharp()` function that returns an Expressive Code plugin object (typed as EC's `ExpressiveCodePlugin`, built with `definePlugin`) with `preprocessCode` and `annotateCode` hooks, a `PluginStyleSettings` instance as `styleSettings`, `baseStyles`, and a `jsModules` entry. The returned object SHALL type-check wherever EC accepts a plugin (e.g. a `// @ts-check` `ec.config.mjs` using `defineEcConfig`).
 
 #### Scenario: Register plugin with Starlight
 - **WHEN** `pluginGloSharp()` is added to Starlight's `expressiveCode.plugins` array
 - **THEN** the plugin hooks are called during EC's rendering pipeline
 
+#### Scenario: Typed EC config
+- **WHEN** `astro check` runs on a typed `ec.config.mjs` containing `defineEcConfig({ plugins: [pluginGloSharp()] })`
+- **THEN** no type error is reported for the plugin
+
 ### Requirement: Process code in preprocessCode hook
-The `preprocessCode` hook SHALL detect C# code blocks with glosharp markers, invoke the CLI via the bridge, store the result, and modify the code to remove marker lines before tokenization.
+The `preprocessCode` hook SHALL invoke the CLI via the bridge for every block selected for processing, store the result, and update the block's code to the processed code before tokenization. Lines that survive processing SHALL keep their existing `ExpressiveCodeLine` objects: only removed lines (markers, directives, cut sections) SHALL be deleted, and any line without a counterpart SHALL be inserted. Other plugins' line-bound metadata (EC line markers such as `{1-3}`, `ins={…}`, `del={…}`, and `collapse={…}` sections) therefore keeps applying, with line ranges counted on the source as written. Trailing carriage returns SHALL be removed from line text.
 
 #### Scenario: Marker removal before tokenization
 - **WHEN** a C# code block with `^?` markers enters the EC pipeline
 - **THEN** the preprocessCode hook strips markers and the code is tokenized as clean C#
 
+#### Scenario: Line markers survive marker removal
+- **WHEN** a block with meta `{3}` has a `^?` marker on source line 2
+- **THEN** the rendered line holding source line 3 carries EC's `mark` styling
+
+#### Scenario: Collapsible sections survive marker removal
+- **WHEN** a block with `collapse={5-6}` is processed and `@expressive-code/plugin-collapsible-sections` is registered
+- **THEN** the rendered block contains one collapsible section holding source lines 5 and 6
+
 ### Requirement: Add hover annotations in annotateCode hook
-The `annotateCode` hook SHALL create `GloSharpHoverAnnotation` instances for each hover in the glosharp result, targeting the correct token via `inlineRange`.
+The `annotateCode` hook SHALL create `GloSharpHoverAnnotation` instances for each non-persistent hover in the glosharp result, targeting the correct token via `inlineRange`. The first hover token of a block in document order SHALL be rendered with `tabindex="0"` and every other hover token with `tabindex="-1"` (roving tab stop).
 
 #### Scenario: Hover annotation created
 - **WHEN** the glosharp result contains a hover at line 0, character 4, length 8
 - **THEN** an annotation is added targeting line 0 with `inlineRange` from column 4 to 12
 
+#### Scenario: One tab stop per block
+- **WHEN** a block with three hover tokens is rendered
+- **THEN** the first token in document order has `tabindex="0"` and the others `tabindex="-1"`
+
 ### Requirement: Add error annotations in annotateCode hook
-The `annotateCode` hook SHALL create `GloSharpErrorAnnotation` instances for error underlines and error message display. Annotations SHALL carry the diagnostic severity and apply severity-specific styling: error (red), warning (yellow/amber), info (blue). When a diagnostic spans multiple lines, underline annotations SHALL be created for each affected line. Every error annotation render function — including the message-only annotation placed on the last line of a multi-line span — SHALL return exactly as many nodes as it receives, nesting the message box inside a wrapper node rather than appending it as an extra sibling.
+The `annotateCode` hook SHALL render every diagnostic in the result's `errors` (except severity `hidden`), including diagnostics marked `expected` via `@errors`. Expected diagnostics SHALL carry the additional class `glosharp-error-expected`. Each diagnostic SHALL get an inline wavy underline (`text-decoration-style: wavy`; a wavy `border` is invalid CSS) on every affected line, and exactly one message box rendered as block content after the last affected line — never inside the underline or the code line, so the code line is never split. Zero-width diagnostics SHALL underline an adjacent character. Annotations SHALL carry the diagnostic severity and apply severity-specific styling: error (red), warning (yellow/amber), info (blue).
 
 #### Scenario: Error annotation created
 - **WHEN** the glosharp result contains an error at line 3
-- **THEN** an inline error underline annotation and a block error message annotation are added for that line
+- **THEN** line 3 gets an inline underline, and a message box is rendered after line 3
+
+#### Scenario: Code line is not split
+- **WHEN** an error covers `missingVar` in `Console.WriteLine(missingVar);`
+- **THEN** the rendered `.ec-line` contains the whole statement and the message box is outside it
+
+#### Scenario: Expected errors are shown
+- **WHEN** a block contains `// @errors: CS0029` and the CS0029 diagnostic occurs
+- **THEN** the underline and message are rendered with the `glosharp-error-expected` class
 
 #### Scenario: Warning annotation uses amber styling
 - **WHEN** the glosharp result contains a warning diagnostic at line 5
@@ -34,14 +62,10 @@ The `annotateCode` hook SHALL create `GloSharpErrorAnnotation` instances for err
 
 #### Scenario: Multi-line error annotation
 - **WHEN** the glosharp result contains a diagnostic spanning lines 2-4
-- **THEN** underline annotations are created for lines 2, 3, and 4, and the error message annotation is placed on line 4
+- **THEN** underline annotations are created for lines 2, 3, and 4, and the error message is placed after line 4
 
-#### Scenario: Multi-line message render is EC-core valid
-- **WHEN** a block containing a multi-line diagnostic is rendered through the Expressive Code engine
-- **THEN** rendering completes without EC core rejecting the annotation output, and the message box appears after the last affected line
-
-### Requirement: Inject popup HTML in postprocessRenderedBlock
-The `postprocessRenderedBlock` hook SHALL inject hover popup HTML containers into the rendered output. Popup content SHALL include structured doc sections when available: summary text, a parameter list, return description, remarks, examples, and exception list. Each section SHALL be rendered in a distinct styled container.
+### Requirement: Popup content in hover annotations
+Each hover annotation SHALL render the token wrapped in `span.glosharp-hover` together with a hidden `div.glosharp-popup-container` holding the popup content. Popup content SHALL include structured doc sections when available: summary text, a parameter list, return description, remarks, examples, and exception list. Each section SHALL be rendered in a distinct styled container.
 
 #### Scenario: Popup with summary only
 - **WHEN** a hover has `docs` with only `summary` populated
@@ -59,12 +83,15 @@ The `postprocessRenderedBlock` hook SHALL inject hover popup HTML containers int
 - **WHEN** a hover has `docs` as null
 - **THEN** the popup renders only the type signature code, with no docs section
 
-#### Scenario: Popup container injected
-- **WHEN** rendering completes for a code block with hover annotations
-- **THEN** the rendered HTML contains popup `<div>` elements with absolute positioning and structured display parts content
+### Requirement: Well-formed HAST output
+All annotation render functions SHALL build their output with hastscript (`h()` / `s()`) so the rendered tree contains no `root` node below the top level — including when overlapping annotations make EC pass `root` fragments as `nodesToTransform` — and all class names are set through `className`. Every render function SHALL return exactly as many nodes as it receives.
+
+#### Scenario: Error overlapping hovered tokens
+- **WHEN** `int y = DateTime.Now;` is rendered with hovers on `DateTime` and `Now` and an error spanning `DateTime.Now`
+- **THEN** the rendered tree contains no nested `root` node and builds under Astro 7.3's Sätteri markdown processor
 
 ### Requirement: JavaScript-driven popup visibility
-The plugin SHALL inject a JavaScript module via `jsModules` to manage hover popup visibility. The JS module SHALL handle showing/hiding popups on mouseenter/mouseleave, reparenting popup containers to the EC root element for correct absolute positioning, and re-triggering fade-in animations. The module SHALL support Astro view transitions by re-initializing on `astro:after-swap` events and use MutationObserver to handle dynamically loaded content.
+The plugin SHALL inject a JavaScript module via `jsModules` to manage hover popup visibility. The module SHALL register document-level delegated listeners exactly once per page (re-executing the module or client-side navigation SHALL NOT add listeners), so tokens added later need no re-binding. It SHALL show popups on pointer enter and on keyboard focus, hide them shortly after the pointer leaves the token and popup, on blur, on a tap outside, and on Escape; reparent the shown popup to the EC root for correct absolute positioning; give it `role="tooltip"` and link it from the token with `aria-describedby` while open; and re-trigger the fade-in animation. Arrow keys, Home and End SHALL move focus between the tokens of a block (roving tabindex). Popups SHALL open below the token and flip above it when there is not enough room below. The sprite sheet SHALL be re-added after an Astro view transition (`astro:after-swap`, `astro:page-load`).
 
 #### Scenario: Popup visibility on hover
 - **WHEN** a user hovers over a token with hover data
@@ -74,9 +101,17 @@ The plugin SHALL inject a JavaScript module via `jsModules` to manage hover popu
 - **WHEN** the mouse leaves the hover token
 - **THEN** the JS module hides the popup container
 
+#### Scenario: Keyboard access
+- **WHEN** a keyboard user tabs onto a hover token
+- **THEN** its popup is shown; ArrowRight moves focus (and the popup) to the next token; Escape hides the popup and keeps focus on the token
+
 #### Scenario: Astro view transition support
-- **WHEN** Astro performs a view transition (page swap)
-- **THEN** the JS module re-initializes popup event listeners on the new DOM
+- **WHEN** Astro performs a view transition (page swap) any number of times
+- **THEN** popups work on the new DOM and the number of document-level listeners does not grow
+
+#### Scenario: Popup near the viewport bottom
+- **WHEN** a popup would overflow the bottom of the viewport and there is more room above the token
+- **THEN** the popup opens above the token
 
 ### Requirement: SVG sprite sheet for symbol icons
 The plugin SHALL build an SVG sprite sheet containing `<symbol>` elements for each symbol kind icon (Method, Property, Field, Local, Class, Struct, Interface, Enum, Namespace, Event, Delegate, Type, Constant, EnumMember, Keyword, Operator). The sprite sheet SHALL be injected into the page DOM once via the JS module. Individual icon references SHALL use `<svg><use href="#glosharp-icon-{kind}"></svg>` elements to avoid repeating SVG path data.
@@ -89,23 +124,23 @@ The plugin SHALL build an SVG sprite sheet containing `<symbol>` elements for ea
 - **WHEN** a hover popup displays a symbol kind icon (e.g., Method)
 - **THEN** the icon renders as `<use href="#glosharp-icon-Method">` referencing the sprite sheet
 
-### Requirement: Theme-aware styling via baseStyles
-The plugin SHALL define theme-aware styles for popup colors (background, foreground, border), error colors (underline, message background), warning colors (underline, message background), info colors (underline, message background), highlight, focus, and diff colors. These styles SHALL be embedded in `baseStyles` using CSS custom properties with dark theme defaults as fallback values. Light theme colors SHALL be applied via `[data-theme="light"]` selectors where supported. The plugin SHALL NOT return a `styleSettings` property on the plugin object.
+### Requirement: Theme-aware styling via EC style settings
+The plugin SHALL register a `PluginStyleSettings` instance under the `glosharp` key for popup colors (background, foreground, muted foreground, border), token hover/focus, error, warning and info colors and backgrounds, highlight, focus and diff colors, custom tag colors, and the syntax colors used inside popups. Values SHALL be resolved per EC theme: popup colors from the theme's `editorHoverWidget.*`/`editorWidget.*` colors (falling back to the theme background/foreground), syntax colors from the theme's token colors, status colors from `editorError/Warning/Info.foreground`, with text colors adjusted to at least 4.5:1 contrast on their background. `baseStyles` SHALL reference these settings only through EC CSS variables (`cssVar`), so theme switching follows EC's `useDarkModeMediaQuery` / `themeCssSelector`; the plugin SHALL NOT rely on `[data-theme]` selectors. Users SHALL be able to override every value via `styleOverrides.glosharp`.
 
 #### Scenario: Dark theme popup styling
 - **WHEN** the EC instance uses a dark theme
-- **THEN** popup elements use the dark theme color defaults defined in CSS custom property fallbacks
+- **THEN** popups use that theme's dark hover-widget colors
 
-#### Scenario: Plugin object has no styleSettings property
-- **WHEN** `pluginGloSharp()` is called
-- **THEN** the returned plugin object does not contain a `styleSettings` property
+#### Scenario: Light theme popup styling
+- **WHEN** the EC instance uses `github-light`
+- **THEN** popups, completion lists and static `^?` results have a light background with readable text, in the same page that renders `github-dark` blocks dark
 
 #### Scenario: Plugin works with EC 0.41 without workaround
 - **WHEN** `pluginGloSharp()` is added directly to an expressive-code `plugins` array in EC 0.41+
 - **THEN** the plugin registers without errors and no consumer-side property stripping is needed
 
 ### Requirement: Hover token interaction styles
-Hoverable tokens SHALL have a transparent dashed bottom border by default. When the EC container (`.expressive-code`) is hovered, all hoverable tokens within SHALL show a subtle dashed underline via `color-mix(in srgb, currentColor 40%, transparent)`. When a specific token is directly hovered, it SHALL display a solid underline, a subtle purple background (`rgba(139, 92, 246, 0.08)`), and `border-radius: 2px`. The border-radius SHALL only apply on direct hover, not in the resting state.
+Hoverable tokens SHALL have a transparent dashed bottom border by default. When the EC container (`.expressive-code`) is hovered, all hoverable tokens within SHALL show a subtle dashed underline via `color-mix(in srgb, currentColor 40%, transparent)`. When a specific token is directly hovered, keyboard-focused or has its popup open, it SHALL display a solid underline, a subtle purple background (the `tokenHoverBackground` style setting), and `border-radius: 2px`; a keyboard-focused token SHALL additionally show a visible focus outline. The border-radius SHALL only apply in those states, not in the resting state.
 
 #### Scenario: Token resting state
 - **WHEN** a code block is rendered with auto-hover data
@@ -131,7 +166,7 @@ Popups SHALL use a CSS `@keyframes` animation (`glosharpPopupFadeIn`) that fades
 - **THEN** hover transitions are disabled
 
 ### Requirement: Process all C# code blocks
-The plugin SHALL invoke glosharp processing on ALL C# code blocks, regardless of whether they contain `^?`, `@errors`, or other glosharp markers. Non-C# code blocks SHALL continue to be skipped.
+By default the plugin SHALL invoke glosharp processing on ALL C# code blocks (`csharp`, `cs`, `c#`), regardless of whether they contain glosharp markers. Non-C# code blocks SHALL be skipped. A block whose meta contains `no-glosharp` or `glosharp=false` SHALL be skipped without invoking the CLI. With the `explicitTrigger: true` option, only C# blocks whose meta contains `glosharp` SHALL be processed.
 
 #### Scenario: C# block without markers is processed
 - **WHEN** a C# code block contains `var x = 42;` with no glosharp markers
@@ -140,6 +175,36 @@ The plugin SHALL invoke glosharp processing on ALL C# code blocks, regardless of
 #### Scenario: Non-C# block still skipped
 - **WHEN** a JavaScript code block enters the EC pipeline
 - **THEN** the plugin does not invoke glosharp processing
+
+#### Scenario: Opt-out
+- **WHEN** a C# block's meta contains `no-glosharp`
+- **THEN** the CLI is not invoked and the block renders as plain highlighted code
+
+#### Scenario: Explicit trigger
+- **WHEN** `explicitTrigger: true` is set
+- **THEN** a C# block is processed only if its meta contains `glosharp`
+
+### Requirement: Error policy
+The plugin SHALL NOT silently swallow failures.
+- When the CLI cannot process a block (not found, failed to spawn, non-zero exit, invalid output), the plugin SHALL by default (`onCliError: 'throw'`) fail with an error naming the document path, the block position and its first line, the CLI error, install instructions when the CLI could not be started, and how to downgrade to a warning. With `onCliError: 'warn'` it SHALL log the full error once (subsequent identical failures as one-line notices) and render the block unprocessed.
+- Unexpected compile errors — error-severity diagnostics not marked `expected`, `hiddenErrors` (errors in hidden code), and unmatched `@errors` expectations reported by the CLI — SHALL be logged through EC's logger as one warning per block naming the document, block and 1-based source line (using `sourceLine` when provided). With `failOnErrors: true` the plugin SHALL throw instead. Warning- and info-severity diagnostics and expected errors SHALL NOT be reported.
+- Each entry of `meta.warnings` SHALL be logged as a warning with the block location.
+
+#### Scenario: CLI missing
+- **WHEN** the CLI cannot be found and `onCliError` is not set
+- **THEN** the build fails with the block location and `dotnet tool install` instructions
+
+#### Scenario: CLI missing, warn mode
+- **WHEN** the CLI cannot be found and `onCliError: 'warn'` is set
+- **THEN** one warning with install instructions is logged and blocks render without type information
+
+#### Scenario: Unexpected error
+- **WHEN** a block produces an unexpected CS0029 on source line 2
+- **THEN** a warning containing the document path, block position and `line 2: CS0029` is logged and the error is rendered
+
+#### Scenario: failOnErrors
+- **WHEN** `failOnErrors: true` is set and a block produces an unexpected error
+- **THEN** the build fails with the same details
 
 ### Requirement: Render default hovers as mouse-over popups
 For hovers with `persistent: false`, the plugin SHALL render a `<span class="glosharp-hover">` wrapper around the token. The popup SHALL only be visible on hover interaction (controlled by JS). The token SHALL NOT have any visible underline or decoration in its default state — it should appear as normal code until hovered.
@@ -152,23 +217,26 @@ For hovers with `persistent: false`, the plugin SHALL render a `<span class="glo
 - **WHEN** a user hovers over a token with auto-hover data
 - **THEN** the popup displays the same structured content (type signature, display parts, docs)
 
+### Requirement: Block content after lines
+Persistent `^?` results, completion lists, diagnostic messages and custom tag callouts for a line SHALL be collected into a single line-level annotation rendered in the `latest` phase as `<div class="glosharp-line">` containing the untouched `.ec-line` followed by `<div class="glosharp-line-extras">` (in order: static results, completion lists, messages, callouts). The block thus keeps exactly one top-level node per line. Block content SHALL be limited to the visible width of the code block and stay in view when the code scrolls horizontally.
+
+#### Scenario: Several items on one line
+- **WHEN** one line has a `^?` result, a warning and an `@log` callout
+- **THEN** a single `.glosharp-line` wrapper holds the `.ec-line` and one `.glosharp-line-extras` with the static result, the message and the callout in that order
+
 ### Requirement: Render persistent hovers as always-visible static annotations
-For hovers with `persistent: true` (from `^?` markers), the plugin SHALL use a separate annotation class (`GloSharpStaticAnnotation`) that renders as a `<div class="glosharp-noline">` wrapping the line, with a `<div class="glosharp-static">` child containing a `<div class="glosharp-static-container">`. The popup SHALL be always visible without requiring mouse interaction. No arrow caret SHALL be displayed on static containers. Static containers SHALL participate in normal document flow, reserving vertical space, so they never overlap subsequent code lines or other static containers.
+For hovers with `persistent: true` (from `^?` markers), the plugin SHALL render a `<div class="glosharp-static">` containing a `<div class="glosharp-static-container">` in the line's block content, aligned under the queried column where space allows. The popup SHALL be always visible without requiring interaction and SHALL NOT be a focus target. No arrow caret SHALL be displayed on static containers. Static containers SHALL participate in normal document flow, reserving vertical space, so they never overlap subsequent code lines or other static containers.
 
 #### Scenario: Persistent hover always visible
 - **WHEN** a code block contains a `^?` marker targeting token `x`
 - **THEN** the hover popup for `x` is rendered in an always-visible state below the code line
-
-#### Scenario: Persistent hover DOM structure
-- **WHEN** a persistent hover annotation renders
-- **THEN** the line is wrapped in `<div class="glosharp-noline">` containing `<div class="glosharp-static">` with `<div class="glosharp-static-container">`
 
 #### Scenario: Static popups do not overlap content
 - **WHEN** a code block contains multiple `^?` markers on consecutive lines
 - **THEN** every code line and every static container remains fully visible — no static container's box intersects another code line's or static container's box
 
 ### Requirement: Pass-through for non-glosharp code blocks
-The plugin SHALL not modify code blocks that are not C# language blocks. C# code blocks SHALL always be processed for auto-hover extraction regardless of marker presence.
+The plugin SHALL not modify code blocks that are not C# language blocks, or C# blocks that opted out (see "Process all C# code blocks"). Other C# code blocks SHALL be processed for auto-hover extraction regardless of marker presence.
 
 #### Scenario: Non-C# code block
 - **WHEN** a JavaScript code block enters the EC pipeline
@@ -179,7 +247,7 @@ The plugin SHALL not modify code blocks that are not C# language blocks. C# code
 - **THEN** the plugin invokes glosharp processing and adds auto-hover annotations for all semantically meaningful tokens
 
 ### Requirement: Pass project and region options to bridge
-The `pluginGloSharp()` factory SHALL accept `project` and `region` options and pass them through to the glosharp bridge when processing code blocks.
+The `pluginGloSharp()` factory SHALL accept `project` and `region` options and pass them through to the glosharp bridge when processing code blocks. A block's `region="name"` meta option SHALL override the `region` option for that block.
 
 #### Scenario: Plugin with project context
 - **WHEN** `pluginGloSharp({ project: './MyProject.csproj' })` is configured
@@ -191,18 +259,18 @@ The `pluginGloSharp()` factory SHALL accept `project` and `region` options and p
 
 #### Scenario: Plugin with region
 - **WHEN** `pluginGloSharp({ region: 'example' })` is configured
-- **THEN** all glosharp CLI invocations include the `--region` argument
+- **THEN** all glosharp CLI invocations include the `--region` argument (together with `--stdin`)
+
+#### Scenario: Per-block region
+- **WHEN** a block's meta contains `region="setup"`
+- **THEN** that block's CLI invocation includes `--region setup`
 
 ### Requirement: Add completion annotations in annotateCode hook
-The `annotateCode` hook SHALL create `GloSharpCompletionAnnotation` instances for each completion result, rendering a completion list dropdown below the queried line. The annotation SHALL target the full line (no zero-width inline range) and its render function SHALL return exactly as many nodes as it receives, nesting the completion list inside a wrapper of the line's existing nodes, so that EC core's render-output validation passes.
+The `annotateCode` hook SHALL render a completion list for each completion result as block content after the queried line (see "Block content after lines"), showing item kinds, labels and details in aligned columns, using popup colors.
 
 #### Scenario: Completion annotation created
 - **WHEN** the glosharp result contains completions at line 2, character 8
-- **THEN** a `GloSharpCompletionAnnotation` is added to line 2 with the completion items
-
-#### Scenario: Completion list rendering
-- **WHEN** the annotation renders in the EC pipeline
-- **THEN** a styled completion list appears below the code line, showing item labels with kind indicators
+- **THEN** a completion list with the items is rendered after line 2
 
 #### Scenario: Render is EC-core valid
 - **WHEN** a block containing a `^|` completion marker is rendered through the Expressive Code engine
@@ -238,18 +306,18 @@ The marker detection logic SHALL recognize `@highlight`, `@focus`, and `@diff` m
 - **THEN** the plugin invokes glosharp processing on the block
 
 ### Requirement: Add highlight annotations in annotateCode hook
-The `annotateCode` hook SHALL create `GloSharpHighlightAnnotation` instances for each highlight entry with `kind: "highlight"`, applying a background color to the entire line.
+The `annotateCode` hook SHALL add the class `glosharp-highlight` to the rendered `.ec-line` of each highlight entry with `kind: "highlight"` (no wrapper element), applying a background color to the entire line.
 
 #### Scenario: Highlight annotation created
 - **WHEN** the glosharp result contains a highlight with `kind: "highlight"` at line 2
-- **THEN** a line-level annotation is added to line 2 that renders a highlight background
+- **THEN** the `.ec-line` for line 2 has the `glosharp-highlight` class
 
 #### Scenario: Highlight annotation rendering
 - **WHEN** the annotation renders in the EC pipeline
 - **THEN** the line has a visible background color distinguishing it from non-highlighted lines
 
 ### Requirement: Add focus annotations in annotateCode hook
-The `annotateCode` hook SHALL create `GloSharpFocusAnnotation` instances for focus presentation. Lines with `kind: "focus"` SHALL remain at full opacity. All other lines in the code block SHALL be dimmed when any focus entries exist.
+When any focus entries exist, the `annotateCode` hook SHALL add the class `glosharp-focus-dim` to the `.ec-line` of every line without a `kind: "focus"` entry, dimming it. Focused lines SHALL remain at full opacity.
 
 #### Scenario: Focus annotation dims non-focused lines
 - **WHEN** the glosharp result contains focus entries for lines 2 and 3 in a 5-line block
@@ -260,7 +328,7 @@ The `annotateCode` hook SHALL create `GloSharpFocusAnnotation` instances for foc
 - **THEN** all lines render at full opacity (no dimming applied)
 
 ### Requirement: Add diff annotations in annotateCode hook
-The `annotateCode` hook SHALL create `GloSharpDiffAnnotation` instances for diff presentation. Lines with `kind: "add"` SHALL have a green-tinted background. Lines with `kind: "remove"` SHALL have a red-tinted background.
+The `annotateCode` hook SHALL add the class `glosharp-diff-add` or `glosharp-diff-remove` to the `.ec-line` of each diff entry. Lines with `kind: "add"` SHALL have a green-tinted background and line border; lines with `kind: "remove"` a red-tinted background and line border.
 
 #### Scenario: Diff add annotation rendering
 - **WHEN** the glosharp result contains a highlight with `kind: "add"` at line 3
@@ -271,14 +339,14 @@ The `annotateCode` hook SHALL create `GloSharpDiffAnnotation` instances for diff
 - **THEN** line 4 is rendered with a red-tinted background color
 
 ### Requirement: Theme-aware styling for highlight, focus, and diff
-The plugin SHALL define CSS custom properties for highlight background, focus dimmed opacity, diff add background, and diff remove background colors with dark theme defaults as fallback values.
+Highlight background, focus dimmed opacity, and diff colors SHALL be glosharp style settings with per-theme (dark/light) values.
 
 #### Scenario: Highlight in dark theme
 - **WHEN** the EC instance uses a dark theme
 - **THEN** highlighted lines use a dark-appropriate background color
 
 ### Requirement: Render clickable error codes in error messages
-The `postprocessRenderedBlock` hook SHALL render error codes matching `CS\d+` as `<a>` elements linking to `https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/{code}`. Links SHALL open in a new tab with `rel="noopener"`. Non-CS codes SHALL remain plain text.
+Error messages SHALL render error codes matching `CS\d+` as `<a>` elements linking to `https://msdn.microsoft.com/query/roslyn.query?appId=roslyn&k=k({code})`. Links SHALL open in a new tab with `rel="noopener"`. Non-CS codes SHALL remain plain text.
 
 #### Scenario: CS error code linked
 - **WHEN** an error message with code `CS1002` is rendered in the EC pipeline
@@ -289,15 +357,15 @@ The `postprocessRenderedBlock` hook SHALL render error codes matching `CS\d+` as
 - **THEN** the error code is plain text without a link
 
 ### Requirement: Add custom tag annotations in annotateCode hook
-The `annotateCode` hook SHALL create `GloSharpCustomTagAnnotation` instances for each tag in the glosharp result, rendering a callout box below the associated code line.
+The `annotateCode` hook SHALL render a callout box for each tag in the glosharp result as block content after the associated code line.
 
 #### Scenario: Tag annotation created
 - **WHEN** the glosharp result contains a tag with `name: "log"` at line 2
-- **THEN** a `GloSharpCustomTagAnnotation` is added to line 2 with the tag name and message
+- **THEN** a callout with the tag name and message is rendered after line 2
 
 #### Scenario: Multiple tag annotations
 - **WHEN** the glosharp result contains tags on different lines
-- **THEN** each line receives its own tag annotation with the correct name and message
+- **THEN** each line receives its own callout with the correct name and message
 
 ### Requirement: Custom tag callout rendering
 The `GloSharpCustomTagAnnotation` SHALL render as a block-level callout box below the code line. The box SHALL contain: an SVG icon specific to the tag type, the tag name as a title, and the message text as content. The rendered structure SHALL use the CSS classes `glosharp-tag` (base) and `glosharp-tag-{name}` (tag-specific).
@@ -319,7 +387,7 @@ The `GloSharpCustomTagAnnotation` SHALL render as a block-level callout box belo
 - **THEN** the output contains a callout box with a lightbulb icon, "annotate" title, and the message text, with CSS class `glosharp-tag-annotate`
 
 ### Requirement: Theme-aware styling for custom tag callouts
-The plugin SHALL define theme-aware CSS for custom tag callouts with tag-specific colors: log (blue), warn (amber), error (red), annotate (purple). Each tag type SHALL have distinct background, border, and icon colors. Styles SHALL use CSS custom properties with dark theme defaults as fallback values.
+The plugin SHALL define theme-aware CSS for custom tag callouts with tag-specific colors: log (blue), warn (amber), error (red), annotate (purple). Each tag type SHALL have distinct background, border, and icon colors, defined as glosharp style settings resolved per EC theme.
 
 #### Scenario: Dark theme tag styling
 - **WHEN** the EC instance uses a dark theme
@@ -327,7 +395,7 @@ The plugin SHALL define theme-aware CSS for custom tag callouts with tag-specifi
 
 #### Scenario: Light theme tag styling
 - **WHEN** the EC instance uses a light theme
-- **THEN** tag callout boxes use light-appropriate background and border colors via `[data-theme="light"]` selectors
+- **THEN** tag callout boxes use light-appropriate background and border colors via the theme's glosharp style settings
 
 ### Requirement: Detect custom tag markers for processing
 The marker detection logic SHALL recognize `@log:`, `@warn:`, `@error:`, and `@annotate:` markers in addition to existing markers when deciding whether to invoke glosharp processing on a code block.
