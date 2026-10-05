@@ -279,6 +279,19 @@ describe('render', () => {
     )
   })
 
+  it('passes --no-styles', async () => {
+    mockSpawn.mockReturnValue(createMockProcess(fragment, '', 0))
+
+    const glosharp = createGloSharp()
+    await glosharp.render({ code: 'var x = 42;', noStyles: true })
+
+    expect(mockSpawn).toHaveBeenCalledWith(
+      '/usr/local/bin/glosharp',
+      ['render', '--stdin', '--no-styles'],
+      expect.any(Object),
+    )
+  })
+
   it('shares the process option surface', async () => {
     mockSpawn.mockReturnValue(createMockProcess(fragment, '', 0))
 

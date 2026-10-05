@@ -24,7 +24,10 @@ interface CliOptions {
   complogProject?: string
   theme?: string
   standalone?: boolean
+  noStyles?: boolean
 }
+
+const RENDER_ONLY = new Set(['theme', 'standalone', 'noStyles'])
 
 const CLI_FLAGS: Record<keyof CliOptions, string> = {
   framework: '--framework',
@@ -37,6 +40,7 @@ const CLI_FLAGS: Record<keyof CliOptions, string> = {
   complogProject: '--complog-project',
   theme: '--theme',
   standalone: '--standalone',
+  noStyles: '--no-styles',
 }
 
 export interface GloSharpInstance {
@@ -71,6 +75,7 @@ export function createGloSharp(options: GloSharpOptions = {}): GloSharpInstance 
       complogProject: opts.complogProject ?? options.complogProject,
       theme: opts.theme,
       standalone: opts.standalone,
+      noStyles: opts.noStyles,
     }
   }
 
@@ -78,7 +83,7 @@ export function createGloSharp(options: GloSharpOptions = {}): GloSharpInstance 
     const args: string[] = [command, opts.file ? opts.file : '--stdin']
     for (const [name, value] of Object.entries(cliOptions(opts))) {
       if (!value) continue
-      if (command !== 'render' && (name === 'theme' || name === 'standalone')) continue
+      if (command !== 'render' && RENDER_ONLY.has(name)) continue
       const flag = CLI_FLAGS[name as keyof CliOptions]
       if (value === true) args.push(flag)
       else args.push(flag, value)
@@ -92,7 +97,7 @@ export function createGloSharp(options: GloSharpOptions = {}): GloSharpInstance 
     if (opts.file) serveOptions.file = opts.file
     for (const [name, value] of Object.entries(cliOptions(opts))) {
       if (!value) continue
-      if (command !== 'render' && (name === 'theme' || name === 'standalone')) continue
+      if (command !== 'render' && RENDER_ONLY.has(name)) continue
       serveOptions[name] = value
     }
     // Relative paths and config discovery follow this process's working directory,

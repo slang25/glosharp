@@ -34,7 +34,7 @@ for (const vp of VIEWPORTS) {
       const caseEl = galleryCase(page, 'ec/local-variables/dark')
       await caseEl.scrollIntoViewIfNeeded()
       // Pick the right-most hover token that is still visible in the container.
-      const token = await caseEl.locator('.glosharp-hover:has(.glosharp-popup-container)').evaluateAll((els) => {
+      const token = await caseEl.locator('.glosharp-hover[data-glosharp-popup]').evaluateAll((els) => {
         let best = -1
         let bestRight = -Infinity
         els.forEach((el, i) => {
@@ -44,7 +44,7 @@ for (const vp of VIEWPORTS) {
         return best
       })
       expect(token, 'a visible right-side token exists').toBeGreaterThanOrEqual(0)
-      await caseEl.locator('.glosharp-hover:has(.glosharp-popup-container)').nth(token).hover()
+      await caseEl.locator('.glosharp-hover[data-glosharp-popup]').nth(token).hover()
       const popup = ecVisiblePopup(page)
       await expect(popup).toBeVisible()
       expectWithinViewport(await box(popup), vp, 'EC right-edge popup')

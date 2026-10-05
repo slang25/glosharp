@@ -66,15 +66,14 @@ pre.glosharp.glosharp-theme-dark {
 
 /* ---- Hover targets ---- */
 
+/* Only the token under the pointer animates. The block-wide underline below
+   switches instantly: transitioning every token in a block repaints the whole
+   block for every frame of the transition whenever the pointer enters or
+   leaves it (or the page scrolls it past the pointer). */
 .glosharp-hover {
   position: relative;
   border-bottom: 1px dotted transparent;
-  transition: border-color 0.3s ease;
   cursor: help;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .glosharp-hover { transition: none; }
 }
 
 /* Container hover: subtle underline on all hoverable tokens */
@@ -85,6 +84,11 @@ pre:hover .glosharp-hover:not(:hover):not(.glosharp-hover-persistent) {
 /* Token hover: strong underline */
 .glosharp-hover:hover {
   border-bottom-color: currentColor;
+  transition: border-color 0.3s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glosharp-hover:hover { transition: none; }
 }
 
 .glosharp-hover:focus-visible {

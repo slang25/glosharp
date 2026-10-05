@@ -28,6 +28,8 @@ machines that only have a recent SDK.
 glosharp process snippet.cs                 # JSON for a file
 echo 'var x = 1;' | glosharp process --stdin
 glosharp render snippet.cs --standalone -o snippet.html
+glosharp render snippet.cs --no-styles      # fragment without its stylesheet...
+glosharp css --theme github-dark            # ...which goes on the page once instead
 glosharp verify docs/ samples/extra.cs      # CI: fail on unexpected compile errors
 glosharp init                               # write glosharp.config.json
 glosharp compact-complog app.binlog -o app.glocontext
@@ -43,6 +45,10 @@ Run `glosharp <command> --help` for every option. Common ones:
 | `--complog <path>` | Take references and options from a `.complog` or `.glocontext` |
 | `--complog-project <name>` | `Name`, `Name.csproj` or `"Name (tfm)"` in a multi-project complog |
 | `--region <name>` | Only the named `#region` (works with files and `--stdin`) |
+
+A `render` fragment carries its theme's stylesheet (about 12 KB). On a page with many
+fragments, render them with `--no-styles` and include `glosharp css --theme <name>` once per
+theme: style recalculation and page weight then stay flat as fragments are added.
 
 Input comes from the file argument or `--stdin`. Without either, standard input is read only
 when it is redirected, so an interactive `glosharp process` fails fast instead of waiting.

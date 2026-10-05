@@ -21,6 +21,7 @@ gallery-dist ──(npm test)──▶ Playwright invariants, Chromium + Firefox
 | `npm run gallery:build` | Render every fixture through both render paths × dark/light themes into `gallery-dist/` (requires `npm run build -w @glosharp/core -w @glosharp/shiki -w @glosharp/expressive-code`). |
 | `npm run gallery:serve` | Serve the gallery at `http://localhost:4173/` for human review. |
 | `npm test` | Run the Playwright invariant suite (builds + serves the gallery itself via `webServer`). |
+| `npm run perf` | Measure what the gallery pages cost a reader's browser: main-thread time for load, 40 hovers and a scroll, DOM size, slowest pointer event and slow frames. Not an assertion (numbers depend on the machine); compare before and after a rendering change. See the options at the top of `scripts/perf.ts`. |
 
 ## The gallery
 

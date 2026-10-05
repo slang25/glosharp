@@ -73,8 +73,9 @@ Inputs are either `code` (the snippet itself) or `file` (a path the CLI reads).
 `process(options)` / `render(options)` — per call: `code` or `file`,
 `framework`, `project` (a `.csproj` for NuGet references), `region`,
 `noRestore`, `cacheDir`, `configFile`, `complog`, `complogProject`,
-`timeoutMs`, `signal` (an `AbortSignal`); `render` also takes `theme` and
-`standalone`.
+`timeoutMs`, `signal` (an `AbortSignal`); `render` also takes `theme`,
+`standalone` and `noStyles` (leave the stylesheet out of the fragment; put
+`glosharp css --theme <name>` on the page once instead).
 
 ### Finding the CLI
 

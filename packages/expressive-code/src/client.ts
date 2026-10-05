@@ -5,6 +5,11 @@
 // navigation (Astro view transitions, SPA routers) and dynamically inserted
 // code blocks work without re-binding and without piling up listeners.
 //
+// Popup content isn't in the page: each block carries it as JSON
+// (script.glosharp-popups, see popup-tree.ts) and a token names its entry with
+// data-glosharp-popup. A popup is built on first show, appended to the EC root
+// while visible (so the scrolling <pre> doesn't clip it), and removed on hide.
+//
 // Interaction model:
 // - Pointer: show on mouseenter of a token, hide shortly after leaving the
 //   token or its popup (so the pointer can travel into the popup).
@@ -86,9 +91,55 @@ export function buildPopupJsModule(spriteSheetHtml: string): string {
     }
   }
 
+  // Mirrors popupTreeToHast in popup-tree.ts
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+  function buildPopupNode(node) {
+    if (typeof node === 'string') return document.createTextNode(node);
+    const classes = node[0].split('.');
+    const tag = classes.shift();
+    const el = tag === 'svg' || tag === 'use' || tag === 'path'
+      ? document.createElementNS(SVG_NS, tag)
+      : document.createElement(tag);
+    if (classes.length) el.setAttribute('class', classes.join(' '));
+    for (let i = 1; i < node.length; i++) {
+      const item = node[i];
+      if (item && typeof item === 'object' && !Array.isArray(item)) {
+        for (const name in item) el.setAttribute(name, item[name]);
+      } else {
+        el.appendChild(buildPopupNode(item));
+      }
+    }
+    return el;
+  }
+
+  // Parsed popup data per script element, and built popups per token
+  const blockData = new WeakMap();
+  const builtPopups = new WeakMap();
+
+  function popupDataFor(hoverEl) {
+    for (let node = hoverEl.parentElement; node; node = node.parentElement) {
+      const script = node.querySelector(':scope > script.glosharp-popups');
+      if (!script) continue;
+      let data = blockData.get(script);
+      if (!data) {
+        try { data = JSON.parse(script.textContent || '[]'); } catch { data = []; }
+        blockData.set(script, data);
+      }
+      return data;
+    }
+    return null;
+  }
+
   function popupOf(hoverEl) {
-    if (activeHover === hoverEl && activePopup) return activePopup;
-    return hoverEl.querySelector(':scope > .glosharp-popup-container');
+    let popup = builtPopups.get(hoverEl);
+    if (popup) return popup;
+    const content = popupDataFor(hoverEl)?.[Number(hoverEl.dataset.glosharpPopup)];
+    if (!content) return null;
+    popup = document.createElement('div');
+    popup.className = 'glosharp-popup-container';
+    for (const node of content) popup.appendChild(buildPopupNode(node));
+    builtPopups.set(hoverEl, popup);
+    return popup;
   }
 
   function showTooltip(hoverEl) {
@@ -108,20 +159,16 @@ export function buildPopupJsModule(spriteSheetHtml: string): string {
     hoverEl.setAttribute('aria-describedby', popup.id);
     hoverEl.classList.add('glosharp-hover-active');
 
-    // Reparent popup to EC root so it isn't clipped by the scrolling <pre>
+    // In the EC root, so the scrolling <pre> doesn't clip it. Inserting it
+    // starts the fade-in animation; positionPopup does the one layout read.
     ecRoot.appendChild(popup);
     popup.style.setProperty('display', 'block', 'important');
     popup.style.visibility = 'visible';
-    // Re-trigger fade-in animation
-    popup.style.animation = 'none';
-    popup.offsetHeight; // force reflow
-    popup.style.animation = '';
 
     activePopup = popup;
     activeHover = hoverEl;
     activeEcRoot = ecRoot;
     activeScrollParent = findScrollParent(hoverEl);
-    popup._glosharpOrigParent = hoverEl;
 
     positionPopup();
     if (activeScrollParent) activeScrollParent.addEventListener('scroll', positionPopup, { passive: true });
@@ -136,18 +183,12 @@ export function buildPopupJsModule(spriteSheetHtml: string): string {
     window.removeEventListener('scroll', positionPopup, { capture: true });
     window.removeEventListener('resize', positionPopup);
 
-    activePopup.style.setProperty('display', 'none', 'important');
+    activePopup.remove();
     activePopup.style.visibility = '';
     activePopup.classList.remove('glosharp-popup-above');
     if (activeHover) {
       activeHover.removeAttribute('aria-describedby');
       activeHover.classList.remove('glosharp-hover-active');
-    }
-    // Reparent back (if the token is still in the document)
-    if (activePopup._glosharpOrigParent && activePopup._glosharpOrigParent.isConnected) {
-      activePopup._glosharpOrigParent.appendChild(activePopup);
-    } else {
-      activePopup.remove();
     }
     activePopup = null;
     activeHover = null;

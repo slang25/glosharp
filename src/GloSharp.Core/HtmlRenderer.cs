@@ -394,12 +394,14 @@ public class HtmlRenderer
             foreach (var part in hover.Parts)
             {
                 var kind = PartKindToClassificationKind(part.Kind);
-                if (kind == "text")
+                var color = kind == "text" ? null : _theme.GetTokenColor(kind);
+                // Parts in the popup's own colour (text, spaces, punctuation) need no span.
+                if (color == null || string.Equals(color, _theme.PopupForeground, StringComparison.OrdinalIgnoreCase))
                 {
                     _sb.Append(Encode(part.Text));
                     continue;
                 }
-                _sb.Append($"<span style=\"color:{_theme.GetTokenColor(kind)}\">{Encode(part.Text)}</span>");
+                _sb.Append($"<span style=\"color:{color}\">{Encode(part.Text)}</span>");
             }
             if (hover.OverloadCount is > 1 and var count)
             {

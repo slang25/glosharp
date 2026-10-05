@@ -224,3 +224,40 @@ describe('keyboard accessibility markup', () => {
     expect(tokens.map(t => [lineCodeText(t), t.properties.tabIndex])).toEqual([['a', 0], ['b', -1], ['a', -1]])
   })
 })
+
+describe('hover popup data', () => {
+  it('ships popups as one deduplicated JSON payload per block instead of DOM', async () => {
+    const parts = (name: string) => [
+      { kind: 'punctuation', text: '(' }, { kind: 'text', text: 'local variable' }, { kind: 'punctuation', text: ')' },
+      { kind: 'space', text: ' ' }, { kind: 'keyword', text: 'int' }, { kind: 'space', text: ' ' }, { kind: 'localName', text: name },
+      { kind: 'punctuation', text: '<' }, { kind: 'punctuation', text: '/script>' },
+    ]
+    useStubResults({
+      'var a': {
+        code: 'var a = 1;\nvar b = a;\n',
+        hovers: [hover(0, 4, 1, 'a', { parts: parts('a') }), hover(1, 4, 1, 'b', { parts: parts('b') }), hover(1, 8, 1, 'a', { parts: parts('a') })],
+      },
+    })
+    const { render } = createEngine()
+    const { ast, html } = await render('var a = 1;\nvar b = a;')
+
+    expect(select(ast, '.glosharp-popup-container')).toHaveLength(0)
+    const tokens = select(ast, '.glosharp-hover')
+    // The second `a` reuses the first one's entry
+    expect(tokens.map(t => t.properties.dataGlosharpPopup)).toEqual(['0', '1', '0'])
+
+    const [script] = select(ast, 'script.glosharp-popups')
+    expect(script.properties.type).toBe('application/json')
+    expect(html).not.toContain('</script>"')
+    const popups = JSON.parse(textOf(script))
+    expect(popups).toHaveLength(2)
+    // The `(local variable) ` prefix becomes the symbol icon; uncoloured parts are plain text
+    expect(popups[0]).toEqual([[
+      'code.glosharp-popup-code',
+      ['span.glosharp-symbol-icon', { title: 'local variable' },
+        ['svg', { viewBox: '0 0 16 16', width: '14', height: '14', fill: '#75beff', 'aria-hidden': 'true' },
+          ['use', { href: '#glosharp-icon-Local' }]]],
+      ['span.glosharp-keyword', 'int'], ' ', ['span.glosharp-localName', 'a'], '</script>',
+    ]])
+  })
+})
