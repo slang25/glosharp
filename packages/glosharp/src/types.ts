@@ -205,4 +205,9 @@ export interface GloSharpRenderOptions extends GloSharpProcessOptions {
   theme?: string
   /** Wrap the fragment in a full HTML page. */
   standalone?: boolean
+  /**
+   * Leave the stylesheet out of the fragment (`--no-styles`). Include the
+   * output of `glosharp css` once per page instead of once per snippet.
+   */
+  noStyles?: boolean
 }

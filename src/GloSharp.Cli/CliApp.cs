@@ -80,10 +80,28 @@ internal static class CliApp
             .. CompileOptions,
             new("--theme", "Color theme: " + string.Join(", ", GloSharpTheme.BuiltInNames) + " (default: github-dark)", "name"),
             new("--standalone", "Output a full HTML page instead of a fragment"),
+            new("--no-styles", "Leave the stylesheet out; add 'glosharp css' output to the page once instead"),
             new("--output", "Write the HTML to a file instead of standard output", "path", "-o"),
         ],
         MaxPositionals = 1,
-        Notes = InputNotes,
+        Notes = InputNotes + "\n\n" +
+            "Each fragment carries its theme's stylesheet (about 12 KB). On a page with many\n" +
+            "fragments, render them with --no-styles and include 'glosharp css' once per theme.",
+    };
+
+    internal static readonly CommandSpec CssSpec = new()
+    {
+        Name = "css",
+        Synopsis = "[options]",
+        Summary = "Print the stylesheet that 'glosharp render --no-styles' fragments need.",
+        Options =
+        [
+            new("--theme", "Color theme: " + string.Join(", ", GloSharpTheme.BuiltInNames) + " (default: github-dark)", "name"),
+            new("--output", "Write the CSS to a file instead of standard output", "path", "-o"),
+        ],
+        Notes =
+            "Selectors are scoped to the theme's fragments, so stylesheets for several themes can\n" +
+            "share a page.",
     };
 
     internal static readonly CommandSpec VerifySpec = new()
@@ -150,7 +168,8 @@ internal static class CliApp
             "Requests:\n" +
             "  {\"id\":1,\"command\":\"process\"|\"render\",\"code\":\"...\",\"options\":{...}}\n" +
             "options take the CLI options in camelCase (file, framework, project, complog,\n" +
-            "complogProject, region, noRestore, cacheDir, config; render adds theme, standalone)\n" +
+            "complogProject, region, noRestore, cacheDir, config; render adds theme, standalone,\n" +
+            "noStyles)\n" +
             "plus cwd, the directory relative paths and config discovery start from. Responses,\n" +
             "in completion order:\n" +
             "  {\"id\":1,\"ok\":true,\"result\":<process JSON | render HTML string>}\n" +
@@ -161,7 +180,7 @@ internal static class CliApp
     };
 
     internal static readonly IReadOnlyList<CommandSpec> Commands =
-        [ProcessSpec, VerifySpec, RenderSpec, InitSpec, CompactComplogSpec, ServeSpec];
+        [ProcessSpec, VerifySpec, RenderSpec, CssSpec, InitSpec, CompactComplogSpec, ServeSpec];
 
     // ---------------------------------------------------------------------------------
     // Entry point
@@ -222,6 +241,7 @@ internal static class CliApp
             {
                 "process" => await RunProcess(parsed, console),
                 "render" => await RunRender(parsed, console),
+                "css" => await RunCss(parsed, console),
                 "verify" => await RunVerify(parsed, console),
                 "init" => RunInit(parsed.Has("--force"), console),
                 "compact-complog" => RunCompactComplog(parsed, console),
@@ -494,10 +514,7 @@ internal static class CliApp
         var (source, filePath) = await ReadInputAsync(parsed, console);
         var settings = LoadCompileSettings(parsed, ConfigStartDirectory(filePath, workingDirectory));
 
-        var themeName = parsed.Get("--theme") ?? settings.Config?.Render?.Theme ?? "github-dark";
-        var theme = GloSharpTheme.GetBuiltIn(themeName)
-            ?? throw new UsageException(
-                $"unknown theme '{themeName}'. Valid themes: {string.Join(", ", GloSharpTheme.BuiltInNames)}");
+        var theme = ResolveTheme(parsed.Get("--theme") ?? settings.Config?.Render?.Theme);
         var standalone = parsed.Has("--standalone") || settings.Config?.Render?.Standalone == true;
 
         settings = await PrepareAsync(settings, console);
@@ -512,7 +529,38 @@ internal static class CliApp
         return HtmlRenderer.Render(processResult.Result, tokens, theme, new HtmlRenderOptions
         {
             Standalone = standalone,
+            IncludeStyles = !parsed.Has("--no-styles"),
         });
+    }
+
+    private static GloSharpTheme ResolveTheme(string? name)
+    {
+        name ??= "github-dark";
+        return GloSharpTheme.GetBuiltIn(name)
+            ?? throw new UsageException(
+                $"unknown theme '{name}'. Valid themes: {string.Join(", ", GloSharpTheme.BuiltInNames)}");
+    }
+
+    private static async Task<int> RunCss(ParsedCommand parsed, CliConsole console)
+    {
+        var css = HtmlRenderer.GenerateStylesheet(ResolveTheme(parsed.Get("--theme")));
+        var outputPath = parsed.Get("--output");
+        if (outputPath == null)
+        {
+            console.Out.Write(css);
+            return ExitCodes.Success;
+        }
+
+        try
+        {
+            await File.WriteAllTextAsync(outputPath, css);
+            console.Error.WriteLine($"Written to {outputPath}");
+            return ExitCodes.Success;
+        }
+        catch (Exception ex)
+        {
+            return Fail(console, "css", ex);
+        }
     }
 
     private static async Task<int> RunRender(ParsedCommand parsed, CliConsole console)

@@ -139,10 +139,27 @@ function applyHovers(lines: Element[], hovers: GloSharpHover[], scope: string, o
   })
 }
 
+// Display-part kinds style.css colours. The rest (punctuation, spaces, plain
+// text, namespaces, …) take the popup's foreground, so they're emitted as bare
+// text: wrapping each in a span made up about a third of a page's elements.
+const COLOURED_PARTS = new Set([
+  'keyword', 'className', 'structName', 'recordClassName', 'recordStructName', 'delegateName',
+  'interfaceName', 'enumName', 'typeParameterName', 'methodName', 'extensionMethodName',
+  'propertyName', 'fieldName', 'eventName', 'localName', 'parameterName', 'enumMemberName',
+  'constantName', 'stringLiteral', 'numericLiteral',
+])
+
 function popupContent(hover: GloSharpHover): ElementContent[] {
-  const signature: ElementContent[] = hover.parts.map((part) =>
-    h('span', { class: `glosharp-part glosharp-${part.kind}` }, [text(part.text)]),
-  )
+  const signature: ElementContent[] = []
+  for (const part of hover.parts) {
+    if (COLOURED_PARTS.has(part.kind)) {
+      signature.push(h('span', { class: `glosharp-part glosharp-${part.kind}` }, [text(part.text)]))
+      continue
+    }
+    const last = signature[signature.length - 1]
+    if (last?.type === 'text') last.value += part.text
+    else signature.push(text(part.text))
+  }
   if (hover.overloadCount && hover.overloadCount > 0) {
     signature.push(
       h('span', { class: 'glosharp-overloads' }, [

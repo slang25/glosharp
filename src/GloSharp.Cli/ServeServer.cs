@@ -47,6 +47,7 @@ internal sealed class ServeServer
         ["config"] = ("--config", false, true),
         ["theme"] = ("--theme", false, false),
         ["standalone"] = ("--standalone", true, false),
+        ["noStyles"] = ("--no-styles", true, false),
     };
 
     private readonly TextReader _input;

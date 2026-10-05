@@ -220,12 +220,14 @@ export function buildBaseStyles({ cssVar }: ResolverContext): string {
   position: relative;
 }
 
-/* Hoverable tokens */
+/* Hoverable tokens. Only the token under the pointer animates: the
+   block-wide underline below switches instantly, because transitioning every
+   token in a block costs a style recalc of the whole block per frame
+   whenever the pointer enters or leaves it (or scrolls past it). */
 .glosharp-hover {
   position: relative;
   border-bottom: 1px dashed transparent;
-  transition-timing-function: ease;
-  transition: border-color 0.3s, background-color 0.15s, border-radius 0.15s;
+  transition: background-color 0.15s ease, border-radius 0.15s ease;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -233,15 +235,20 @@ export function buildBaseStyles({ cssVar }: ResolverContext): string {
   .glosharp-popup-container { animation: none !important; }
 }
 
-/* Container hover: subtle underline on all hoverable tokens */
-.expressive-code:hover .glosharp-hover:not(.glosharp-hover:hover) {
+/* Container hover: subtle underline on all hoverable tokens. EC nests these
+   styles inside .expressive-code, so the root itself is "&": a leading
+   ".expressive-code:hover" would become ".expressive-code :hover", which
+   matches a hover on any descendant and restyles every token in the block on
+   each pointer move. */
+&:hover .glosharp-hover:not(:hover) {
   border-color: color-mix(in srgb, currentColor 40%, transparent);
 }
 
 /* Stronger underline + subtle background on direct token hover or keyboard focus */
-.expressive-code:hover .glosharp-hover:hover,
+.glosharp-hover:hover,
 .glosharp-hover:focus-visible,
 .glosharp-hover.glosharp-hover-active {
+  transition: border-color 0.3s ease, background-color 0.15s ease, border-radius 0.15s ease;
   border-bottom-color: currentColor;
   background: ${v('tokenHoverBackground')};
   border-radius: 2px;
@@ -307,14 +314,6 @@ export function buildBaseStyles({ cssVar }: ResolverContext): string {
   top: auto;
   bottom: -5px;
   transform: rotate(135deg);
-}
-
-/* Hover popup: hidden by default, JS controls visibility */
-/* !important needed to override EC's all:revert reset */
-.glosharp-hover > .glosharp-popup-container {
-  display: none !important;
-  left: 0;
-  top: calc(100% + 8px);
 }
 
 /* Block content rendered after a code line (static ^? results, error

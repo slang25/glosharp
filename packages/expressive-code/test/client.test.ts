@@ -6,14 +6,19 @@ import { buildPopupJsModule } from '../src/client.js'
 // happy-dom, so these tests cover behaviour (visibility, focus, listeners),
 // not geometry; geometry is covered by the Playwright rendering suite.
 
+// Popups are data (popup-tree.ts format), built by the client on first show
 const BLOCK = `
 <div class="expressive-code"><figure><pre><code>
   <div class="ec-line"><div class="code">
-    <span class="glosharp-hover" tabindex="0">a<div class="glosharp-popup-container"><code>int a</code></div></span>
-    = <span class="glosharp-hover" tabindex="-1">b<div class="glosharp-popup-container"><code>int b</code></div></span>
-    + <span class="glosharp-hover" tabindex="-1">c<div class="glosharp-popup-container"><code>int c</code></div></span>
+    <span class="glosharp-hover" tabindex="0" data-glosharp-popup="0">a</span>
+    = <span class="glosharp-hover" tabindex="-1" data-glosharp-popup="1">b</span>
+    + <span class="glosharp-hover" tabindex="-1" data-glosharp-popup="2">c</span>
   </div></div>
-</code></pre></figure></div>`
+</code></pre><script type="application/json" class="glosharp-popups">${JSON.stringify([
+  [['code.glosharp-popup-code', ['span.glosharp-keyword', 'int'], ' a']],
+  [['code.glosharp-popup-code', ['span.glosharp-keyword', 'int'], ' b']],
+  [['code.glosharp-popup-code', ['span.glosharp-symbol-icon', { title: 'local' }, ['svg', { viewBox: '0 0 16 16' }, ['use', { href: '#glosharp-icon-Local' }]]], ['span.glosharp-keyword', 'int'], ' c']],
+])}</script></figure></div>`
 
 const runModule = () => new Function(buildPopupJsModule('<svg><symbol id="glosharp-icon-Local"></symbol></svg>'))()
 
@@ -39,12 +44,14 @@ describe('popup client module', () => {
     expect(document.querySelectorAll('#glosharp-sprites')).toHaveLength(1)
   })
 
-  it('shows a popup on mouseenter, reparented to the EC root, and hides it after mouseleave', async () => {
+  it('builds a popup from the block data on mouseenter, in the EC root, and removes it after mouseleave', async () => {
+    expect(document.querySelectorAll('.glosharp-popup-container')).toHaveLength(0)
     vi.useFakeTimers()
     const [a] = tokens()
     a.dispatchEvent(new MouseEvent('mouseenter'))
     const [popup] = visiblePopups()
     expect(popup.textContent).toBe('int a')
+    expect(popup.querySelector('code.glosharp-popup-code > span.glosharp-keyword')!.textContent).toBe('int')
     expect(popup.parentElement!.classList.contains('expressive-code')).toBe(true)
     expect(popup.getAttribute('role')).toBe('tooltip')
     expect(a.getAttribute('aria-describedby')).toBe(popup.id)
@@ -53,8 +60,22 @@ describe('popup client module', () => {
     vi.advanceTimersByTime(200)
     vi.useRealTimers()
     expect(visiblePopups()).toHaveLength(0)
-    expect(popup.parentElement).toBe(a) // moved back into its token
+    expect(popup.isConnected).toBe(false)
     expect(a.hasAttribute('aria-describedby')).toBe(false)
+
+    // Shown again, the same element is reused
+    a.dispatchEvent(new MouseEvent('mouseenter'))
+    expect(visiblePopups()).toEqual([popup])
+  })
+
+  it('builds SVG icons in the SVG namespace with their attributes', () => {
+    const [, , c] = tokens()
+    c.dispatchEvent(new MouseEvent('mouseenter'))
+    const [popup] = visiblePopups()
+    const use = popup.querySelector('.glosharp-symbol-icon svg use')!
+    expect(use.namespaceURI).toBe('http://www.w3.org/2000/svg')
+    expect(use.getAttribute('href')).toBe('#glosharp-icon-Local')
+    expect(popup.querySelector('.glosharp-symbol-icon')!.getAttribute('title')).toBe('local')
   })
 
   it('shows the popup on keyboard focus and closes it with Escape', () => {
@@ -106,7 +127,7 @@ describe('popup client module', () => {
 
   it('works for code blocks added after load (no re-binding needed)', () => {
     const extra = document.createElement('div')
-    extra.innerHTML = BLOCK.replace(/int a/, 'string late')
+    extra.innerHTML = BLOCK.replace('["span.glosharp-keyword","int"]," a"', '["span.glosharp-keyword","string"]," late"')
     document.body.appendChild(extra)
     const late = extra.querySelector<HTMLElement>('.glosharp-hover')!
     late.dispatchEvent(new MouseEvent('mouseenter'))

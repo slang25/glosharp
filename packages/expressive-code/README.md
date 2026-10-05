@@ -197,7 +197,9 @@ Available settings (see `GloSharpStyleSettings`):
 
 Elements carry stable classes for custom CSS:
 
-- `.glosharp-hover`, `.glosharp-popup-container`
+- `.glosharp-hover`, `.glosharp-popup-container` (a hover popup is built on first hover from
+  the block's `script.glosharp-popups` data and appended to the `.expressive-code` root while
+  open; it isn't in the page before that)
 - `.glosharp-static` (`^?` results), `.glosharp-completion-list`
 - `.glosharp-error-underline`, `.glosharp-error-message`
 - `.glosharp-error-expected` (diagnostics declared with `@errors`)

@@ -122,6 +122,18 @@ public class ServeTests
     }
 
     [Test]
+    public async Task Render_NoStyles_MatchesTheOneShotCommand()
+    {
+        var oneShot = await OneShot(["render", "--stdin", "--no-styles"], Snippet);
+        var run = await Serve(Request("r2", "render", Snippet, new { noStyles = true }));
+
+        var response = run.Response("r2");
+        await Assert.That(response["ok"]!.GetValue<bool>()).IsTrue();
+        await Assert.That(response["result"]!.GetValue<string>()).IsEqualTo(oneShot.Out);
+        await Assert.That(oneShot.Out).DoesNotContain("<style>");
+    }
+
+    [Test]
     public async Task Process_RegionAndFileOptions_MatchTheOneShotCommand()
     {
         var dir = NewTempDir();

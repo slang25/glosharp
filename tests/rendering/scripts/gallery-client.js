@@ -29,7 +29,7 @@
       console.warn(`gallery: case "${pin}" has no hover token #${tokenIdx}`)
       return
     }
-    if (hover.querySelector('.glosharp-popup-container')) {
+    if (hover.hasAttribute('data-glosharp-popup')) {
       // EC path: trigger the plugin's own show logic so the shipped
       // positioning code runs exactly as it would on a real mouseenter.
       hover.dispatchEvent(new MouseEvent('mouseenter'))

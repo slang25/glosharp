@@ -7,7 +7,8 @@
     "fixtures:check": "node scripts/update-fixtures.ts --check",
     "gallery:build": "node scripts/build-gallery.ts",
     "gallery:serve": "node scripts/serve-gallery.ts",
-    "test": "playwright test"
+    "test": "playwright test",
+    "perf": "node scripts/perf.ts"
   },
   "dependencies": {
     "@glosharp/core": "*",

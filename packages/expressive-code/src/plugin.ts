@@ -11,6 +11,7 @@ import {
 import { h, s, addClassName, type Element, type ElementContent, type Parents } from '@expressive-code/core/hast'
 import { buildBaseStyles, glosharpStyleSettings } from './styles.js'
 import { buildPopupJsModule } from './client.js'
+import { popupTreeToHast, type PopupNode } from './popup-tree.js'
 import { alignLines, syncLines } from './line-sync.js'
 
 export type { GloSharpStyleSettings } from './styles.js'
@@ -96,6 +97,7 @@ export function pluginGloSharp(options: PluginGloSharpOptions = {}): ExpressiveC
   const { project, region, explicitTrigger = false, onCliError = 'throw', failOnErrors = false, ...glosharpOptions } = options
   const glosharp = createGloSharp(glosharpOptions)
   const resultCache = new WeakMap<ExpressiveCodeBlock, ProcessResult>()
+  const popupData = new WeakMap<ExpressiveCodeBlock, PopupNode[][]>()
   const reportedCliErrors = new Set<string>()
 
   function handleCliError(err: unknown, where: string, logger: Logger): void {
@@ -183,13 +185,40 @@ export function pluginGloSharp(options: PluginGloSharpOptions = {}): ExpressiveC
       annotateCode({ codeBlock }) {
         const result = resultCache.get(codeBlock)
         if (!result) return
-        annotateBlock(codeBlock.getLines(), result)
+        popupData.set(codeBlock, annotateBlock(codeBlock.getLines(), result))
+      },
+
+      postprocessRenderedBlock({ codeBlock, renderData }) {
+        const popups = popupData.get(codeBlock)
+        if (!popups || popups.length === 0) return
+        // Hover popups ship as data, built by the client on first hover. `<`
+        // is escaped so the JSON can never close the script element.
+        renderData.blockAst.children.push(h(
+          'script.glosharp-popups',
+          { type: 'application/json' },
+          JSON.stringify(popups).replace(/</g, '\\u003c'),
+        ))
       },
     },
   })
 }
 
-function annotateBlock(lines: readonly ExpressiveCodeLine[], result: ProcessResult): void {
+/** Annotates the block's lines; returns the hover popups' content, indexed by `data-glosharp-popup`. */
+function annotateBlock(lines: readonly ExpressiveCodeLine[], result: ProcessResult): PopupNode[][] {
+  // Identical popups (the same symbol hovered twice) share one entry
+  const popups: PopupNode[][] = []
+  const popupIndex = new Map<string, number>()
+  const popupFor = (hover: GloSharpHover) => {
+    const content = buildPopupContent(hover)
+    const key = JSON.stringify(content)
+    let index = popupIndex.get(key)
+    if (index === undefined) {
+      index = popups.push(content) - 1
+      popupIndex.set(key, index)
+    }
+    return index
+  }
+
   // Block content rendered after each line, collected into one wrapper per line
   const lineAnnotations = new Map<number, GloSharpLineAnnotation>()
   const lineAnnotation = (index: number) => {
@@ -210,7 +239,7 @@ function annotateBlock(lines: readonly ExpressiveCodeLine[], result: ProcessResu
       // Persistent ^? query: always-visible block below the line
       lineAnnotation(hover.line).statics.push(hover)
     } else {
-      lines[hover.line].addAnnotation(new GloSharpHoverAnnotation(hover, !tabStopAssigned))
+      lines[hover.line].addAnnotation(new GloSharpHoverAnnotation(popupFor(hover), hover, !tabStopAssigned))
       tabStopAssigned = true
     }
   }
@@ -269,6 +298,7 @@ function annotateBlock(lines: readonly ExpressiveCodeLine[], result: ProcessResu
   for (const [index, ann] of lineAnnotations) {
     lines[index].addAnnotation(ann)
   }
+  return popups
 }
 
 // VS Code Codicon symbol icons (MIT licensed)
@@ -349,19 +379,22 @@ function buildSpriteSheetHtml(): string {
 }
 
 
-function buildSymbolIcon(kind: string, prefix: string): Element {
+function buildSymbolIcon(kind: string, prefix: string): PopupNode {
   const icon = symbolIcons[kind] ?? symbolIcons['Type']!
-  return h('span.glosharp-symbol-icon', { title: prefix }, [
-    s('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 16 16', width: '14', height: '14', fill: icon.color, ariaHidden: 'true' }, [
-      s('use', { href: `#glosharp-icon-${kind in symbolIcons ? kind : 'Type'}` }),
-    ]),
-  ])
+  return ['span.glosharp-symbol-icon', { title: prefix },
+    ['svg', { viewBox: '0 0 16 16', width: '14', height: '14', fill: icon.color, 'aria-hidden': 'true' },
+      ['use', { href: `#glosharp-icon-${kind in symbolIcons ? kind : 'Type'}` }]]]
 }
 
-// Build popup content nodes (shared by hover and static annotations)
-function buildPopupContent(hover: GloSharpHover): Element[] {
+// Display-part kinds with a syntax colour (styles.ts). The rest (punctuation,
+// spaces, plain text, …) take the popup's foreground, so they're plain text.
+const COLOURED_PARTS = new Set(['keyword', 'className', 'structName', 'interfaceName', 'enumName', 'delegateName',
+  'typeParameterName', 'methodName', 'propertyName', 'fieldName', 'eventName', 'localName', 'parameterName'])
+
+// Popup content (shared by hover popups and static `^?` results)
+function buildPopupContent(hover: GloSharpHover): PopupNode[] {
   const parts = hover.parts
-  let iconNode: Element | null = null
+  let iconNode: PopupNode | null = null
   let startIdx = 0
 
   // Detect prefix pattern: "(", text, ")", " " at start of parts
@@ -374,11 +407,18 @@ function buildPopupContent(hover: GloSharpHover): Element[] {
     startIdx = 4
   }
 
-  const partNodes: ElementContent[] = parts.slice(startIdx)
-    .map((part: GloSharpDisplayPart) => h('span', { className: [`glosharp-${part.kind}`] }, part.text))
-  if (iconNode) partNodes.unshift(iconNode)
+  const partNodes: PopupNode[] = iconNode ? [iconNode] : []
+  for (const part of parts.slice(startIdx) as GloSharpDisplayPart[]) {
+    if (COLOURED_PARTS.has(part.kind)) {
+      partNodes.push([`span.glosharp-${part.kind}`, part.text])
+      continue
+    }
+    const last = partNodes.length - 1
+    if (typeof partNodes[last] === 'string') partNodes[last] += part.text
+    else partNodes.push(part.text)
+  }
 
-  const children: Element[] = [h('code.glosharp-popup-code', partNodes)]
+  const children: PopupNode[] = [['code.glosharp-popup-code', ...partNodes]]
 
   if (hover.typeAnnotations && hover.typeAnnotations.length > 0) {
     children.push(renderTypeAnnotations(hover.typeAnnotations))
@@ -390,30 +430,30 @@ function buildPopupContent(hover: GloSharpHover): Element[] {
   return children
 }
 
-function renderTypeAnnotations(annotations: GloSharpTypeAnnotation[]): Element {
-  return h('div.glosharp-popup-types', [
-    h('div.glosharp-popup-types-header', 'Types:'),
-    ...annotations.map(a => h('div.glosharp-type-annotation', [
-      h('span.glosharp-className', a.name),
+function renderTypeAnnotations(annotations: GloSharpTypeAnnotation[]): PopupNode {
+  return ['div.glosharp-popup-types',
+    ['div.glosharp-popup-types-header', 'Types:'],
+    ...annotations.map((a): PopupNode => ['div.glosharp-type-annotation',
+      ['span.glosharp-className', a.name],
       ' is ',
-      h('span.glosharp-type-expansion', a.expansion),
-    ])),
-  ])
+      ['span.glosharp-type-expansion', a.expansion],
+    ]),
+  ]
 }
 
-function docSection(className: string, label: string, content: Array<ElementContent | string>): Element {
-  return h('div', { className: [className] }, [h('div.glosharp-popup-section-label', label), ...content])
+function docSection(className: string, label: string, content: PopupNode[]): PopupNode {
+  return [`div.${className}`, ['div.glosharp-popup-section-label', label], ...content]
 }
 
-function renderDocs(docs: GloSharpDocComment): Element | null {
-  const sections: Element[] = []
+function renderDocs(docs: GloSharpDocComment): PopupNode | null {
+  const sections: PopupNode[] = []
 
   if (docs.summary) {
-    sections.push(h('div.glosharp-popup-summary', docs.summary))
+    sections.push(['div.glosharp-popup-summary', docs.summary])
   }
   if (docs.params && docs.params.length > 0) {
-    sections.push(docSection('glosharp-popup-params', 'Parameters', docs.params.map((p: GloSharpDocParam) =>
-      h('div.glosharp-popup-param', [h('span.glosharp-popup-param-name', p.name), ` — ${p.text}`]))))
+    sections.push(docSection('glosharp-popup-params', 'Parameters', docs.params.map((p: GloSharpDocParam): PopupNode =>
+      ['div.glosharp-popup-param', ['span.glosharp-popup-param-name', p.name], ` — ${p.text}`])))
   }
   if (docs.returns) {
     sections.push(docSection('glosharp-popup-returns', 'Returns', [docs.returns]))
@@ -422,14 +462,14 @@ function renderDocs(docs: GloSharpDocComment): Element | null {
     sections.push(docSection('glosharp-popup-remarks', 'Remarks', [docs.remarks]))
   }
   if (docs.examples && docs.examples.length > 0) {
-    sections.push(docSection('glosharp-popup-example', 'Examples', docs.examples.map((ex: string) => h('pre', ex))))
+    sections.push(docSection('glosharp-popup-example', 'Examples', docs.examples.map((ex: string): PopupNode => ['pre', ex])))
   }
   if (docs.exceptions && docs.exceptions.length > 0) {
-    sections.push(docSection('glosharp-popup-exceptions', 'Exceptions', docs.exceptions.map((e: GloSharpDocException) =>
-      h('div.glosharp-popup-exception', [h('span.glosharp-popup-exception-type', e.type), ` — ${e.text}`]))))
+    sections.push(docSection('glosharp-popup-exceptions', 'Exceptions', docs.exceptions.map((e: GloSharpDocException): PopupNode =>
+      ['div.glosharp-popup-exception', ['span.glosharp-popup-exception-type', e.type], ` — ${e.text}`])))
   }
 
-  return sections.length > 0 ? h('div.glosharp-popup-docs', sections) : null
+  return sections.length > 0 ? ['div.glosharp-popup-docs', ...sections] : null
 }
 
 // --- Annotations ------------------------------------------------------------
@@ -440,22 +480,23 @@ function renderDocs(docs: GloSharpDocComment): Element | null {
 // root, which strict HAST consumers (e.g. Astro 7.3's Sätteri markdown
 // processor) reject.
 
-// Hover annotation: wraps the token; the popup is shown/hidden by the client JS
+// Hover annotation: wraps the token and names its popup in the block's data;
+// the client module builds and shows the popup
 class GloSharpHoverAnnotation extends ExpressiveCodeAnnotation {
-  readonly hover: GloSharpHover
+  readonly popup: number
   readonly isTabStop: boolean
 
-  constructor(hover: GloSharpHover, isTabStop: boolean) {
+  constructor(popup: number, hover: GloSharpHover, isTabStop: boolean) {
     super({ inlineRange: { columnStart: hover.character, columnEnd: hover.character + hover.length } })
-    this.hover = hover
+    this.popup = popup
     this.isTabStop = isTabStop
   }
 
   render({ nodesToTransform }: AnnotationRenderOptions): Parents[] {
     return nodesToTransform.map((node, i) => h(
       'span.glosharp-hover',
-      { tabIndex: this.isTabStop && i === 0 ? 0 : -1 },
-      [node as ElementContent, h('div.glosharp-popup-container', buildPopupContent(this.hover))],
+      { tabIndex: this.isTabStop && i === 0 ? 0 : -1, dataGlosharpPopup: String(this.popup) },
+      [node as ElementContent],
     ))
   }
 }
@@ -530,7 +571,7 @@ function renderStatic(hover: GloSharpHover): Element {
   // Aligned under the queried column, but always leaving room for the result
   // on narrow viewports (the block content is limited to the visible width)
   return h('div.glosharp-static', { style: `margin-left: min(${hover.character}ch, max(0px, calc(100% - 32ch)))` }, [
-    h('div.glosharp-static-container', buildPopupContent(hover)),
+    h('div.glosharp-static-container', buildPopupContent(hover).map(popupTreeToHast)),
   ])
 }
 

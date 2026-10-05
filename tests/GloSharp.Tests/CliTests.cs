@@ -124,6 +124,7 @@ public class CliTests
     [Test]
     [Arguments("process")]
     [Arguments("render")]
+    [Arguments("css")]
     [Arguments("verify")]
     [Arguments("init")]
     [Arguments("compact-complog")]
@@ -137,6 +138,32 @@ public class CliTests
         await Assert.That(run.ExitCode).IsEqualTo(0);
         await Assert.That(run.Out).StartsWith($"Usage: glosharp {command}");
         await Assert.That(File.Exists(Path.Combine(Directory.GetCurrentDirectory(), ConfigLoader.ConfigFileName))).IsEqualTo(before);
+    }
+
+    // ---------- render styles ----------
+
+    [Test]
+    public async Task Render_NoStyles_LeavesTheStylesheetForCss()
+    {
+        const string code = "var greeting = \"hi\";\n";
+        var withStyles = await Run(["render", "--stdin", "--theme", "github-light"], stdin: code);
+        var withoutStyles = await Run(["render", "--stdin", "--theme", "github-light", "--no-styles"], stdin: code);
+        var css = await Run(["css", "--theme", "github-light"]);
+
+        await Assert.That(withoutStyles.ExitCode).IsEqualTo(0);
+        await Assert.That(css.ExitCode).IsEqualTo(0);
+        await Assert.That(withoutStyles.Out).DoesNotContain("<style>");
+        await Assert.That(css.Out).IsEqualTo(HtmlRenderer.GenerateStylesheet(GloSharpTheme.GetBuiltIn("github-light")!));
+        // The fragment with styles is exactly the fragment without them plus the css output.
+        await Assert.That(withStyles.Out.Replace("<style>\n" + css.Out + "</style>\n", "")).IsEqualTo(withoutStyles.Out);
+    }
+
+    [Test]
+    public async Task Css_UnknownTheme_IsUsageError()
+    {
+        var run = await Run(["css", "--theme", "solarized"]);
+        await Assert.That(run.ExitCode).IsEqualTo(2);
+        await Assert.That(run.Error).Contains("unknown theme 'solarized'");
     }
 
     // ---------- input handling ----------
