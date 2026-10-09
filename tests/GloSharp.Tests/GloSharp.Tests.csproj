@@ -16,7 +16,7 @@
 
   <ItemGroup>
     <!-- Pinned (not floating) so builds are reproducible; Renovate bumps it. -->
-    <PackageReference Include="TUnit" Version="1.72.10" />
+    <PackageReference Include="TUnit" Version="1.73.19" />
     <!-- Hang dump (CI passes the hangdump option): on a hang, report the tests in flight and write a dump (CI uploads it). -->
     <PackageReference Include="Microsoft.Testing.Extensions.HangDump" Version="2.4.1" />
   </ItemGroup>
