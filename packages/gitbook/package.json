@@ -42,7 +42,7 @@
   ],
   "devDependencies": {
     "@cloudflare/workers-types": "^5.0.0",
-    "@gitbook/api": "^0.193.0",
+    "@gitbook/api": "^0.208.0",
     "@gitbook/cli": "^0.32.0",
     "@gitbook/runtime": "^0.23.3",
     "@gitbook/tsconfig": "^0.1.2",
